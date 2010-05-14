@@ -3,13 +3,21 @@ package Beetle::Message;
 use Moose;
 use Data::UUID;
 
-my $DEFAULT_ATTEMPTS_LIMIT   = 1;
-my $DEFAULT_DELAY            = 10;
-my $DEFAULT_EXCEPTIONS_LIMIT = 0;
-my $DEFAULT_TIMEOUT          = 300;
-my $FLAG_REDUNDANT           = 1;
-my $FORMAT_VERSION           = 1;
-my $UUID                     = Data::UUID->new();
+# current message format version
+my $FORMAT_VERSION = 1;
+# flag for encoding redundant messages
+my $FLAG_REDUNDANT = 1;
+# default lifetime of messages
+my $DEFAULT_TTL = 86400;
+# forcefully abort a running handler after this many seconds.
+# can be overriden when registering a handler.
+my $DEFAULT_HANDLER_TIMEOUT = 300;
+# how many times we should try to run a handler before giving up
+my $DEFAULT_HANDLER_EXECUTION_ATTEMPTS = 1;
+# how many seconds we should wait before retrying handler execution
+my $DEFAULT_HANDLER_EXECUTION_ATTEMPTS_DELAY = 10;
+# how many exceptions should be tolerated before giving up
+my $DEFAULT_EXCEPTION_LIMIT = 0;
 
 has 'server' => (
     documentation => 'server from which the message was received',
@@ -31,8 +39,9 @@ has 'header' => (
 
 has 'uuid' => (
     documentation => 'the uuid of the message',
-    is            => 'rw',
-    isa           => 'Any',
+    is            => 'ro',
+    isa           => 'Data::UUID',
+    builder       => '_build_data_uuid',
 );
 
 has 'data' => (
@@ -60,28 +69,28 @@ has 'expires_at' => (
 );
 
 has 'timeout' => (
-    default       => $DEFAULT_TIMEOUT,
+    default       => $DEFAULT_HANDLER_TIMEOUT,
     documentation => 'how many seconds the handler is allowed to execute',
     is            => 'rw',
     isa           => 'Int',
 );
 
 has 'delay' => (
-    default       => $DEFAULT_DELAY,
+    default       => $DEFAULT_HANDLER_EXECUTION_ATTEMPTS_DELAY,
     documentation => 'how long to wait before retrying the message handler',
     is            => 'rw',
     isa           => 'Int',
 );
 
 has 'attempts_limit' => (
-    default       => $DEFAULT_ATTEMPTS_LIMIT,
+    default       => $DEFAULT_HANDLER_EXECUTION_ATTEMPTS,
     documentation => 'how many times we should try to run the handler',
     is            => 'rw',
     isa           => 'Int',
 );
 
 has 'exceptions_limit' => (
-    default       => $DEFAULT_EXCEPTIONS_LIMIT,
+    default       => $DEFAULT_EXCEPTION_LIMIT,
     documentation => 'how many exceptions we should tolerate before giving up',
     is            => 'rw',
     isa           => 'Int',
@@ -114,7 +123,7 @@ sub publishing_options {
 
     # TODO: <plu> implement this
     # opts = opts.slice(*PUBLISHING_KEYS)
-    $args{':message_id'} = generate_uuid();
+    $args{':message_id'} = generate_uuid()->create_str();
     $args{':headers'}    = {
         ':format_version' => $FORMAT_VERSION,
         ':flags'          => $flags,
@@ -125,5 +134,12 @@ sub publishing_options {
 }
 
 sub generate_uuid {
-    return $UUID->create_str();
+    my ($self) = @_;
+    return $self->uuid;
 }
+
+sub _build_data_uuid {
+    return Data::UUID->new();
+}
+
+1;
