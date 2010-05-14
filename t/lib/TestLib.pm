@@ -1,5 +1,7 @@
 package TestLib;
 
+use Beetle::Message;
+
 # def header_with_params(opts = {})
 #   beetle_headers = Beetle::Message.publishing_options(opts)
 #   header = mock("header")
@@ -8,7 +10,8 @@ package TestLib;
 # end
 
 sub header_with_params {
-    
+    my (%opts) = @_;
+    my $beetle_headers = Beetle::Message::publishing_options(%opts);
 }
 
 1;

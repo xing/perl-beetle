@@ -19,6 +19,8 @@ my $DEFAULT_HANDLER_EXECUTION_ATTEMPTS_DELAY = 10;
 # how many exceptions should be tolerated before giving up
 my $DEFAULT_EXCEPTION_LIMIT = 0;
 
+my $UUID = Data::UUID->new();
+
 has 'server' => (
     documentation => 'server from which the message was received',
     is            => 'rw',
@@ -50,7 +52,6 @@ has 'uuid' => (
     documentation => 'the uuid of the message',
     is            => 'ro',
     isa           => 'Data::UUID',
-    builder       => '_build_data_uuid',
 );
 
 has 'data' => (
@@ -144,8 +145,7 @@ sub publishing_options {
 }
 
 sub generate_uuid {
-    my ($self) = @_;
-    return $self->uuid;
+    return $UUID;
 }
 
 # def decode #:nodoc:
@@ -178,9 +178,4 @@ sub _decode {
 sub _publishing_options {
 
 }
-
-sub _build_data_uuid {
-    return Data::UUID->new();
-}
-
 1;
