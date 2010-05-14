@@ -4,7 +4,7 @@ use Moose;
 use Data::UUID;
 
 # current message format version
-my $FORMAT_VERSION = 1;
+our $FORMAT_VERSION = 1;
 # flag for encoding redundant messages
 my $FLAG_REDUNDANT = 1;
 # default lifetime of messages
@@ -29,12 +29,21 @@ has 'queue' => (
     documentation => 'name of the queue on which the message was received',
     is            => 'rw',
     isa           => 'Any',
+    required      => 1,
 );
 
 has 'header' => (
     documentation => 'the AMQP header received with the message',
     is            => 'rw',
     isa           => 'Any',
+    required      => 1,
+);
+
+has 'body'  => (
+    documentation => '',
+    is            => 'rw',
+    isa           => 'Any',
+    required      => 1,
 );
 
 has 'uuid' => (
@@ -111,6 +120,7 @@ has 'handler_result' => (
 sub BUILD {
     my ($self) = @_;
     $self->{attempts_limit} = $self->exceptions_limit + 1 if $self->attempts_limit <= $self->exceptions_limit;
+    _decode()
 }
 
 sub publishing_options {
@@ -136,6 +146,37 @@ sub publishing_options {
 sub generate_uuid {
     my ($self) = @_;
     return $self->uuid;
+}
+
+# def decode #:nodoc:
+#   amqp_headers = header.properties
+#   @uuid = amqp_headers[:message_id]
+#   headers = amqp_headers[:headers]
+#   @format_version = headers[:format_version].to_i
+#   @flags = headers[:flags].to_i
+#   @expires_at = headers[:expires_at].to_i
+# end
+# extracts various values form the AMQP header properties
+sub _decode {
+
+}
+
+# def self.publishing_options(opts = {}) #:nodoc:
+#   flags = 0
+#   flags |= FLAG_REDUNDANT if opts[:redundant]
+#   expires_at = now + (opts[:ttl] || DEFAULT_TTL)
+#   opts = opts.slice(*PUBLISHING_KEYS)
+#   opts[:message_id] = generate_uuid.to_s
+#   opts[:headers] = {
+#     :format_version => FORMAT_VERSION.to_s,
+#     :flags => flags.to_s,
+#     :expires_at => expires_at.to_s
+#   }
+#   opts
+# end
+# build hash with options for the publisher
+sub _publishing_options {
+
 }
 
 sub _build_data_uuid {
