@@ -1,6 +1,7 @@
 package    # hide from PAUSE
   TestLib;
 
+use Moose;
 use Beetle::Message;
 use TestLib::Header;
 
