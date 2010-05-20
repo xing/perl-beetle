@@ -181,21 +181,4 @@ sub _decode {
     $self->{expires_at}     = $headers->{':expires_at'};
 }
 
-# def self.publishing_options(opts = {}) #:nodoc:
-#   flags = 0
-#   flags |= FLAG_REDUNDANT if opts[:redundant]
-#   expires_at = now + (opts[:ttl] || DEFAULT_TTL)
-#   opts = opts.slice(*PUBLISHING_KEYS)
-#   opts[:message_id] = generate_uuid.to_s
-#   opts[:headers] = {
-#     :format_version => FORMAT_VERSION.to_s,
-#     :flags => flags.to_s,
-#     :expires_at => expires_at.to_s
-#   }
-#   opts
-# end
-# build hash with options for the publisher
-sub _publishing_options {
-
-}
 1;
