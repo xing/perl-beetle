@@ -1,11 +1,10 @@
 package Beetle;
 
-use 5.006000;
+use Moose;
 
-our $VERSION= '0.01_01';
+our $VERSION = '0.01_01';
 
 1;
-__END__
 
 =head1 NAME
 
