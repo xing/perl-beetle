@@ -152,6 +152,14 @@ sub generate_uuid {
     return $UUID;
 }
 
+# def redundant?
+#   @flags & FLAG_REDUNDANT == FLAG_REDUNDANT
+# end
+sub redundant {
+    my ($self) = @_;
+    return $self->flags & $FLAG_REDUNDANT ? 1 : 0;
+}
+
 # def decode #:nodoc:
 #   amqp_headers = header.properties
 #   @uuid = amqp_headers[:message_id]
