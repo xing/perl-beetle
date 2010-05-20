@@ -18,6 +18,8 @@ my $DEFAULT_HANDLER_EXECUTION_ATTEMPTS = 1;
 my $DEFAULT_HANDLER_EXECUTION_ATTEMPTS_DELAY = 10;
 # how many exceptions should be tolerated before giving up
 my $DEFAULT_EXCEPTION_LIMIT = 0;
+# AMQP options for message publishing
+my @PUBLISHING_KEYS = (':key', ':mandatory', ':immediate', ':persistent', ':reply_to');
 
 my $UUID = Data::UUID->new();
 
@@ -132,8 +134,10 @@ sub publishing_options {
 
     my $expires_at = time + $DEFAULT_TTL;
 
-    # TODO: <plu> implement this
-    # opts = opts.slice(*PUBLISHING_KEYS)
+    foreach my $key (keys %args) {
+        delete $args{$key} unless grep $_ eq $key, @PUBLISHING_KEYS;
+    }
+
     $args{':message_id'} = generate_uuid()->create_str();
     $args{':headers'}    = {
         ':format_version' => $FORMAT_VERSION,
