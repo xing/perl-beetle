@@ -14,7 +14,7 @@ use TestLib::Header;
 sub header_with_params {
     my (%opts) = @_;
 
-    my $beetle_headers = Beetle::Message::publishing_options(%opts);
+    my $beetle_headers = Beetle::Message->publishing_options(%opts);
 
     return TestLib::Header->new( properties => $beetle_headers );
 }
