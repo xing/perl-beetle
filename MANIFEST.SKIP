@@ -1,0 +1,44 @@
+# Avoid version control files.
+\bRCS\b
+\bCVS\b
+,v$
+\B\.svn\b
+\B\.git\b
+\B\.gitignore\b
+
+# Avoid Makemaker generated and utility files.
+\bMakefile$
+\bblib
+\bMakeMaker-\d
+\bpm_to_blib$
+\bblibdirs$
+^MANIFEST\.SKIP$
+\bMakefile.old$
+
+# Avoid temp and backup files.
+~$
+\.tmp$
+\.old$
+\.bak$
+\..*?\.sw[po]$
+\#$
+\b\.#
+
+# Avoid OS X finder files
+\.DS_Store$
+
+# Don't ship the last dist we built
+\.tar\.gz$
+
+# Skip maint stuff
+^maint/
+
+# Skip generated files
+^junit_output\.xml$
+^sloccount\.sc$
+^.*\.log$
+^Beetle-.*
+
+^\.shipit
+^xt.*
+^benchmark.*
