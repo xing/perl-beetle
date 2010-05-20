@@ -21,8 +21,6 @@ my $DEFAULT_EXCEPTION_LIMIT = 0;
 # AMQP options for message publishing
 my @PUBLISHING_KEYS = (':key', ':mandatory', ':immediate', ':persistent', ':reply_to');
 
-my $UUID = Data::UUID->new();
-
 has 'server' => (
     documentation => 'server from which the message was received',
     is            => 'rw',
@@ -140,7 +138,7 @@ sub publishing_options {
         delete $args{$key} unless grep $_ eq $key, @PUBLISHING_KEYS;
     }
 
-    $args{':message_id'} = generate_uuid()->create_str();
+    $args{':message_id'} = generate_uuid();
     $args{':headers'}    = {
         ':format_version' => $FORMAT_VERSION,
         ':flags'          => $flags,
@@ -151,7 +149,7 @@ sub publishing_options {
 }
 
 sub generate_uuid {
-    return $UUID;
+    return Data::UUID->new->create_str;
 }
 
 # def redundant?

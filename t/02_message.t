@@ -1,4 +1,4 @@
-use Test::More tests => 5;
+use Test::More tests => 15;
 
 BEGIN {
   use_ok('Beetle::Message');
@@ -35,3 +35,72 @@ use TestLib;
     is($m->expires_at, 1 + $Beetle::Message::DEFAULT_TTL, 'encoding a message should set the default expiration date if none is provided in the call to encode');
 }
 
+{
+    my $key = 'fookey';
+    my $o = Beetle::Message->publishing_options(
+        ':immediate'  => 1,
+        ':key'        => $key,
+        ':mandatory'  => 1,
+        ':persistent' => 1,
+        ':redundant'  => 1,
+    );
+    is(
+        exists( $o->{':mandatory'} ) => 1,
+        'the publishing options should include both the beetle headers and the amqp params #1'
+    );
+    is(
+        exists( $o->{':immediate'} ) => 1,
+        'the publishing options should include both the beetle headers and the amqp params #2'
+    );
+    is(
+        exists( $o->{':persistent'} ) => 1,
+        'the publishing options should include both the beetle headers and the amqp params #3'
+    );
+    is(
+        $o->{':key'} => $key,
+        'the publishing options should include both the beetle headers and the amqp params #4'
+    );
+    is(
+        $o->{':headers'}{':flags'} => 1,
+        'the publishing options should include both the beetle headers and the amqp params #5'
+    );
+}
+
+{
+    my $o = Beetle::Message->publishing_options(
+        ':redundant' => 1,
+        ':mandatory' => 1,
+        ':bogus'     => 1,
+    );
+    is(
+        defined( $o->{':mandatory'} ) => 1,
+        'the publishing options should silently ignore other parameters than the valid publishing keys #1'
+    );
+    isnt(
+        exists( $o->{':bogus'} ) => 1,
+        'the publishing options should silently ignore other parameters than the valid publishing keys #2'
+    );
+    is(
+        $o->{':headers'}{':flags'} => 1,
+        'the publishing options should silently ignore other parameters than the valid publishing keys #3'
+    );
+}
+
+{
+    my $u1 = Beetle::Message->generate_uuid;
+    my $u2 = Beetle::Message->generate_uuid;
+    isnt( $u1 => $u2, 'generate_uuid creates a new UUID on each call' );    # TODO: <plu> not sure if that is correct
+}
+
+{
+    my $uuid = 'wadduyouwantfromme';
+    no warnings 'redefine';
+    *Beetle::Message::generate_uuid = sub { return $uuid; };
+    my $o = Beetle::Message->publishing_options(
+        ':redundant' => 1,
+    );
+    is(
+        $o->{':message_id'} => $uuid,
+        'the publishing options for a redundant message should include the uuid'
+    );
+}
