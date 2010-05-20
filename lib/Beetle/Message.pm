@@ -8,7 +8,7 @@ our $FORMAT_VERSION = 1;
 # flag for encoding redundant messages
 my $FLAG_REDUNDANT = 1;
 # default lifetime of messages
-my $DEFAULT_TTL = 86400;
+our $DEFAULT_TTL = 86400;
 # forcefully abort a running handler after this many seconds.
 # can be overriden when registering a handler.
 my $DEFAULT_HANDLER_TIMEOUT = 300;
@@ -132,7 +132,9 @@ sub publishing_options {
     my $flags = 0;
     $flags |= $FLAG_REDUNDANT if $args{':redundant'};
 
-    my $expires_at = time + $DEFAULT_TTL;
+    $args{':ttl'} ||= $DEFAULT_TTL;
+
+    my $expires_at = now() + $args{':ttl'};
 
     foreach my $key (keys %args) {
         delete $args{$key} unless grep $_ eq $key, @PUBLISHING_KEYS;
@@ -179,6 +181,13 @@ sub _decode {
     $self->{format_version} = $headers->{':format_version'};
     $self->{flags}          = $headers->{':flags'};
     $self->{expires_at}     = $headers->{':expires_at'};
+}
+
+# def now #:nodoc:
+#   Time.now.to_i
+# end
+sub now {
+    return time(); # TODO: <plu> Hmmm... timezones'n'shit?!
 }
 
 1;
