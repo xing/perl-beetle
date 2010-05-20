@@ -123,7 +123,7 @@ has 'handler_result' => (
 sub BUILD {
     my ($self) = @_;
     $self->{attempts_limit} = $self->exceptions_limit + 1 if $self->attempts_limit <= $self->exceptions_limit;
-    _decode()
+    $self->_decode;
 }
 
 sub publishing_options {
@@ -162,7 +162,15 @@ sub generate_uuid {
 # end
 # extracts various values form the AMQP header properties
 sub _decode {
+    my ($self) = @_;
 
+    my $amqp_headers = $self->header->properties;
+    my $headers      = $amqp_headers->{':headers'};
+
+    $self->{uuid}           = $amqp_headers->{':message_id'};
+    $self->{format_version} = $headers->{':format_version'};
+    $self->{flags}          = $headers->{':flags'};
+    $self->{expires_at}     = $headers->{':expires_at'};
 }
 
 # def self.publishing_options(opts = {}) #:nodoc:
