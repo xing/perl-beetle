@@ -5,9 +5,8 @@ all_from 'lib/Beetle.pm';
 no_index directory => 'examples';
 
 requires(
-    'AnyEvent::Redis' => '0.09',
-    'Data::UUID'      => '1.203',
-    'Moose'           => '0.92',
+    'Data::UUID' => '1.203',
+    'Moose'      => '0.92',
 );
 
 test_requires(
