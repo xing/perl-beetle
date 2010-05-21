@@ -44,21 +44,31 @@ has '_redis' => (
 # list of key suffixes to use for storing values in Redis.
 my @KEY_SUFFIXES = ( 'status', 'ack_count', 'timeout', 'delay', 'attempts', 'exceptions', 'mutex', 'expires' );
 
+# build a Redis key out of a message id and a given suffix
 sub key {
     my ( $package, $msg_id, $suffix ) = @_;
     return "${msg_id}:${suffix}";
 }
 
+# list of keys which potentially exist in Redis for the given message id
 sub keys {
     my ( $package, $msg_id ) = @_;
     return map { $package->key( $msg_id, $_ ) } @KEY_SUFFIXES;
 }
 
+# get the Redis instance
 sub redis {
     my ($self) = @_;
     return $self->_redis if $self->_has_redis;
     $self->{_redis} ||= $self->_find_redis_master;
     return $self->_redis;
+}
+
+# extract message id from a given Redis key
+sub msg_id {
+    my ( $package, $key ) = @_;
+    my ($msg_id) = $key =~ /^(msgid:[^:]*:[-0-9a-f]*):.*$/;
+    return $msg_id;
 }
 
 sub _build_redis_instances {
