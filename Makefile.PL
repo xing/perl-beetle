@@ -13,6 +13,7 @@ test_requires(
     'Test::Exception'  => 0,
     'Test::MockObject' => 0,
     'Test::More'       => 0,
+    'Test::TCP'        => 0,
 );
 
 my @tests = ('t/*.t');
