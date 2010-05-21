@@ -1,12 +1,15 @@
-use Test::More tests => 9;
+use Test::More tests => 12;
 
 BEGIN {
     use_ok('Beetle::DeduplicationStore');
 }
 
+use strict;
+use warnings;
 use FindBin qw( $Bin );
 use lib ( "$Bin/lib", "$Bin/../lib" );
 use TestLib;
+use Test::MockObject;
 
 {
     my @keys = Beetle::DeduplicationStore->keys('someid');
@@ -23,11 +26,45 @@ use TestLib;
 {
     my $store = Beetle::DeduplicationStore->new( hosts => 'localhost:1, localhost:2' );
     my $instances = $store->redis_instances;
-    is( scalar(@$instances), 2, 'got two Redis instances' );
-    for ( 1 .. 2 ) {
-        my $instance = shift @$instances;
-        isa_ok( $instance, 'AnyEvent::Redis' );
-        is( $instance->{host}, 'localhost', "Instance no. $_ got correct host" );    # TODO:
-        is( $instance->{port}, $_,          "Instance no. $_ got correct port" );
-    }
+
+    is( scalar(@$instances), 2, 'redis instances should be created for all servers' );
+
+    isa_ok( $instances->[0], 'AnyEvent::Redis' );
+    is( $instances->[0]->{host}, 'localhost', "Instance no. 1 got correct host" );
+    is( $instances->[0]->{port}, 1,           "Instance no. 1 got correct port" );
+
+    isa_ok( $instances->[1], 'AnyEvent::Redis' );
+    is( $instances->[1]->{host}, 'localhost', "Instance no. 2 got correct host" );
+    is( $instances->[1]->{port}, 2,           "Instance no. 2 got correct port" );
+
+    # Add mockups of AnyEvent::Redis instances
+    $instances->[0] = _create_redis_mockup('slave');
+    $instances->[1] = _create_redis_mockup('master');
+
+    is( $instances->[0]->info->recv->{role}, 'slave', 'first instance is slave');
+    is( $instances->[1]->info->recv->{role}, 'master', 'second instance is master');
+
+    is($store->redis, $instances->[1], 'searching a redis master should find one if there is one');
+
+    # test "" do
+    #   instances = @store.redis_instances
+    #   instances.first.expects(:info).returns(:role => "slave")
+    #   instances.second.expects(:info).returns(:role => "master")
+    #   assert_equal instances.second, @store.redis
+    # end
+}
+
+sub _create_redis_mockup {
+    my ($type) = @_;
+    Test::MockObject->new->mock(
+        'info' => sub {
+            my $o = Test::MockObject->new();
+            $o->mock(
+                'recv' => sub {
+                    return { role => $type };
+                }
+            );
+            return $o;
+        }
+    );
 }

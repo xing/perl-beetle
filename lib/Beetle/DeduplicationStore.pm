@@ -34,6 +34,13 @@ has 'redis_instances' => (
     lazy    => 1,
 );
 
+has 'redis' => (
+    builder => '_build_redis',
+    is      => 'ro',
+    isa     => 'Any', # TODO: <plu> this should be AnyEvent::Redis, but that does not work with the mockups in the tests
+    lazy    => 1,
+);
+
 # list of key suffixes to use for storing values in Redis.
 my @KEY_SUFFIXES = ( 'status', 'ack_count', 'timeout', 'delay', 'attempts', 'exceptions', 'mutex', 'expires' );
 
@@ -64,6 +71,22 @@ sub _build_redis_instances {
     }
 
     return \@instances;
+}
+
+sub _build_redis {
+    my ($self) = @_;
+    my @masters = ();
+    foreach my $redis ( @{ $self->redis_instances } ) {
+        my $role = '';
+        eval { $role = $redis->info->recv->{role}; };
+        if ($@) {
+            warn $@;    # TODO: <plu> add proper error logging here
+        }
+        push @masters, $redis if $role eq 'master';
+    }
+    die "unable to determine a new master redis instance" unless scalar @masters;
+    die "more than one redis master instances" if scalar @masters > 1;
+    return $masters[0];
 }
 
 1;
