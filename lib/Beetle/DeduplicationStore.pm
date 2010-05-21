@@ -71,6 +71,74 @@ sub msg_id {
     return $msg_id;
 }
 
+# unconditionally store a key <tt>value></tt> with given <tt>suffix</tt> for given <tt>msg_id</tt>.
+sub set { ## no critic
+    my ( $self, $msg_id, $suffix, $value ) = @_;
+    my $key = $self->key( $msg_id, $suffix );
+    $self->with_failover( sub { $self->redis->set( $key => $value ) } );
+}
+
+# store a key <tt>value></tt> with given <tt>suffix</tt> for given <tt>msg_id</tt> if it doesn't exists yet.
+sub setnx {
+    my ( $self, $msg_id, $suffix, $value ) = @_;
+    my $key = $self->key( $msg_id, $suffix );
+    $self->with_failover( sub { $self->redis->setnx( $key => $value ) } );
+}
+
+# store some key/value pairs if none of the given keys exist.
+sub msetnx {
+    my ( $self, $msg_id, $values ) = @_;
+    my %result = ();
+    foreach my $key ( CORE::keys %$values ) {
+        my $value = $values->{$key};
+        $key = $self->key( $msg_id, $key );
+        $result{$key} = $value;
+    }
+    $self->with_failover( sub { $self->redis->msetnx( \%result ) } );
+}
+
+# increment counter for key with given <tt>suffix</tt> for given <tt>msg_id</tt>. returns an integer.
+sub incr {
+    my ( $self, $msg_id, $suffix ) = @_;
+    my $key = $self->key( $msg_id, $suffix );
+    $self->with_failover( sub { $self->redis->incr($key) } );
+}
+
+# retrieve the value with given <tt>suffix</tt> for given <tt>msg_id</tt>. returns a string.
+sub get {
+    my ( $self, $msg_id, $suffix ) = @_;
+    my $key = $self->key( $msg_id, $suffix );
+    $self->with_failover( sub { $self->redis->get($key) } );
+}
+
+# delete key with given <tt>suffix</tt> for given <tt>msg_id</tt>.
+sub del {
+    my ( $self, $msg_id, $suffix ) = @_;
+    my $key = $self->key( $msg_id, $suffix );
+    $self->with_failover( sub { $self->redis->del($key) } );
+}
+
+# delete all keys associated with the given <tt>msg_id</tt>.
+sub del_keys {
+    my ( $self, $msg_id ) = @_;
+    my $keys = $self->keys($msg_id);
+    $self->with_failover( sub { $self->redis->del($keys) } );
+}
+
+# check whether key with given suffix exists for a given <tt>msg_id</tt>.
+sub exists {
+    my ( $self, $msg_id, $suffix ) = @_;
+    my $key = $self->key( $msg_id, $suffix );
+    $self->with_failover( sub { $self->redis->exists($key) } );
+}
+
+sub with_failover {
+    my ( $self, $code ) = @_;
+
+    # TODO: <plu> implement this!
+    $code->();
+}
+
 sub _build_redis_instances {
     my ($self) = @_;
 
