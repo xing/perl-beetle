@@ -34,11 +34,11 @@ has 'redis_instances' => (
     lazy    => 1,
 );
 
-has 'redis' => (
-    builder => '_build_redis',
-    is      => 'ro',
-    isa  => 'Any',    # TODO: <plu> this should be AnyEvent::Redis, but that does not work with the mockups in the tests
-    lazy => 1,
+has '_redis' => (
+    clearer   => '_clear_redis',
+    is        => 'ro',
+    isa       => 'Any',
+    predicate => '_has_redis',
 );
 
 # list of key suffixes to use for storing values in Redis.
@@ -52,6 +52,13 @@ sub key {
 sub keys {
     my ( $package, $msg_id ) = @_;
     return map { $package->key( $msg_id, $_ ) } @KEY_SUFFIXES;
+}
+
+sub redis {
+    my ($self) = @_;
+    return $self->_redis if $self->_has_redis;
+    $self->{_redis} ||= $self->_find_redis_master;
+    return $self->_redis;
 }
 
 sub _build_redis_instances {
@@ -73,7 +80,7 @@ sub _build_redis_instances {
     return \@instances;
 }
 
-sub _build_redis {
+sub _find_redis_master {
     my ($self) = @_;
     my @masters = ();
     foreach my $redis ( @{ $self->redis_instances } ) {
