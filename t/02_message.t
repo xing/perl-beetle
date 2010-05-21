@@ -4,6 +4,8 @@ BEGIN {
   use_ok('Beetle::Message');
 }
 
+use strict;
+use warnings;
 use FindBin qw( $Bin );
 use lib ("$Bin/lib", "$Bin/../lib");
 use TestLib;
