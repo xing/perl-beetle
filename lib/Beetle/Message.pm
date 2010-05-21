@@ -1,5 +1,9 @@
 package Beetle::Message;
 
+# TODO: <plu> fix 'isa' of all attributes
+# TODO: <plu> not sure if we got this :colon implementation right since
+#             this seems to be a Ruby singleton string
+
 use Moose;
 use Data::UUID;
 
