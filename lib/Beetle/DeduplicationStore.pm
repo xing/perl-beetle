@@ -13,7 +13,7 @@ package Beetle::DeduplicationStore;
 # It also provides a method to garbage collect keys for expired messages.
 
 use Moose;
-use AnyEvent::Redis;
+use Beetle::Redis;
 
 has 'hosts' => (
     default => 'localhost:6379',
@@ -30,7 +30,7 @@ has 'db' => (
 has 'redis_instances' => (
     builder => '_build_redis_instances',
     is      => 'ro',
-    isa     => 'ArrayRef[AnyEvent::Redis]',
+    isa     => 'ArrayRef[Beetle::Redis]',
     lazy    => 1,
 );
 
@@ -145,13 +145,7 @@ sub _build_redis_instances {
     my @instances = ();
 
     foreach my $server ( split /[ ,]+/, $self->hosts ) {
-        my ( $host, $port ) = split /:/, $server;
-        my $instance = AnyEvent::Redis->new(
-            host => $host,
-            port => $port,
-
-            # on_error => sub { warn @_ }, # TODO: <plu> do we need that?
-        );
+        my $instance = Beetle::Redis->new( server => $server );
         push @instances, $instance;
     }
 
@@ -163,9 +157,8 @@ sub _find_redis_master {
     my @masters = ();
     foreach my $redis ( @{ $self->redis_instances } ) {
         my $role = '';
-        eval { $role = $redis->info->recv->{role}; };
+        eval { $role = $redis->info->{role}; };
         if ($@) {
-
             # TODO: <plu> add proper error logging here
         }
         else {

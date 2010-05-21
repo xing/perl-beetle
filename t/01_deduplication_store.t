@@ -1,4 +1,4 @@
-use Test::More tests => 15;
+use Test::More tests => 13;
 
 BEGIN {
     use_ok('Beetle::DeduplicationStore');
@@ -30,39 +30,37 @@ use Test::Exception;
 
     is( scalar(@$instances), 2, 'redis instances should be created for all servers' );
 
-    isa_ok( $instances->[0], 'AnyEvent::Redis' );
-    is( $instances->[0]->{host}, 'localhost', "Instance no. 1 got correct host" );
-    is( $instances->[0]->{port}, 1,           "Instance no. 1 got correct port" );
+    isa_ok( $instances->[0], 'Beetle::Redis' );
+    is( $instances->[0]->{server}, 'localhost:1', "Instance no. 1 got correct host:port" );
 
-    isa_ok( $instances->[1], 'AnyEvent::Redis' );
-    is( $instances->[1]->{host}, 'localhost', "Instance no. 2 got correct host" );
-    is( $instances->[1]->{port}, 2,           "Instance no. 2 got correct port" );
+    isa_ok( $instances->[1], 'Beetle::Redis' );
+    is( $instances->[1]->{server}, 'localhost:2', "Instance no. 2 got correct host:port" );
 
-    # Add mockups of AnyEvent::Redis instances
+    # Add mockups of Beetle::Redis instances
     $instances->[0] = _create_redis_mockup('slave');
     $instances->[1] = _create_redis_mockup('master');
 
-    is( $instances->[0]->info->recv->{role}, 'slave',  'first instance is slave' );
-    is( $instances->[1]->info->recv->{role}, 'master', 'second instance is master' );
+    is( $instances->[0]->info->{role}, 'slave',  'first instance is slave' );
+    is( $instances->[1]->info->{role}, 'master', 'second instance is master' );
 }
 
 {
     my $store = Beetle::DeduplicationStore->new( hosts => 'localhost:1, localhost:2' );
     my $instances = $store->redis_instances;
 
-    # Add mockups of AnyEvent::Redis instances
+    # Add mockups of Beetle::Redis instances
     $instances->[0] = _create_redis_mockup( 'slave', sub { die "murks"; } );
     $instances->[1] = _create_redis_mockup('master');
 
     is( $store->redis, $instances->[1], 'searching a redis master should find one even if one cannot be accessed' );
-    is( $instances->[1]->info->recv->{role}, 'master', 'second instance is master' );
+    is( $instances->[1]->info->{role}, 'master', 'second instance is master' );
 }
 
 {
     my $store = Beetle::DeduplicationStore->new( hosts => 'localhost:1, localhost:2' );
     my $instances = $store->redis_instances;
 
-    # Add mockups of AnyEvent::Redis instances
+    # Add mockups of Beetle::Redis instances
     $instances->[0] = _create_redis_mockup('slave');
     $instances->[1] = _create_redis_mockup('slave');
 
@@ -75,7 +73,7 @@ use Test::Exception;
     my $store = Beetle::DeduplicationStore->new( hosts => 'localhost:1, localhost:2' );
     my $instances = $store->redis_instances;
 
-    # Add mockups of AnyEvent::Redis instances
+    # Add mockups of Beetle::Redis instances
     $instances->[0] = _create_redis_mockup('master');
     $instances->[1] = _create_redis_mockup('master');
 
@@ -88,11 +86,7 @@ sub _create_redis_mockup {
     my ( $type, $info_sub ) = @_;
 
     $info_sub ||= sub {
-        return Test::MockObject->new->mock(
-            'recv' => sub {
-                return { role => $type };
-            }
-        );
+        return { role => $type };
     };
 
     return Test::MockObject->new->mock( 'info' => $info_sub );
