@@ -10,7 +10,10 @@ requires(
     'Moose'           => '0.92',
 );
 
-test_requires( 'Test::More' => 0, );
+test_requires(
+    'Test::MockObject' => 0,
+    'Test::More'       => 0,
+);
 
 my @tests = ('t/*.t');
 
