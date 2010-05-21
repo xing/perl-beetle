@@ -37,8 +37,8 @@ has 'redis_instances' => (
 has 'redis' => (
     builder => '_build_redis',
     is      => 'ro',
-    isa     => 'Any', # TODO: <plu> this should be AnyEvent::Redis, but that does not work with the mockups in the tests
-    lazy    => 1,
+    isa  => 'Any',    # TODO: <plu> this should be AnyEvent::Redis, but that does not work with the mockups in the tests
+    lazy => 1,
 );
 
 # list of key suffixes to use for storing values in Redis.
@@ -80,9 +80,12 @@ sub _build_redis {
         my $role = '';
         eval { $role = $redis->info->recv->{role}; };
         if ($@) {
-            warn $@;    # TODO: <plu> add proper error logging here
+
+            # TODO: <plu> add proper error logging here
         }
-        push @masters, $redis if $role eq 'master';
+        else {
+            push @masters, $redis if $role eq 'master';
+        }
     }
     die "unable to determine a new master redis instance" unless scalar @masters;
     die "more than one redis master instances" if scalar @masters > 1;

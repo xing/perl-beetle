@@ -1,4 +1,4 @@
-use Test::More tests => 12;
+use Test::More tests => 15;
 
 BEGIN {
     use_ok('Beetle::DeduplicationStore');
@@ -10,6 +10,7 @@ use FindBin qw( $Bin );
 use lib ( "$Bin/lib", "$Bin/../lib" );
 use TestLib;
 use Test::MockObject;
+use Test::Exception;
 
 {
     my @keys = Beetle::DeduplicationStore->keys('someid');
@@ -43,21 +44,56 @@ use Test::MockObject;
 
     is( $instances->[0]->info->recv->{role}, 'slave',  'first instance is slave' );
     is( $instances->[1]->info->recv->{role}, 'master', 'second instance is master' );
+}
 
-    is( $store->redis, $instances->[1], 'searching a redis master should find one if there is one' );
+{
+    my $store = Beetle::DeduplicationStore->new( hosts => 'localhost:1, localhost:2' );
+    my $instances = $store->redis_instances;
 
+    # Add mockups of AnyEvent::Redis instances
+    $instances->[0] = _create_redis_mockup( 'slave', sub { die "murks"; } );
+    $instances->[1] = _create_redis_mockup('master');
+
+    is( $store->redis, $instances->[1], 'searching a redis master should find one even if one cannot be accessed' );
+    is( $instances->[1]->info->recv->{role}, 'master', 'second instance is master' );
+}
+
+{
+    my $store = Beetle::DeduplicationStore->new( hosts => 'localhost:1, localhost:2' );
+    my $instances = $store->redis_instances;
+
+    # Add mockups of AnyEvent::Redis instances
+    $instances->[0] = _create_redis_mockup('slave');
+    $instances->[1] = _create_redis_mockup('slave');
+
+    throws_ok { $store->redis }
+    qr/unable to determine a new master redis instance/,
+      'searching a redis master should raise an exception if there is none';
+}
+
+{
+    my $store = Beetle::DeduplicationStore->new( hosts => 'localhost:1, localhost:2' );
+    my $instances = $store->redis_instances;
+
+    # Add mockups of AnyEvent::Redis instances
+    $instances->[0] = _create_redis_mockup('master');
+    $instances->[1] = _create_redis_mockup('master');
+
+    throws_ok { $store->redis }
+    qr/more than one redis master instances/,
+      'searching a redis master should raise an exception if there is more than one';
 }
 
 sub _create_redis_mockup {
-    my ( $type, $sub ) = @_;
+    my ( $type, $info_sub ) = @_;
 
-    $sub ||= sub {
-        return { role => $type };
+    $info_sub ||= sub {
+        return Test::MockObject->new->mock(
+            'recv' => sub {
+                return { role => $type };
+            }
+        );
     };
 
-    return Test::MockObject->new->mock(
-        'info' => sub {
-            return Test::MockObject->new->mock( 'recv' => $sub );
-        }
-    );
+    return Test::MockObject->new->mock( 'info' => $info_sub );
 }
