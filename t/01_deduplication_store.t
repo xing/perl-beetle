@@ -41,30 +41,23 @@ use Test::MockObject;
     $instances->[0] = _create_redis_mockup('slave');
     $instances->[1] = _create_redis_mockup('master');
 
-    is( $instances->[0]->info->recv->{role}, 'slave', 'first instance is slave');
-    is( $instances->[1]->info->recv->{role}, 'master', 'second instance is master');
+    is( $instances->[0]->info->recv->{role}, 'slave',  'first instance is slave' );
+    is( $instances->[1]->info->recv->{role}, 'master', 'second instance is master' );
 
-    is($store->redis, $instances->[1], 'searching a redis master should find one if there is one');
+    is( $store->redis, $instances->[1], 'searching a redis master should find one if there is one' );
 
-    # test "" do
-    #   instances = @store.redis_instances
-    #   instances.first.expects(:info).returns(:role => "slave")
-    #   instances.second.expects(:info).returns(:role => "master")
-    #   assert_equal instances.second, @store.redis
-    # end
 }
 
 sub _create_redis_mockup {
-    my ($type) = @_;
-    Test::MockObject->new->mock(
+    my ( $type, $sub ) = @_;
+
+    $sub ||= sub {
+        return { role => $type };
+    };
+
+    return Test::MockObject->new->mock(
         'info' => sub {
-            my $o = Test::MockObject->new();
-            $o->mock(
-                'recv' => sub {
-                    return { role => $type };
-                }
-            );
-            return $o;
+            return Test::MockObject->new->mock( 'recv' => $sub );
         }
     );
 }
