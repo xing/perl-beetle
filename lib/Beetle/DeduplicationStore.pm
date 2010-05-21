@@ -72,7 +72,7 @@ sub msg_id {
 }
 
 # unconditionally store a key <tt>value></tt> with given <tt>suffix</tt> for given <tt>msg_id</tt>.
-sub set { ## no critic
+sub set {    ## no critic
     my ( $self, $msg_id, $suffix, $value ) = @_;
     my $key = $self->key( $msg_id, $suffix );
     $self->with_failover( sub { $self->redis->set( $key => $value ) } );
@@ -132,11 +132,58 @@ sub exists {
     $self->with_failover( sub { $self->redis->exists($key) } );
 }
 
+# flush the configured redis database. useful for testing.
+sub flushdb {
+    my ($self) = @_;
+    $self->with_failover( sub { $self->redis->flushdb } );
+}
+
+# garbage collect keys in Redis (always assume the worst!)
+sub garbage_collect_keys {
+    my ( $self, $time ) = @_;
+    $time ||= time;
+    my $keys = $self->redis->keys("msgid:*:expires");
+
+    # TODO: <plu> implement this!
+    # def garbage_collect_keys(now = Time.now.to_i)
+    #   keys = redis.keys("msgid:*:expires")
+    #   threshold = now + Beetle.config.gc_threshold
+    #   keys.each do |key|
+    #     expires_at = redis.get key
+    #     if expires_at && expires_at.to_i < threshold
+    #       msg_id = msg_id(key)
+    #       redis.del(keys(msg_id))
+    #     end
+    #   end
+    # end
+}
+
+# performs redis operations by yielding a passed in block, waiting for a new master to
+# show up on the network if the operation throws an exception. if a new master doesn't
+# appear after 120 seconds, we raise an exception.
 sub with_failover {
     my ( $self, $code ) = @_;
 
-    # TODO: <plu> implement this!
     $code->();
+
+    # TODO: <plu> implement this!
+    # def with_failover #:nodoc:
+    #   tries = 0
+    #   begin
+    #     yield
+    #   rescue Exception => e
+    #     Beetle::reraise_expectation_errors!
+    #     logger.error "Beetle: redis connection error '#{e}'"
+    #     if (tries+=1) < 120
+    #       @redis = nil
+    #       sleep 1
+    #       logger.info "Beetle: retrying redis operation"
+    #       retry
+    #     else
+    #       raise NoRedisMaster.new(e.to_s)
+    #     end
+    #   end
+    # end
 }
 
 sub _build_redis_instances {
@@ -159,6 +206,7 @@ sub _find_redis_master {
         my $role = '';
         eval { $role = $redis->info->{role}; };
         if ($@) {
+
             # TODO: <plu> add proper error logging here
         }
         else {
