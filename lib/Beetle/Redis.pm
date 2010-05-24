@@ -24,6 +24,7 @@ sub new {
 my $bulk_command = {
     set       => 1,
     setnx     => 1,
+    msetnx    => 1,
     rpush     => 1,
     lpush     => 1,
     lset      => 1,
