@@ -192,4 +192,13 @@ sub now {
     return time(); # TODO: <plu> Hmmm... timezones'n'shit?!
 }
 
+# # unique message id. used to form various keys in the deduplication store.
+# def msg_id
+#   @msg_id ||= "msgid:#{queue}:#{uuid}"
+# end
+sub msg_id {
+    my ($self) = @_;
+    return sprintf "msgid:%s:%s", $self->queue, $self->uuid;
+}
+
 1;
