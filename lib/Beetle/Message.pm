@@ -123,6 +123,11 @@ has 'handler_result' => (
     isa           => 'Any',
 );
 
+has 'store' => (
+    is  => 'rw',
+    isa => 'Beetle::DeduplicationStore',
+);
+
 sub BUILD {
     my ($self) = @_;
     $self->{attempts_limit} = $self->exceptions_limit + 1 if $self->attempts_limit <= $self->exceptions_limit;
@@ -216,7 +221,7 @@ sub key_exists {
     my $old_message = 0;
     $old_message = $self->store->msetnx( $self->msg_id => { status => 'incomplete', expires => $self->expires_at } );
     if ($old_message) {
-        $self->log->info( "Beetle: received duplicate message: %s on queue: %s", $self->msg_id, $self->queue );
+        $self->log->info( sprintf "Beetle: received duplicate message: %s on queue: %s", $self->msg_id, $self->queue );
     }
     return $old_message;
 }
