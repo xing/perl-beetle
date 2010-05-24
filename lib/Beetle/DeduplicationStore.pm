@@ -96,7 +96,7 @@ sub msetnx {
         $key = $self->key( $msg_id, $key );
         $result{$key} = $value;
     }
-    $self->with_failover( sub { $self->redis->msetnx( \%result ) } );
+    $self->with_failover( sub { $self->redis->msetnx( %result ) } );
 }
 
 # increment counter for key with given <tt>suffix</tt> for given <tt>msg_id</tt>. returns an integer.
