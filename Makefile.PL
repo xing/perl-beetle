@@ -5,8 +5,9 @@ all_from 'lib/Beetle.pm';
 no_index directory => 'examples';
 
 requires(
-    'Data::UUID' => '1.203',
-    'Moose'      => '0.92',
+    'Data::UUID'            => '1.203',
+    'Moose'                 => '0.92',
+    'MooseX::Log::Log4perl' => 0,         # TODO: <plu> add version we have on live
 );
 
 test_requires(
