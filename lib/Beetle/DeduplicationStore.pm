@@ -44,7 +44,7 @@ has '_redis' => (
 );
 
 # list of key suffixes to use for storing values in Redis.
-my @KEY_SUFFIXES = ( 'status', 'ack_count', 'timeout', 'delay', 'attempts', 'exceptions', 'mutex', 'expires' );
+my @KEY_SUFFIXES = qw(status ack_count timeout delay attempts exceptions mutex expires);
 
 # build a Redis key out of a message id and a given suffix
 sub key {

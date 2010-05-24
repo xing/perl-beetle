@@ -16,7 +16,7 @@ use TestLib;
 }
 
 {
-    my $header = TestLib::header_with_params(':redundant' => 1);
+    my $header = TestLib::header_with_params(redundant => 1);
     my $m = Beetle::Message->new( queue => "queue", header => $header, body => 'foo');
     is($m->redundant(), 1, 'a redundantly encoded message should have the redundant flag set on delivery');
 }
@@ -24,7 +24,7 @@ use TestLib;
 {
     no warnings 'redefine';
     *Beetle::Message::now = sub { return 25; };
-    my $header = TestLib::header_with_params(':ttl' => 17);
+    my $header = TestLib::header_with_params(ttl => 17);
     my $m = Beetle::Message->new( queue => "queue", header => $header, body => 'foo');
     is($m->expires_at, 42, 'encoding a message with a specfied time to live should set an expiration time');
 }
@@ -40,50 +40,50 @@ use TestLib;
 {
     my $key = 'fookey';
     my $o = Beetle::Message->publishing_options(
-        ':immediate'  => 1,
-        ':key'        => $key,
-        ':mandatory'  => 1,
-        ':persistent' => 1,
-        ':redundant'  => 1,
+        immediate  => 1,
+        key        => $key,
+        mandatory  => 1,
+        persistent => 1,
+        redundant  => 1,
     );
     is(
-        exists( $o->{':mandatory'} ) => 1,
+        exists( $o->{mandatory} ) => 1,
         'the publishing options should include both the beetle headers and the amqp params #1'
     );
     is(
-        exists( $o->{':immediate'} ) => 1,
+        exists( $o->{immediate} ) => 1,
         'the publishing options should include both the beetle headers and the amqp params #2'
     );
     is(
-        exists( $o->{':persistent'} ) => 1,
+        exists( $o->{persistent} ) => 1,
         'the publishing options should include both the beetle headers and the amqp params #3'
     );
     is(
-        $o->{':key'} => $key,
+        $o->{key} => $key,
         'the publishing options should include both the beetle headers and the amqp params #4'
     );
     is(
-        $o->{':headers'}{':flags'} => 1,
+        $o->{headers}{flags} => 1,
         'the publishing options should include both the beetle headers and the amqp params #5'
     );
 }
 
 {
     my $o = Beetle::Message->publishing_options(
-        ':redundant' => 1,
-        ':mandatory' => 1,
-        ':bogus'     => 1,
+        redundant => 1,
+        mandatory => 1,
+        bogus     => 1,
     );
     is(
-        defined( $o->{':mandatory'} ) => 1,
+        defined( $o->{mandatory} ) => 1,
         'the publishing options should silently ignore other parameters than the valid publishing keys #1'
     );
     isnt(
-        exists( $o->{':bogus'} ) => 1,
+        exists( $o->{bogus} ) => 1,
         'the publishing options should silently ignore other parameters than the valid publishing keys #2'
     );
     is(
-        $o->{':headers'}{':flags'} => 1,
+        $o->{headers}{flags} => 1,
         'the publishing options should silently ignore other parameters than the valid publishing keys #3'
     );
 }
@@ -99,10 +99,10 @@ use TestLib;
     no warnings 'redefine';
     *Beetle::Message::generate_uuid = sub { return $uuid; };
     my $o = Beetle::Message->publishing_options(
-        ':redundant' => 1,
+        redundant => 1,
     );
     is(
-        $o->{':message_id'} => $uuid,
+        $o->{message_id} => $uuid,
         'the publishing options for a redundant message should include the uuid'
     );
 }

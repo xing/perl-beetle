@@ -24,7 +24,7 @@ my $DEFAULT_HANDLER_EXECUTION_ATTEMPTS_DELAY = 10;
 # how many exceptions should be tolerated before giving up
 my $DEFAULT_EXCEPTION_LIMIT = 0;
 # AMQP options for message publishing
-my @PUBLISHING_KEYS = (':key', ':mandatory', ':immediate', ':persistent', ':reply_to');
+my @PUBLISHING_KEYS = qw(key mandatory immediate persistent reply_to);
 
 has 'server' => (
     documentation => 'server from which the message was received',
@@ -133,21 +133,21 @@ sub publishing_options {
     my ( $package, %args ) = @_;
 
     my $flags = 0;
-    $flags |= $FLAG_REDUNDANT if $args{':redundant'};
+    $flags |= $FLAG_REDUNDANT if $args{redundant};
 
-    $args{':ttl'} ||= $DEFAULT_TTL;
+    $args{ttl} ||= $DEFAULT_TTL;
 
-    my $expires_at = now() + $args{':ttl'};
+    my $expires_at = now() + $args{ttl};
 
     foreach my $key (keys %args) {
         delete $args{$key} unless grep $_ eq $key, @PUBLISHING_KEYS;
     }
 
-    $args{':message_id'} = generate_uuid();
-    $args{':headers'}    = {
-        ':format_version' => $FORMAT_VERSION,
-        ':flags'          => $flags,
-        ':expires_at'     => $expires_at,
+    $args{message_id} = generate_uuid();
+    $args{headers}    = {
+        format_version => $FORMAT_VERSION,
+        flags          => $flags,
+        expires_at     => $expires_at,
     };
 
     return wantarray ? %args : \%args;
@@ -178,12 +178,12 @@ sub _decode {
     my ($self) = @_;
 
     my $amqp_headers = $self->header->properties;
-    my $headers      = $amqp_headers->{':headers'};
+    my $headers      = $amqp_headers->{headers};
 
-    $self->{uuid}           = $amqp_headers->{':message_id'};
-    $self->{format_version} = $headers->{':format_version'};
-    $self->{flags}          = $headers->{':flags'};
-    $self->{expires_at}     = $headers->{':expires_at'};
+    $self->{uuid}           = $amqp_headers->{message_id};
+    $self->{format_version} = $headers->{format_version};
+    $self->{flags}          = $headers->{flags};
+    $self->{expires_at}     = $headers->{expires_at};
 }
 
 # def now #:nodoc:
