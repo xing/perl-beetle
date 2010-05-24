@@ -201,4 +201,24 @@ sub msg_id {
     return sprintf "msgid:%s:%s", $self->queue, $self->uuid;
 }
 
+# # have we already seen this message? if not, set the status to "incomplete" and store
+# # the message exipration timestamp in the deduplication store.
+# def key_exists?
+#   old_message = 0 == @store.msetnx(msg_id, :status =>"incomplete", :expires => @expires_at)
+#   if old_message
+#     logger.debug "Beetle: received duplicate message: #{msg_id} on queue: #{@queue}"
+#   end
+#   old_message
+# end
+sub key_exists {
+    my ($self) = @_;
+    my $old_message = 0;
+    $old_message = $self->store->msetnx( $self->msg_id => { status => 'incomplete', expires => $self->expires_at } );
+    if ($old_message) {
+        # TODO: <plu> fix logger
+        warn sprintf "Beetle: received duplicate message: %s on queue: %s", $self->msg_id, $self->queue;
+    }
+    return $old_message;
+}
+
 1;
