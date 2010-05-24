@@ -14,6 +14,8 @@ package Beetle::DeduplicationStore;
 
 use Moose;
 use Beetle::Redis;
+use Carp qw(croak);
+extends qw(Beetle::Base);
 
 has 'hosts' => (
     default => 'localhost:6379',
@@ -170,9 +172,9 @@ sub with_failover {
     for ( 1 .. 120 ) {
         $result = eval { $code->(); };
         last unless $@;
-        warn "Beetle: redis connection error $@";
+        $self->log->error("Beetle: redis connection error $@");
         if ( $_ < 120 ) {
-            warn "Beetle: retrying redis operation";
+            $self->log->info("Beetle: retrying redis operation");
         }
         else {
             die "NoRedisMaster";
@@ -211,8 +213,8 @@ sub _find_redis_master {
             push @masters, $redis if $role eq 'master';
         }
     }
-    die "unable to determine a new master redis instance" unless scalar @masters;
-    die "more than one redis master instances" if scalar @masters > 1;
+    croak "unable to determine a new master redis instance" unless scalar @masters;
+    croak "more than one redis master instances" if scalar @masters > 1;
     return $masters[0];
 }
 

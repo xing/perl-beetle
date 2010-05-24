@@ -6,6 +6,7 @@ package Beetle::Message;
 
 use Moose;
 use Data::UUID;
+extends qw(Beetle::Base);
 
 # current message format version
 our $FORMAT_VERSION = 1;
@@ -215,8 +216,7 @@ sub key_exists {
     my $old_message = 0;
     $old_message = $self->store->msetnx( $self->msg_id => { status => 'incomplete', expires => $self->expires_at } );
     if ($old_message) {
-        # TODO: <plu> fix logger
-        warn sprintf "Beetle: received duplicate message: %s on queue: %s", $self->msg_id, $self->queue;
+        $self->log->info( "Beetle: received duplicate message: %s on queue: %s", $self->msg_id, $self->queue );
     }
     return $old_message;
 }
