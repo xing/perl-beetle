@@ -53,7 +53,7 @@ sub key {
 # list of keys which potentially exist in Redis for the given message id
 sub keys {
     my ( $package, $msg_id ) = @_;
-    return map { $package->key( $msg_id, $_ ) } @KEY_SUFFIXES;
+    return ( map { $package->key( $msg_id, $_ ) } @KEY_SUFFIXES );
 }
 
 # get the Redis instance
@@ -67,7 +67,7 @@ sub redis {
 # extract message id from a given Redis key
 sub msg_id {
     my ( $package, $key ) = @_;
-    my ($msg_id) = $key =~ /^(msgid:[^:]*:[-0-9a-f]*):.*$/;
+    my ($msg_id) = $key =~ /^(msgid:[^:]+:[-0-9A-F]+):.*?$/;
     return $msg_id;
 }
 
