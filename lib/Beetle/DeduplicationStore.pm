@@ -164,26 +164,24 @@ sub garbage_collect_keys {
 sub with_failover {
     my ( $self, $code ) = @_;
 
-    $code->();
+    # TODO: <plu> fix logger + exception
+    my $result;
 
-    # TODO: <plu> implement this!
-    # def with_failover #:nodoc:
-    #   tries = 0
-    #   begin
-    #     yield
-    #   rescue Exception => e
-    #     Beetle::reraise_expectation_errors!
-    #     logger.error "Beetle: redis connection error '#{e}'"
-    #     if (tries+=1) < 120
-    #       @redis = nil
-    #       sleep 1
-    #       logger.info "Beetle: retrying redis operation"
-    #       retry
-    #     else
-    #       raise NoRedisMaster.new(e.to_s)
-    #     end
-    #   end
-    # end
+    for ( 1 .. 120 ) {
+        $result = eval { $code->(); };
+        last unless $@;
+        warn "Beetle: redis connection error $@";
+        if ( $_ < 120 ) {
+            warn "Beetle: retrying redis operation";
+        }
+        else {
+            die "NoRedisMaster";
+        }
+        $self->_clear_redis;
+        sleep 1;
+    }
+
+    return $result;
 }
 
 sub _build_redis_instances {
