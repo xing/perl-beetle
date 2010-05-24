@@ -27,12 +27,30 @@ test_redis(
             }
         }
 
-        # test "should be able to extract msg_id from any key" do
-        #   header = header_with_params({})
+        {
+            no warnings 'redefine';
+            *Beetle::Config::gc_threshold = sub { return 0; };
+            *Beetle::Config::logger = sub { '/dev/null' };
+            my $header = TestLib::header_with_params( ttl => 0 );
+            my $m      = Beetle::Message->new(
+                body   => 'foo',
+                header => $header,
+                queue  => "somequeue",
+                store  => $store
+            );
+            # TODO: <plu> hmm, this -must- be wrong?!
+            is($m->key_exists, 1, 'Key exists, not garbage collected yet');
+            is($m->key_exists, 0, 'Key got garbage collected');
+        }
+
+        # test "should be able to garbage collect expired keys" do
+        #   Beetle.config.expects(:gc_threshold).returns(0)
+        #   header = header_with_params({:ttl => 0})
         #   message = Message.new("somequeue", header, 'foo', :store => @store)
-        #   @store.keys(message.msg_id).each do |key|
-        #     assert_equal message.msg_id, @store.msg_id(key)
-        #   end
+        #   assert !message.key_exists?
+        #   assert message.key_exists?
+        #   @store.redis.expects(:del).with(@store.keys(message.msg_id))
+        #   @store.garbage_collect_keys(Time.now.to_i+1)
         # end
     }
 );
