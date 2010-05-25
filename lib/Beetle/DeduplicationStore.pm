@@ -144,20 +144,16 @@ sub flushdb {
 sub garbage_collect_keys {
     my ( $self, $time ) = @_;
     $time ||= time;
-    my $keys = $self->redis->keys("msgid:*:expires");
-
-    # TODO: <plu> implement this!
-    # def garbage_collect_keys(now = Time.now.to_i)
-    #   keys = redis.keys("msgid:*:expires")
-    #   threshold = now + Beetle.config.gc_threshold
-    #   keys.each do |key|
-    #     expires_at = redis.get key
-    #     if expires_at && expires_at.to_i < threshold
-    #       msg_id = msg_id(key)
-    #       redis.del(keys(msg_id))
-    #     end
-    #   end
-    # end
+    my @keys      = $self->redis->keys("msgid:*:expires");
+    my $threshold = $time + $self->config->gc_threshold;
+    foreach my $key (@keys) {
+        my $expires_at = $self->redis->get($key);
+        if ( $expires_at && $expires_at < $threshold ) {
+            my $msg_id = $self->msg_id($key);
+            $self->redis->del( $self->keys($msg_id) );
+        }
+    }
+    return 1;
 }
 
 # performs redis operations by yielding a passed in block, waiting for a new master to
