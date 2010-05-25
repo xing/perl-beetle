@@ -12,6 +12,7 @@ test_redis(
     sub {
         my $store = shift;
 
+        # test "should be able to extract msg_id from any key" do
         {
             $store->flushdb;
             my $header = TestLib->header_with_params();
@@ -27,6 +28,7 @@ test_redis(
             }
         }
 
+        # test "should be able to garbage collect expired keys" do
         {
             $store->flushdb;
             no warnings 'redefine';
@@ -47,6 +49,7 @@ test_redis(
             is( scalar( $store->redis->keys('*') ), undef, 'Keys have been removed from store' );
         }
 
+        # test "should not garbage collect not yet expired keys" do
         {
             $store->flushdb;
             no warnings 'redefine';
@@ -69,6 +72,44 @@ test_redis(
             is( scalar( $store->redis->keys('*') ), undef, 'Keys have been removed from store' );
         }
 
+        # test "successful processing of a non redundant message should delete all keys from the database" do
+        {
+            my $header = TestLib->header_with_params();
+            my $m      = Beetle::Message->new(
+                body   => 'foo',
+                header => $header,
+                queue  => "somequeue",
+                store  => $store
+            );
+            is( $m->expired,   0, 'Message is not expired yet' );
+            is( $m->redundant, 0, 'Message is not redundant' );
+
+            my $result = $m->process( sub { } );
+
+            foreach my $key ( $store->keys( $m->msg_id ) ) {
+                is( $store->redis->exists($key), 0, "Key $key is not in store anymore" );
+            }
+        }
+
+        # test "succesful processing of a redundant message twice should delete all keys from the database" do
+        {
+            my $header = TestLib->header_with_params( redundant => 1 );
+            my $m = Beetle::Message->new(
+                body   => 'foo',
+                header => $header,
+                queue  => "somequeue",
+                store  => $store
+            );
+            is( $m->expired,   0, 'Message is not expired yet' );
+            is( $m->redundant, 1, 'Message is redundant' );
+
+            $m->process( sub { } );
+            $m->process( sub { } );
+
+            foreach my $key ( $store->keys( $m->msg_id ) ) {
+                is( $store->redis->exists($key), 0, "Key $key is removed from store after 2nd process call" );
+            }
+        }
     }
 );
 
