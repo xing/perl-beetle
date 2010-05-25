@@ -47,6 +47,28 @@ test_redis(
             is( scalar( $store->redis->keys('*') ), undef, 'Keys have been removed from store' );
         }
 
+        {
+            $store->flushdb;
+            no warnings 'redefine';
+            *Beetle::Config::gc_threshold = sub { return 0; };
+            *Beetle::Config::logger       = sub { '/dev/null' };
+            my $header = TestLib->header_with_params( ttl => 60 );
+            my $m = Beetle::Message->new(
+                body   => 'foo',
+                header => $header,
+                queue  => "somequeue",
+                store  => $store
+            );
+            is( $m->key_exists, 0, 'Key did not exist yet' );
+            is( $m->key_exists, 1, 'Key exists' );
+
+            is( scalar( $store->redis->keys('*') ), 2, 'Keys are really in store (status + expires)' );
+            ok( $store->garbage_collect_keys( time + 1 ), 'Garbage collection' );
+            is( scalar( $store->redis->keys('*') ), 2, 'Keys are still store' );
+            ok( $store->garbage_collect_keys( time + 61 ), 'Garbage collection' );
+            is( scalar( $store->redis->keys('*') ), undef, 'Keys have been removed from store' );
+        }
+
     }
 );
 
