@@ -129,8 +129,21 @@ has 'store' => (
     isa => 'Beetle::DeduplicationStore',
 );
 
+around 'BUILDARGS' => sub {
+    my $orig  = shift;
+    my $class = shift;
+
+    my %args = @_;
+
+    $args{attempts_limit}   = delete $args{attempts}   if defined $args{attempts};
+    $args{exceptions_limit} = delete $args{exceptions} if defined $args{exceptions};
+
+    return $class->$orig(%args);
+};
+
 sub BUILD {
     my ($self) = @_;
+
     $self->{attempts_limit} = $self->exceptions_limit + 1 if $self->attempts_limit <= $self->exceptions_limit;
     $self->decode;
 }
