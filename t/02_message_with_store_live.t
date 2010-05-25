@@ -11,9 +11,9 @@ use Beetle::Message;
 test_redis(
     sub {
         my $store = shift;
-        ok( $store->flushdb, 'DB flushed' );
 
         {
+            $store->flushdb;
             my $header = TestLib->header_with_params();
             my $m      = Beetle::Message->new(
                 body   => 'foo',
@@ -28,31 +28,25 @@ test_redis(
         }
 
         {
+            $store->flushdb;
             no warnings 'redefine';
             *Beetle::Config::gc_threshold = sub { return 0; };
-            *Beetle::Config::logger = sub { '/dev/null' };
+            *Beetle::Config::logger       = sub { '/dev/null' };
             my $header = TestLib->header_with_params( ttl => 0 );
-            my $m      = Beetle::Message->new(
+            my $m = Beetle::Message->new(
                 body   => 'foo',
                 header => $header,
                 queue  => "somequeue",
                 store  => $store
             );
-            is($m->key_exists, 0, 'Key did not exist yet');
-            is($m->key_exists, 1, 'Key exists');
-            #   @store.redis.expects(:del).with(@store.keys(message.msg_id))
-            ok($store->garbage_collect_keys( time + 1 ));
+            is( $m->key_exists, 0, 'Key did not exist yet' );
+            is( $m->key_exists, 1, 'Key exists' );
+
+            is( scalar( $store->redis->keys('*') ), 2, 'Keys are really in store (status + expires)' );
+            ok( $store->garbage_collect_keys( time + 1 ), 'Garbage collection' );
+            is( scalar( $store->redis->keys('*') ), undef, 'Keys have been removed from store' );
         }
 
-        # test "should be able to garbage collect expired keys" do
-        #   Beetle.config.expects(:gc_threshold).returns(0)
-        #   header = header_with_params({:ttl => 0})
-        #   message = Message.new("somequeue", header, 'foo', :store => @store)
-        #   assert !message.key_exists?
-        #   assert message.key_exists?
-        #   @store.redis.expects(:del).with(@store.keys(message.msg_id))
-        #   @store.garbage_collect_keys(Time.now.to_i+1)
-        # end
     }
 );
 

@@ -123,8 +123,7 @@ sub del {
 # delete all keys associated with the given <tt>msg_id</tt>.
 sub del_keys {
     my ( $self, $msg_id ) = @_;
-    my $keys = $self->keys($msg_id);
-    $self->with_failover( sub { $self->redis->del($keys) } );
+    $self->with_failover( sub { $self->redis->del($_) for $self->keys($msg_id) } );
 }
 
 # check whether key with given suffix exists for a given <tt>msg_id</tt>.
@@ -150,7 +149,7 @@ sub garbage_collect_keys {
         my $expires_at = $self->redis->get($key);
         if ( $expires_at && $expires_at < $threshold ) {
             my $msg_id = $self->msg_id($key);
-            $self->redis->del( $self->keys($msg_id) );
+            $self->redis->del($_) for $self->keys($msg_id);
         }
     }
     return 1;

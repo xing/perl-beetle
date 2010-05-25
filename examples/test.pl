@@ -15,5 +15,8 @@ warn $store->get( $id, $sfx );
 
 $store->msetnx( "${id}2" => { foo => 'bar', bla => 'fasel' });
 
+$store->redis->set('foo' => 1 );
+$store->redis->del('foo');
+
 my @keys = $store->redis->keys('*');
 warn Dumper \@keys;
