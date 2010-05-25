@@ -218,12 +218,12 @@ sub msg_id {
 # end
 sub key_exists {
     my ($self) = @_;
-    my $old_message = 0;
-    $old_message = $self->store->msetnx( $self->msg_id => { status => 'incomplete', expires => $self->expires_at } );
-    if ($old_message) {
-        $self->log->info( sprintf "Beetle: received duplicate message: %s on queue: %s", $self->msg_id, $self->queue );
+    my $successful = $self->store->msetnx( $self->msg_id => { status => 'incomplete', expires => $self->expires_at } );
+    if ($successful) {
+        return 0;
     }
-    return $old_message;
+    $self->log->info( sprintf "Beetle: received duplicate message: %s on queue: %s", $self->msg_id, $self->queue );
+    return 1;
 }
 
 1;

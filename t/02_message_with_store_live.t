@@ -38,9 +38,8 @@ test_redis(
                 queue  => "somequeue",
                 store  => $store
             );
-            # TODO: <plu> hmm, this -must- be wrong?!
-            is($m->key_exists, 1, 'Key exists, not garbage collected yet');
-            is($m->key_exists, 0, 'Key got garbage collected');
+            is($m->key_exists, 0, 'Key did not exist yet');
+            is($m->key_exists, 1, 'Key exists');
         }
 
         # test "should be able to garbage collect expired keys" do
