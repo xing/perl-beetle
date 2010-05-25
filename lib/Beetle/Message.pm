@@ -140,7 +140,7 @@ sub publishing_options {
     my $flags = 0;
     $flags |= $FLAG_REDUNDANT if $args{redundant};
 
-    $args{ttl} ||= $DEFAULT_TTL;
+    $args{ttl} = $DEFAULT_TTL unless defined $args{ttl};
 
     my $expires_at = now() + $args{ttl};
 
