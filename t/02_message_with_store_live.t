@@ -14,7 +14,7 @@ test_redis(
         ok( $store->flushdb, 'DB flushed' );
 
         {
-            my $header = TestLib::header_with_params();
+            my $header = TestLib->header_with_params();
             my $m      = Beetle::Message->new(
                 body   => 'foo',
                 header => $header,
@@ -31,7 +31,7 @@ test_redis(
             no warnings 'redefine';
             *Beetle::Config::gc_threshold = sub { return 0; };
             *Beetle::Config::logger = sub { '/dev/null' };
-            my $header = TestLib::header_with_params( ttl => 0 );
+            my $header = TestLib->header_with_params( ttl => 0 );
             my $m      = Beetle::Message->new(
                 body   => 'foo',
                 header => $header,
@@ -40,6 +40,8 @@ test_redis(
             );
             is($m->key_exists, 0, 'Key did not exist yet');
             is($m->key_exists, 1, 'Key exists');
+            #   @store.redis.expects(:del).with(@store.keys(message.msg_id))
+            ok($store->garbage_collect_keys( time + 1 ));
         }
 
         # test "should be able to garbage collect expired keys" do

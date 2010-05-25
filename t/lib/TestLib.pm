@@ -6,7 +6,7 @@ use Beetle::Message;
 use Test::MockObject;
 
 sub header_with_params {
-    my (%opts) = @_;
+    my ($package, %opts) = @_;
 
     my $beetle_headers = Beetle::Message->publishing_options(%opts);
 
