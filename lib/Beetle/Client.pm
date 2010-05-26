@@ -43,6 +43,7 @@ has 'exchanges' => (
     default       => sub { {} },
     documentation => 'an options hash for the configured exchanges',
     handles       => {
+        get_exchange => 'get',
         has_exchange => 'exists',
         set_exchange => 'set',
     },
@@ -55,9 +56,10 @@ has 'queues' => (
     default       => sub { {} },
     documentation => 'an options hash for the configured queues',
     handles       => {
+        all_queues => 'elements',
+        get_queue  => 'get',
         has_queue  => 'exists',
         set_queue  => 'set',
-        all_queues => 'elements',
     },
     is     => 'rw',
     isa    => 'HashRef',
@@ -67,17 +69,24 @@ has 'queues' => (
 has 'bindings' => (
     default       => sub { {} },
     documentation => 'an options hash for the configured queue bindings',
-    is            => 'rw',
-    isa           => 'HashRef',
+    handles       => {
+        get_binding => 'get',
+        has_binding => 'exists',
+        set_binding => 'set',
+    },
+    is     => 'rw',
+    isa    => 'HashRef',
+    traits => [qw(Hash)],
 );
 
 has 'messages' => (
     default       => sub { {} },
     documentation => 'an options hash for the configured messages',
     handles       => {
+        get_message   => 'get',
         has_message   => 'exists',
-        set_message   => 'set',
         message_names => 'keys',
+        set_message   => 'set',
     },
     is     => 'rw',
     isa    => 'HashRef',
@@ -173,7 +182,7 @@ sub register_queue {
     my $exchange = delete $options->{exchange};
     my $key      = delete $options->{key};
 
-    $self->add_queue( $name => $options );
+    $self->set_queue( $name => $options );
     $self->register_binding( $name => { exchange => $exchange, key => $key } );
 }
 
@@ -202,7 +211,22 @@ sub register_binding {
     my $exchange = $options->{exchange} || $queue_name;
     my $key      = $options->{key}      || $queue_name;
 
-    # TODO: <plu> implement the rest of this weird code
+    $self->add_binding( $queue_name => { exchange => $exchange, key => $key } );
+    $self->register_exchange($exchange) unless $self->has_exchange($exchange);
+
+    my $queues = $self->get_exchange($exchange)->{queues} || [];
+    push @$queues, $queue_name unless grep $_ eq $queue_name, @$queues;
+    $self->get_exchange($exchange)->{queues} = $queues;
+
+    # TODO: <plu> not sure if I got this right.
+}
+
+sub add_binding {
+    my ( $self, $queue_name, $item ) = @_;
+    $self->set_binding( $queue_name => [] ) unless $self->has_binding($queue_name);
+    my $binding = $self->get_binding($queue_name);
+    push @$binding, $item;
+    $self->set_binding( $queue_name => $binding );
 }
 
 # register a persistent message with a given _name_ and an _options_ hash:
