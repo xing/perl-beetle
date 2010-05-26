@@ -96,7 +96,7 @@ sub msetnx {
         $key = $self->key( $msg_id, $key );
         $result{$key} = $value;
     }
-    $self->with_failover( sub { $self->redis->msetnx( %result ) } );
+    $self->with_failover( sub { $self->redis->msetnx(%result) } );
 }
 
 # increment counter for key with given <tt>suffix</tt> for given <tt>msg_id</tt>. returns an integer.
@@ -187,7 +187,10 @@ sub _build_redis_instances {
     my @instances = ();
 
     foreach my $server ( split /[ ,]+/, $self->hosts ) {
-        my $instance = Beetle::Redis->new( server => $server );
+        my $instance = Beetle::Redis->new(
+            server => $server,
+            db     => $self->db,
+        );
         push @instances, $instance;
     }
 
