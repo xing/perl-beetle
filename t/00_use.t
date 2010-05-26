@@ -1,8 +1,9 @@
-use Test::More tests => 9;
+use Test::More;
 
 BEGIN {
     use_ok('Beetle');
     use_ok('Beetle::Base');
+    use_ok('Beetle::Base::Handler');
     use_ok('Beetle::Client');
     use_ok('Beetle::Config');
     use_ok('Beetle::DeduplicationStore');
@@ -13,3 +14,5 @@ BEGIN {
 }
 
 diag("Testing Beetle $Beetle::VERSION");
+
+done_testing;

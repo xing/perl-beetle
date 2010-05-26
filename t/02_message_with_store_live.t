@@ -111,7 +111,8 @@ test_redis(
             }
         }
 
-# test "successful processing of a redundant message once should insert all but the delay key and the exception count key into the database" do
+        # test "successful processing of a redundant message once should insert all but the delay key and the
+        # exception count key into the database" do
         {
             my $header = TestLib->header_with_params( redundant => 1 );
             my $m = Beetle::Message->new(

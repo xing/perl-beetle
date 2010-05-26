@@ -1,4 +1,4 @@
-use Test::More tests => 13;
+use Test::More;
 
 BEGIN {
     use_ok('Beetle::DeduplicationStore');
@@ -91,3 +91,5 @@ sub _create_redis_mockup {
 
     return Test::MockObject->new->mock( 'info' => $info_sub );
 }
+
+done_testing;

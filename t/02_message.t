@@ -1,4 +1,4 @@
-use Test::More tests => 15;
+use Test::More;
 
 BEGIN {
   use_ok('Beetle::Message');
@@ -106,3 +106,5 @@ use TestLib;
         'the publishing options for a redundant message should include the uuid'
     );
 }
+
+done_testing;
