@@ -12,6 +12,7 @@ our $VERSION = '1.2001';
 
 # This is a copy of Redis-1.2001 with one minor change:
 # The connect is not made in the constructor but in the AUTOLOAD method.
+# After connecting a database is selected.
 
 sub new {
     my $class = shift;
@@ -127,6 +128,7 @@ sub __connect {
             PeerAddr => $self->{server} || $ENV{REDIS_SERVER} || '127.0.0.1:6379',
             Proto => 'tcp',
         ) || die $!;
+        # $self->select( $self->{db} || 0 ); # TODO: <plu> make this working
     }
 }
 
