@@ -1,0 +1,2 @@
+* proper exceptions handling using exception objects + Try::Tiny
+* proper implementation of the return codes
