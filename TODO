@@ -1,2 +1,5 @@
 * proper exceptions handling using exception objects + Try::Tiny
 * proper implementation of the return codes
+* fix ISA of attributes
+* fix rw/ro of attributes
+* fix private/public methods/attributes
