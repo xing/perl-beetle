@@ -100,14 +100,14 @@ has 'deduplication_store' => (
 );
 
 has 'publisher' => (
-    default => sub { Beetle::Publisher->new },
+    default => sub { Beetle::Publisher->new( client => shift ) },
     is      => 'ro',
     isa     => 'Beetle::Publisher',
     lazy    => 1,
 );
 
 has 'subscriber' => (
-    default => sub { Beetle::Subscriber->new },
+    default => sub { Beetle::Subscriber->new( client => shift ) },
     is      => 'ro',
     isa     => 'Beetle::Subscriber',
     lazy    => 1,
