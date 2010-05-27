@@ -127,9 +127,6 @@ sub publish_with_failover {
 
         eval {
             my $exchange = $self->exchange($exchange_name);
-            use Data::Dumper;
-            $Data::Dumper::Sortkeys=1;
-            warn Dumper $exchange;
             $self->bunny->publish( 1, $message_name, $data, { exchange => $exchange_name } );
         };
         unless ($@) {
