@@ -3,3 +3,4 @@
 * fix ISA of attributes
 * fix rw/ro of attributes
 * fix private/public methods/attributes
+* verify all calls to the Net::RabbitMQ objects are correct
