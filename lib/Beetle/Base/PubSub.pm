@@ -57,11 +57,14 @@ has 'server' => (
     writer => 'set_current_server',
 );
 
+# TODO: <plu> maybe a hashref would be more handy
 has 'servers' => (
     default => sub { [] },
     handles => {
-        all_servers => 'elements',
-        get_server  => 'get',
+        add_server     => 'push',
+        all_servers    => 'elements',
+        get_server     => 'get',
+        count_servers  => 'count',
     },
     is     => 'ro',
     isa    => 'ArrayRef',
@@ -72,7 +75,7 @@ sub BUILD {
     my ($self) = @_;
     my $servers = $self->client->servers;
     $self->{servers} = $servers;
-    $self->{server} = $servers->[ int rand scalar @$servers ];
+    $self->{server}  = $servers->[ int rand scalar @$servers ];
 }
 
 sub error {
@@ -106,7 +109,7 @@ sub each_server {
     # TODO: <plu> not sure I got 'yield' right here
     foreach my $server ( $self->all_servers ) {
         $self->set_current_server($server);
-        $code->();
+        $code->($self);
     }
 }
 
