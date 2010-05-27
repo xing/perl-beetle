@@ -7,6 +7,7 @@ no_index directory => 'examples';
 requires(
     'Data::UUID'            => '1.203',
     'Devel::StackTrace'     => '1.22',
+    'Hash::Merge::Simple'   => '0.05',
     'Moose'                 => '0.92',
     'MooseX::Log::Log4perl' => '0.40',
 );
