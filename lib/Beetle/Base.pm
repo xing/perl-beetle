@@ -18,7 +18,12 @@ sub BUILD {
 sub _setup_logger {
     my ($self) = @_;
 
-    Log::Log4perl->easy_init( { file => $self->config->logger } );
+    Log::Log4perl->easy_init(
+        {
+            file   => $self->config->logger,
+            layout => $self->config->loglayout,
+        }
+    );
 }
 
 1;

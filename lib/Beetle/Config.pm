@@ -10,6 +10,14 @@ has 'logger' => (
     required      => 1,
 );
 
+has 'loglayout' => (
+    default       => '[%d] (%C:%L) %m%n',
+    documentation => 'Log4perl log layout',
+    is            => 'rw',
+    isa           => 'Str',
+    required      => 1,
+);
+
 has 'gc_threshold' => (
     default       => 86400 * 3,
     documentation => 'number of seconds after which keys are removed form the deduplication store (default: 3 days)',
