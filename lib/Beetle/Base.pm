@@ -21,10 +21,4 @@ sub _setup_logger {
     Log::Log4perl->easy_init( { file => $self->config->logger } );
 }
 
-sub error {
-    my ( $self, $message ) = @_;
-    $self->log->error($message);
-    die $message;
-}
-
 1;
