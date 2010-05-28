@@ -1,6 +1,7 @@
 use Test::More;
 
 BEGIN {
+    use_ok('Beetle::Base::PubSub');
     use_ok('Beetle::Publisher');
     use_ok('Beetle::Client');
 }
@@ -12,7 +13,7 @@ use Test::Exception;
 # test "acccessing a bunny for a server which doesn't have one should create it and associate it with the server" do
 {
     no warnings 'redefine';
-    *Beetle::Publisher::new_bunny = sub { return 42; };
+    *Beetle::Base::PubSub::new_bunny = sub { return 42; };
     my $client = Beetle::Client->new;
     my $pub = Beetle::Publisher->new( client => $client );
     is( $pub->bunny,                     42, 'Method new_bunny works as expected' );

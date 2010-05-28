@@ -11,9 +11,14 @@ $Data::Dumper::Sortkeys = 1;
 my $client = Beetle::Client->new;
 
 $client->register_queue('testperl');
-$client->purge('testperl');
 $client->register_message( testperl => { redundant => 0 } );
 
-for ( 1 .. 1 ) {
-    $client->publish( testperl => "Hello$_" );
-}
+my $handler = Beetle::Handler->create(
+    sub {
+        warn "handler called";
+    }
+);
+
+$client->register_handler( testperl => $handler );
+
+$client->listen;

@@ -40,18 +40,6 @@ has 'dead_servers' => (
     traits    => [qw(Hash)],
 );
 
-has 'bunnies' => (
-    default => sub { {} },
-    handles => {
-        get_bunny => 'get',
-        has_bunny => 'exists',
-        set_bunny => 'set',
-    },
-    is     => 'ro',
-    isa    => 'HashRef',
-    traits => [qw(Hash)],
-);
-
 # def publish(message_name, data, opts={}) #:nodoc:
 #   opts = @client.messages[message_name].merge(opts.symbolize_keys)
 #   exchange_name = opts.delete(:exchange)
@@ -126,8 +114,14 @@ sub publish_with_failover {
         );
 
         eval {
-            my $exchange = $self->exchange($exchange_name);
-            $self->bunny->publish( 1, $message_name, $data, { exchange => $exchange_name } );
+            my $exchange        = $self->exchange($exchange_name);
+            my $publish_options = {
+                content_type  => 'application/octet-stream',
+                delivery_mode => 2,
+                message_id    => $options->{message_id},
+                priority      => 0
+            };
+            $self->bunny->publish( 1, $message_name, $data, { exchange => $exchange_name }, $publish_options );
         };
         unless ($@) {
             $published = 1;
@@ -352,41 +346,6 @@ sub stop {
 
 # private
 
-# def bunny
-#   @bunnies[@server] ||= new_bunny
-# end
-sub bunny {
-    my ($self) = @_;
-    $self->set_bunny( $self->server => $self->new_bunny ) unless $self->has_bunny( $self->server );
-    return $self->get_bunny( $self->server );
-}
-
-# def new_bunny
-#   b = Bunny.new(:host => current_host, :port => current_port, :logging => !!@options[:logging],
-#                 :user => Beetle.config.user, :pass => Beetle.config.password, :vhost => Beetle.config.vhost)
-#   b.start
-#   b
-# end
-sub new_bunny {
-    my ($self) = @_;
-    my $b = Net::RabbitMQ->new;
-
-    # TODO: <plu> not sure if it's a good idea to connect here
-    $b->connect(
-        $self->current_host => {
-            user     => $self->config->user,
-            password => $self->config->password,
-            vhost    => $self->config->vhost,
-            port     => $self->current_port,
-        }
-    );
-
-    # TODO: <plu> mmm... which channel?!
-    $b->channel_open(1);
-
-    return $b;
-}
-
 # def recycle_dead_servers
 #   recycle = []
 #   @dead_servers.each do |s, dead_since|
@@ -444,18 +403,6 @@ sub select_next_server {
     }
     my $next = ( $index + 1 ) % $self->count_servers;
     $self->set_current_server( $self->get_server($next) );
-}
-
-# def create_exchange!(name, opts)
-#   bunny.exchange(name, opts)
-# end
-sub create_exchange {
-    my ( $self, $name, $options ) = @_;
-    my %rmq_options = %{ $options || {} };
-    $rmq_options{exchange_type} = delete $rmq_options{type};
-    delete $rmq_options{queues};
-    $self->bunny->exchange_declare( 1, $name => \%rmq_options );
-    return;
 }
 
 # def bind_queues_for_exchange(exchange_name)
