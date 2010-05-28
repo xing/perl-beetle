@@ -287,6 +287,7 @@ sub register_message {
 sub register_handler {
     my ( $self, $queues, $block, $handler, $handler_args ) = @_;
     $handler_args ||= {};
+    $queues = [$queues] unless ref $queues eq 'ARRAY';
 
     foreach my $queue (@$queues) {
         die "unknown queue: $queue" unless $self->has_queue($queue);    # TODO: <plu> add proper exception handling
