@@ -40,6 +40,11 @@ has 'verbose' => (
     isa     => 'Bool',
 );
 
+has 'anyevent_condvar' => (
+    is  => 'rw',
+    isa => 'Any',
+);
+
 has '_mq' => (
     isa        => 'Any',
     lazy_build => 1,
@@ -72,6 +77,7 @@ sub exchange_declare {
 sub listen {
     my ($self) = @_;
     my $c = AnyEvent->condvar;
+    $self->anyevent_condvar($c);
 
     # Run the event loop forever
     $c->recv;
@@ -86,9 +92,6 @@ sub publish {
         routing_key => $message_name,
         header      => $header,
     );
-    use Data::Dumper;
-    $Data::Dumper::Sortkeys=1;
-    warn Dumper $header;
     $self->_publish(%data);
 }
 
@@ -108,6 +111,11 @@ sub queue_bind {
         queue       => $queue,
         routing_key => $routing_key,
     );
+}
+
+sub stop {
+    my ($self) = @_;
+    $self->anyevent_condvar->send;
 }
 
 sub subscribe {

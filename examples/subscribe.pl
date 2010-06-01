@@ -5,6 +5,7 @@ use FindBin;
 use lib "$FindBin::Bin/../lib";
 use Beetle::Client;
 use Beetle::Handler;
+use AnyEvent;
 use Data::Dumper;
 $Data::Dumper::Sortkeys = 1;
 
@@ -24,5 +25,12 @@ my $handler = Beetle::Handler->create(
 );
 
 $client->register_handler( testperl => $handler );
+
+my $timer = AnyEvent->timer(
+    after => 10,     # seconds
+    cb    => sub {
+        $client->stop_listening;
+    },
+);
 
 $client->listen;

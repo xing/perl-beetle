@@ -72,8 +72,8 @@ sub listen {
 #   EM.stop_event_loop
 # end
 sub stop {
-
-    # TODO: <plu> implement this
+    my ($self) = @_;
+    $self->bunny->stop;
 }
 
 # # register handler for the given queues (see Client#register_handler)
