@@ -48,7 +48,7 @@ sub create {
         return $package->new( processor => $thing, %$args );
     }
 
-    elsif ( defined $thing && Scalar::Util::blessed $thing && grep $_ eq __PACKAGE__, $thing->meta->superclasses ) {
+    elsif ( defined $thing && Scalar::Util::blessed $thing && grep $_ eq __PACKAGE__, $thing->meta->linearized_isa ) {
         return $thing;
     }
 

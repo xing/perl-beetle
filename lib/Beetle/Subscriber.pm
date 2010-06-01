@@ -64,12 +64,7 @@ sub listen {
     $self->bind_queues($queues);
     $self->subscribe_queues($queues);
     $code->() if defined $code && ref $code eq 'CODE';
-    while (1) {
-        my $result = $self->bunny->recv();
-        use Data::Dumper;
-        $Data::Dumper::Sortkeys = 1;
-        warn Dumper $result;
-    }
+    $self->bunny->listen;
 }
 
 # # stops the eventmachine loop
@@ -89,7 +84,6 @@ sub stop {
 # end
 sub register_handler {
     my ( $self, $queues, $options, $handler ) = @_;
-    $queues = [$queues] unless ref $queues eq 'ARRAY';
     foreach my $queue (@$queues) {
         $self->set_handler(
             $queue => {
@@ -226,7 +220,7 @@ sub subscribe {
         $amqp_queue_name, $self->server );
 
     eval {
-        $self->bunny->consume( 1, $queue_name );    # TODO: <plu> implement this.
+        $self->bunny->subscribe( $queue_name => $callback );    # TODO: <plu> implement this.
     };
     if ($@) {
         $self->error('Beetle: binding multiple handlers for the same queue isn\'t possible');
@@ -258,30 +252,31 @@ sub subscribe {
 # end
 sub create_subscription_callback {
     my ( $self, $queue_name, $amqp_queue_name, $handler, $options ) = @_;
-    eval {
-        my $processor = Beetle::Handler->new( $handler, $options );
-        my $message_options = merge $options, { server => $self->server, store => $self->client->deduplication_store };
-        my $message = Beetle::Message->new(
-            queue  => $amqp_queue_name,
-            header => undef,              # TODO: <plu> where the heck does header come from?!
-            data   => undef,              # TODO: <plu> where the heck does data come from?!
-            %$message_options,
-        );
-        my $result = $message->process($processor);
-        if ( $result->{recover} ) {
-            sleep 1;
-            $self->get_mq( $self->server )->recover;
-        }
+    return sub {
+        my ($amqp_message) = @_;
+        my $header         = $amqp_message->{header};
+        my $body           = $amqp_message->{body}->payload;
+        eval {
+            my $processor = Beetle::Handler->create( $handler, $options );
+            my $message_options = merge $options,
+              { server => $self->server, store => $self->client->deduplication_store };
+            my $message = Beetle::Message->new(
+                queue  => $amqp_queue_name,
+                header => $header,
+                body   => $body,
+                %$message_options,
+            );
+            my $result = $message->process($processor);
 
-        #       elsif reply_to = header.properties[:reply_to]
-        #         status = result == Beetle::RC::OK ? "OK" : "FAILED"
-        #         exchange = MQ::Exchange.new(mq(server), :direct, "", :key => reply_to)
-        #         exchange.publish(m.handler_result.to_s, :headers => {:status => status})
-        #       end
+            # TODO: complete the implementation
+            return $result;
+        };
+        if ($@) {
+            warn $@;
+
+            # TODO: <plu> add exception handling
+        }
     };
-    if ($@) {
-        # TODO: <plu> add exception handling
-    }
 }
 
 # def bind_queue!(queue_name, creation_keys, exchange_name, binding_keys)
@@ -292,9 +287,9 @@ sub create_subscription_callback {
 # end
 sub bind_queue {
     my ( $self, $queue_name, $creation_keys, $exchange_name, $binding_keys ) = @_;
-    $self->bunny->queue_declare( 1, $queue_name, $creation_keys );
+    $self->bunny->queue_declare( $queue_name => $creation_keys );
     $self->exchange($exchange_name);
-    $self->bunny->queue_bind( 1, $queue_name, $exchange_name, $binding_keys->{key} );
+    $self->bunny->queue_bind( $queue_name, $exchange_name, $binding_keys->{key} );
 }
 
 # def amqp_connection(server=@server)

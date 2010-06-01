@@ -2,6 +2,7 @@ package Beetle::Base::PubSub;
 
 use Moose;
 extends qw(Beetle::Base);
+use Beetle::Bunny;
 
 # Base class for publisher/subscriber
 
@@ -61,10 +62,10 @@ has 'server' => (
 has 'servers' => (
     default => sub { [] },
     handles => {
-        add_server     => 'push',
-        all_servers    => 'elements',
-        get_server     => 'get',
-        count_servers  => 'count',
+        add_server    => 'push',
+        all_servers   => 'elements',
+        get_server    => 'get',
+        count_servers => 'count',
     },
     is     => 'ro',
     isa    => 'ArrayRef',
@@ -199,22 +200,13 @@ sub bunny {
 # end
 sub new_bunny {
     my ($self) = @_;
-    my $b = Net::RabbitMQ->new;
-
-    # TODO: <plu> not sure if it's a good idea to connect here
-    $b->connect(
-        $self->current_host => {
-            user     => $self->config->user,
-            password => $self->config->password,
-            vhost    => $self->config->vhost,
-            port     => $self->current_port,
-        }
+    return Beetle::Bunny->new(
+        host  => $self->current_host,
+        user  => $self->config->user,
+        pass  => $self->config->password,
+        vhost => $self->config->vhost,
+        port  => $self->current_port,
     );
-
-    # TODO: <plu> mmm... which channel?!
-    $b->channel_open(1);
-
-    return $b;
 }
 
 # def create_exchange!(name, opts)
@@ -223,9 +215,8 @@ sub new_bunny {
 sub create_exchange {
     my ( $self, $name, $options ) = @_;
     my %rmq_options = %{ $options || {} };
-    $rmq_options{exchange_type} = delete $rmq_options{type};
     delete $rmq_options{queues};
-    $self->bunny->exchange_declare( 1, $name => \%rmq_options );
+    $self->bunny->exchange_declare( $name => \%rmq_options );
     return;
 }
 

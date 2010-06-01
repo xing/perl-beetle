@@ -285,7 +285,7 @@ sub register_message {
 
 # bah, this is odd, we won't do it the ruby way having a dynamic length of arguments "in the middle"
 sub register_handler {
-    my ( $self, $queues, $block, $handler, $handler_args ) = @_;
+    my ( $self, $queues, $handler, $handler_args ) = @_;
     $handler_args ||= {};
     $queues = [$queues] unless ref $queues eq 'ARRAY';
 
@@ -293,7 +293,7 @@ sub register_handler {
         die "unknown queue: $queue" unless $self->has_queue($queue);    # TODO: <plu> add proper exception handling
     }
 
-    $self->subscriber->register_handler( $queues, $handler_args, $handler, $block );
+    $self->subscriber->register_handler( $queues, $handler_args, $handler );
 }
 
 # this is a convenience method to configure exchanges, queues, messages and handlers

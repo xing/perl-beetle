@@ -15,7 +15,11 @@ $client->register_message( testperl => { redundant => 0 } );
 
 my $handler = Beetle::Handler->create(
     sub {
-        warn "handler called";
+        my ($message) = @_;
+        warn "PROCESSING MESSAGE...";
+        use Data::Dumper;
+        $Data::Dumper::Sortkeys = 1;
+        warn Dumper $message;
     }
 );
 

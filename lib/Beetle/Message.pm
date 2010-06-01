@@ -162,7 +162,9 @@ sub BUILD {
 sub ack {
     my ($self) = @_;
     $self->log->debug( sprintf 'Beetle: ack! for message %s', $self->msg_id );
-    $self->header->ack;
+
+    # TODO: <plu> implement the ack here! No clue how/why
+    # $self->header->ack;
     return if $self->simple;    # simple messages don't use the deduplication store
     if ( !$self->redundant || $self->store->incr( $self->msg_id => 'ack_count' ) == 2 ) {
         $self->store->del_keys( $self->msg_id );
@@ -232,13 +234,13 @@ sub completed {
 sub decode {
     my ($self) = @_;
 
-    my $amqp_headers = $self->header->properties;
-    my $headers      = $amqp_headers->{headers};
+    my $header = $self->header;
+    my $amqp_headers = $header->{headers};
 
-    $self->{uuid}           = $amqp_headers->{message_id};
-    $self->{format_version} = $headers->{format_version};
-    $self->{flags}          = $headers->{flags};
-    $self->{expires_at}     = $headers->{expires_at};
+    $self->{uuid}           = $header->{message_id};
+    $self->{format_version} = $amqp_headers->{format_version};
+    $self->{flags}          = $amqp_headers->{flags};
+    $self->{expires_at}     = $amqp_headers->{expires_at};
 }
 
 # whether we should wait before running the handler
@@ -639,10 +641,11 @@ sub _run_handler {
     my ( $self, $handler ) = @_;
 
     # TODO: <plu> implement timeout here - not sure if this is a -really- good idea
-    my $result = eval { $handler->($self); };
+    my $result = eval { $handler->call($self); };
     return 'RC::OK' unless $@;
 
-    $self->log->debug( sprintf 'Beetle: message handler crashed on %s', $self->msg_id );
+    $self->log->error( sprintf 'Beetle: message handler crashed on %s', $self->msg_id );
+    $self->log->error($@);
     return 'RC::HandlerCrash';
 }
 

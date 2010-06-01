@@ -114,14 +114,15 @@ sub publish_with_failover {
         );
 
         eval {
-            my $exchange        = $self->exchange($exchange_name);
-            my $publish_options = {
+            my $exchange = $self->exchange($exchange_name);
+            my $header   = {
                 content_type  => 'application/octet-stream',
                 delivery_mode => 2,
+                headers       => $options->{headers},
                 message_id    => $options->{message_id},
                 priority      => 0
             };
-            $self->bunny->publish( 1, $message_name, $data, { exchange => $exchange_name }, $publish_options );
+            $self->bunny->publish( $exchange_name, $message_name, $data, $header );
         };
         unless ($@) {
             $published = 1;
@@ -335,7 +336,7 @@ sub stop {
             my $self = shift;
 
             # TODO: <plu> proper exception handling missing
-            eval { $self->bunny->disconnect };
+            eval { $self->bunny->close };
 
             $self->{bunnies}{ $self->server }   = undef;
             $self->{exchanges}{ $self->server } = {};
@@ -432,11 +433,11 @@ sub bind_queues_for_exchange {
 sub bind_queue {
     my ( $self, $queue_name, $creation_keys, $exchange_name, $binding_keys ) = @_;
     $self->log->debug( sprintf 'Creating queue with options: %s', Dumper($creation_keys) );
-    $self->bunny->queue_declare( 1, $queue_name, $creation_keys );
+    $self->bunny->queue_declare( $queue_name, $creation_keys );
     $self->log->debug( sprintf 'Binding queue %s to %s with options %s',
         $queue_name, $exchange_name, Dumper($binding_keys) );
     $self->exchange($exchange_name);
-    $self->bunny->queue_bind( 1, $queue_name, $exchange_name, $binding_keys->{key} );
+    $self->bunny->queue_bind( $queue_name, $exchange_name, $binding_keys->{key} );
 }
 
 1;
