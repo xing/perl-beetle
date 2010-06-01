@@ -10,7 +10,7 @@ requires(
     'Hash::Merge::Simple'   => '0.05',
     'Moose'                 => '0.92',
     'MooseX::Log::Log4perl' => '0.40',
-    'Net::RabbitMQ'         => '0.1.5',
+    'Net::RabbitFoot'       => '1.01',
 );
 
 test_requires(
