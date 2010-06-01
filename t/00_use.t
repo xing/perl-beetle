@@ -3,7 +3,6 @@ use Test::More;
 BEGIN {
     use_ok('Beetle');
     use_ok('Beetle::Base');
-    use_ok('Beetle::Base::Handler');
     use_ok('Beetle::Base::PubSub');
     use_ok('Beetle::Client');
     use_ok('Beetle::Config');
