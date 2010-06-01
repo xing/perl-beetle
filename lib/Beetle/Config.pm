@@ -19,7 +19,7 @@ has 'loglayout' => (
 );
 
 has 'loglevel' => (
-    default       => 'INFO',
+    default       => 'DEBUG',
     documentation => 'Log4perl log level',
     is            => 'rw',
     isa           => 'Str',
