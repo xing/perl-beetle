@@ -18,6 +18,14 @@ has 'loglayout' => (
     required      => 1,
 );
 
+has 'loglevel' => (
+    default       => 'INFO',
+    documentation => 'Log4perl log level',
+    is            => 'rw',
+    isa           => 'Str',
+    required      => 1,
+);
+
 has 'gc_threshold' => (
     default       => 86400 * 3,
     documentation => 'number of seconds after which keys are removed form the deduplication store (default: 3 days)',

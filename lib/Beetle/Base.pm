@@ -22,6 +22,7 @@ sub _setup_logger {
         {
             file   => $self->config->logger,
             layout => $self->config->loglayout,
+            level  => $self->config->loglevel,
         }
     );
 }
