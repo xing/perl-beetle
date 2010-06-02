@@ -26,6 +26,8 @@ use Beetle::DeduplicationStore;
 use Beetle::Publisher;
 use Beetle::Subscriber;
 use Sys::Hostname;
+use Net::AMQP::Protocol;
+use Net::RabbitFoot;
 
 has 'config' => (
     default => sub { Beetle::Config->new },
@@ -120,6 +122,12 @@ sub BUILD {
         db    => $self->config->redis_db,
     );
     $self->{servers} = [ split / *, */, $self->config->servers ];
+
+    # Init AMQP spec
+    # TODO: <plu> is there no fucking valid way to check if this is done already or not?!
+    unless ($Net::AMQP::Protocol::VERSION_MAJOR) {
+        Net::AMQP::Protocol->load_xml_spec(Net::RabbitFoot::default_amqp_spec());
+    }
 }
 
 # register an exchange with the given _name_ and a set of _options_:
