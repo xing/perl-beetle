@@ -11,7 +11,7 @@ has 'logger' => (
 );
 
 has 'loglayout' => (
-    default       => '[%d] (%C:%L) %m%n',
+    default       => '[%d] [%p] (%C:%L) %m%n',
     documentation => 'Log4perl log layout',
     is            => 'rw',
     isa           => 'Str',
