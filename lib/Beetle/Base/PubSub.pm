@@ -172,14 +172,14 @@ sub queue {
     }
 
     my $bindings = $self->client->get_binding($name);
-    foreach my $binding_options (@$bindings) {
+    foreach my $row (@$bindings) {
+        my $binding_options = { %$row };
         my $exchange_name = $binding_options->{exchange};
         foreach my $key ( keys %$binding_options ) {
             delete $binding_options->{$key} unless grep $_ eq $key, @QUEUE_BINDING_KEYS;
         }
         $the_queue = $self->bind_queue( $queue_name, $creation_options, $exchange_name, $binding_options );
     }
-
     return $the_queue;
 }
 
@@ -217,7 +217,7 @@ sub create_exchange {
     my %rmq_options = %{ $options || {} };
     delete $rmq_options{queues};
     $self->bunny->exchange_declare( $name => \%rmq_options );
-    return;
+    return 1;
 }
 
 1;
