@@ -1,14 +1,17 @@
+use strict;
+use warnings;
+use Test::Exception;
 use Test::More;
+
+use FindBin qw( $Bin );
+use lib ( "$Bin/lib", "$Bin/../lib" );
+use TestLib;
 
 BEGIN {
     use_ok('Beetle::Base::PubSub');
     use_ok('Beetle::Publisher');
     use_ok('Beetle::Client');
 }
-
-use strict;
-use warnings;
-use Test::Exception;
 
 # test "acccessing a bunny for a server which doesn't have one should create it and associate it with the server" do
 {

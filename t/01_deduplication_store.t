@@ -1,16 +1,16 @@
+use strict;
+use warnings;
+use Test::Exception;
+use Test::MockObject;
 use Test::More;
+
+use FindBin qw( $Bin );
+use lib ( "$Bin/lib", "$Bin/../lib" );
+use TestLib;
 
 BEGIN {
     use_ok('Beetle::DeduplicationStore');
 }
-
-use strict;
-use warnings;
-use FindBin qw( $Bin );
-use lib ( "$Bin/lib", "$Bin/../lib" );
-use TestLib;
-use Test::MockObject;
-use Test::Exception;
 
 {
     my @keys = Beetle::DeduplicationStore->keys('someid');

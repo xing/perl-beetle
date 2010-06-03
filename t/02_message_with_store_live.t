@@ -1,12 +1,15 @@
-use Test::More;
-
 use strict;
 use warnings;
+use Test::More;
+
 use FindBin qw( $Bin );
 use lib ( "$Bin/lib", "$Bin/../lib" );
 use TestLib;
 use TestLib::Redis;
-use Beetle::Message;
+
+BEGIN {
+    use_ok('Beetle::Message');
+}
 
 test_redis(
     sub {
@@ -33,7 +36,6 @@ test_redis(
             $store->flushdb;
             no warnings 'redefine';
             *Beetle::Config::gc_threshold = sub { return 0; };
-            *Beetle::Config::logger       = sub { '/dev/null' };
             my $header = TestLib->header_with_params( ttl => 0 );
             my $m = Beetle::Message->new(
                 body   => 'foo',
@@ -54,7 +56,6 @@ test_redis(
             $store->flushdb;
             no warnings 'redefine';
             *Beetle::Config::gc_threshold = sub { return 0; };
-            *Beetle::Config::logger       = sub { '/dev/null' };
             my $header = TestLib->header_with_params( ttl => 60 );
             my $m = Beetle::Message->new(
                 body   => 'foo',

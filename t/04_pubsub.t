@@ -1,13 +1,16 @@
+use strict;
+use warnings;
+use Test::Exception;
 use Test::More;
+
+use FindBin qw( $Bin );
+use lib ( "$Bin/lib", "$Bin/../lib" );
+use TestLib;
 
 BEGIN {
     use_ok('Beetle::Base::PubSub');
     use_ok('Beetle::Client');
 }
-
-use strict;
-use warnings;
-use Test::Exception;
 
 {
     my $client = Beetle::Client->new;
@@ -23,7 +26,6 @@ use Test::Exception;
 
 {
     no warnings 'redefine';
-    *Beetle::Config::logger = sub { '/dev/null' };
     my $client = Beetle::Client->new;
     my $base = Beetle::Base::PubSub->new( client => $client );
     throws_ok { $base->error('message') } qr/message/, 'the error method should raise a beetle error';

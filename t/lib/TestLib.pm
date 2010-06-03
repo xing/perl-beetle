@@ -4,6 +4,13 @@ package    # hide from PAUSE
 use Moose;
 use Beetle::Message;
 
+BEGIN {
+    # Disable logger in tests
+    use Beetle::Config;
+    no warnings 'redefine';
+    *Beetle::Config::logger = sub { '/dev/null' };
+}
+
 sub header_with_params {
     my ( $package, %opts ) = @_;
 

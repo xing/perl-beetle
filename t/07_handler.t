@@ -1,21 +1,17 @@
-use Test::More;
-
-BEGIN {
-    use_ok('Beetle::Handler');
-    use_ok('Beetle::Message');
-}
-
 use strict;
 use warnings;
 use Test::Exception;
+use Test::More;
+
 use FindBin qw( $Bin );
 use lib ( "$Bin/lib", "$Bin/../lib" );
 use TestLib::Handler::FooBar;
 use TestLib::Handler::SubFooBar;
+use TestLib;
 
-{
-    no warnings 'redefine';
-    *Beetle::Config::logger = sub { '/dev/null' };
+BEGIN {
+    use_ok('Beetle::Handler');
+    use_ok('Beetle::Message');
 }
 
 {
