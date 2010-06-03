@@ -21,19 +21,13 @@ package Beetle::Client;
 # the corresponding consumers.
 
 use Moose;
-use Beetle::Config;
 use Beetle::DeduplicationStore;
 use Beetle::Publisher;
 use Beetle::Subscriber;
 use Sys::Hostname;
 use Net::AMQP::Protocol;
 use Net::RabbitFoot;
-
-has 'config' => (
-    default => sub { Beetle::Config->new },
-    is      => 'ro',
-    isa     => 'Beetle::Config',
-);
+extends qw(Beetle::Base);
 
 has 'servers' => (
     documentation => 'the AMQP servers available for publishing',
@@ -102,31 +96,40 @@ has 'deduplication_store' => (
 );
 
 has 'publisher' => (
-    default => sub { Beetle::Publisher->new( client => shift ) },
-    is      => 'ro',
-    isa     => 'Beetle::Publisher',
-    lazy    => 1,
+    default => sub {
+        my ($self) = @_;
+        Beetle::Publisher->new( client => $self, config => $self->config );
+    },
+    is   => 'ro',
+    isa  => 'Beetle::Publisher',
+    lazy => 1,
 );
 
 has 'subscriber' => (
-    default => sub { Beetle::Subscriber->new( client => shift ) },
-    is      => 'ro',
-    isa     => 'Beetle::Subscriber',
-    lazy    => 1,
+    default => sub {
+        my ($self) = @_;
+        Beetle::Subscriber->new( client => $self, config => $self->config );
+    },
+    is   => 'ro',
+    isa  => 'Beetle::Subscriber',
+    lazy => 1,
 );
 
 sub BUILD {
     my ($self) = @_;
     $self->{deduplication_store} = Beetle::DeduplicationStore->new(
-        hosts => $self->config->redis_hosts,
-        db    => $self->config->redis_db,
+
+        # TODO: <plu> $self->config should be enough, right?!
+        config => $self->config,
+        hosts  => $self->config->redis_hosts,
+        db     => $self->config->redis_db,
     );
     $self->{servers} = [ split /[ ,]/, $self->config->servers ];
 
     # Init AMQP spec
     # TODO: <plu> is there no fucking valid way to check if this is done already or not?!
     unless ($Net::AMQP::Protocol::VERSION_MAJOR) {
-        Net::AMQP::Protocol->load_xml_spec(Net::RabbitFoot::default_amqp_spec());
+        Net::AMQP::Protocol->load_xml_spec( Net::RabbitFoot::default_amqp_spec() );
     }
 }
 
