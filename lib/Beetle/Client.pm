@@ -121,7 +121,7 @@ sub BUILD {
         hosts => $self->config->redis_hosts,
         db    => $self->config->redis_db,
     );
-    $self->{servers} = [ split / *, */, $self->config->servers ];
+    $self->{servers} = [ split /[ ,]/, $self->config->servers ];
 
     # Init AMQP spec
     # TODO: <plu> is there no fucking valid way to check if this is done already or not?!
