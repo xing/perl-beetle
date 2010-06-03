@@ -261,6 +261,7 @@ sub create_subscription_callback {
             my $message_options = merge $options,
               { server => $self->server, store => $self->client->deduplication_store };
             my $message = Beetle::Message->new(
+                config => $self->config,
                 queue  => $amqp_queue_name,
                 header => $header,
                 body   => $body,
