@@ -15,6 +15,22 @@ sub BUILD {
     $self->_setup_logger;
 }
 
+around 'BUILDARGS' => sub {
+    my $orig  = shift;
+    my $class = shift;
+    my %args  = @_;
+
+    if ( defined $args{config} ) {
+        $args{config} = Beetle::Config->new( %{ delete $args{config} } );
+    }
+
+    elsif ( defined $args{configfile} ) {
+        $args{config} = Beetle::Config->new_with_config( configfile => delete $args{configfile} );
+    }
+
+    return $class->$orig(%args);
+};
+
 sub _setup_logger {
     my ($self) = @_;
 

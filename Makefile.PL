@@ -10,6 +10,7 @@ requires(
     'Hash::Merge::Simple'   => '0.05',
     'Moose'                 => '0.92',
     'MooseX::Log::Log4perl' => '0.40',
+    'MooseX::SimpleConfig'  => 0,
     'Net::RabbitFoot'       => '1.01',
 );
 

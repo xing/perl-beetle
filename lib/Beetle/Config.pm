@@ -1,6 +1,7 @@
 package Beetle::Config;
 
 use Moose;
+with qw(MooseX::SimpleConfig);
 
 has 'logger' => (
     default       => 'STDERR',
