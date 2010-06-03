@@ -40,17 +40,18 @@ $client->register_handler( 'testperl' => $handler );
 my $message_count = 10;
 my $published     = 0;
 
-for ( 1 .. $message_count ) {
+for ( 1 .. $message_count - 1 ) {
     $published += $client->publish( testperl => $_ );
 }
 
 warn "published ${published} test messages";
 
 my $timer = AnyEvent->timer(
-    after => 1,    # seconds
+    after => 1,      # seconds
     cb    => sub {
         warn "result: $SomeHandler::COUNTER";
         $client->stop_listening;
+        die "something is fishy" unless $SomeHandler::COUNTER == $message_count * ( $message_count - 1 ) / 2;
     },
 );
 
