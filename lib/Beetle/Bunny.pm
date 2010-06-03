@@ -116,7 +116,6 @@ sub queue_bind {
 sub stop {
     my ($self) = @_;
     $self->anyevent_condvar->send;
-    $self->_close;
 }
 
 sub subscribe {
