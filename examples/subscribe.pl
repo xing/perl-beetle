@@ -27,7 +27,7 @@ my $handler = Beetle::Handler->create(
 $client->register_handler( testperl => $handler );
 
 my $timer = AnyEvent->timer(
-    after => 10,     # seconds
+    after => 1,     # seconds
     cb    => sub {
         $client->stop_listening;
     },

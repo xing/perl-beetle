@@ -30,4 +30,11 @@ $client->register_handler(
     }
 );
 
+my $timer = AnyEvent->timer(
+    after => 1,     # seconds
+    cb    => sub {
+        $client->stop_listening;
+    },
+);
+
 $client->listen;

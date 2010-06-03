@@ -47,7 +47,7 @@ for ( 1 .. $message_count ) {
 warn "published ${published} test messages";
 
 my $timer = AnyEvent->timer(
-    after => 0.2,    # seconds
+    after => 1,    # seconds
     cb    => sub {
         warn "result: $SomeHandler::COUNTER";
         $client->stop_listening;
