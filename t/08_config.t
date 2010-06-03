@@ -60,7 +60,7 @@ BEGIN {
         'user'         => 'admin',
         'vhost'        => '/bar',
     };
-    my $client = Beetle::Client->new( configfile => "$Bin/config.pl" );
+    my $client = Beetle::Client->new( configfile => "$Bin/etc/config.pl" );
     my $got = $client->config;
     delete $got->{configfile};
     is_deeply( $got, $expected, 'Custom config from file works' );
