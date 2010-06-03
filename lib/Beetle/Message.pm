@@ -341,7 +341,7 @@ sub key_exists {
     if ($successful) {
         return 0;
     }
-    $self->log->info( sprintf "Beetle: received duplicate message: %s on queue: %s", $self->msg_id, $self->queue );
+    $self->log->debug( sprintf "Beetle: received duplicate message: %s on queue: %s", $self->msg_id, $self->queue );
     return 1;
 }
 
