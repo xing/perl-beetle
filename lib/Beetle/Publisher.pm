@@ -133,7 +133,7 @@ sub publish_with_failover {
             $self->log->error($@);
         }
 
-        $self->stop;
+        $self->stop_bunny;
         $self->mark_server_dead;
         $self->log->error( sprintf 'Beetle: message could not be delivered: %s', $message_name );
     }
@@ -199,13 +199,22 @@ sub publish_with_redundancy {
             $self->server
         );
 
-        eval { $self->exchange($exchange_name)->publish( $data, $options ); };
+        my $header = {
+            content_type  => 'application/octet-stream',
+            delivery_mode => 2,
+            headers       => $options->{headers},
+            message_id    => $options->{message_id},
+            priority      => 0
+        };
+
+        eval { $self->bunny->publish( $exchange_name, $message_name, $data, $header ); };
         unless ($@) {
             push @published, $self->server;
-            $self->log->debug( sprintf 'Beetle: message sent ()!', scalar(@published) );
+            $self->log->debug( sprintf 'Beetle: message sent (%d)!', scalar(@published) );
+            next;
         }
 
-        $self->stop;
+        $self->stop_bunny;
         $self->mark_server_dead;
     }
 
@@ -329,14 +338,21 @@ sub purge {
 #     @queues[@server] = {}
 #   end
 # end
+
+sub stop_bunny {
+    my ($self) = @_;
+
+    # TODO: <plu> proper exception handling missing
+    eval { $self->bunny->close };
+}
+
 sub stop {
     my ($self) = @_;
     $self->each_server(
         sub {
             my $self = shift;
 
-            # TODO: <plu> proper exception handling missing
-            eval { $self->bunny->close };
+            $self->stop_bunny;
 
             $self->{bunnies}{ $self->server }   = undef;
             $self->{exchanges}{ $self->server } = {};
@@ -403,7 +419,8 @@ sub select_next_server {
         $index++;
     }
     my $next = ( $index + 1 ) % $self->count_servers;
-    $self->set_current_server( $self->get_server($next) );
+    my $server = $self->get_server($next);
+    $self->set_current_server($server);
 }
 
 # def bind_queues_for_exchange(exchange_name)

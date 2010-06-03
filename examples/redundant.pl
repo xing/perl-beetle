@@ -10,7 +10,7 @@ $Data::Dumper::Sortkeys = 1;
 
 {
     no warnings 'redefine';
-    *Beetle::Config::servers = [qw(localhost:5672 localhost:5673)]
+    *Beetle::Config::servers = sub { 'localhost:5673 localhost:5672' };
 }
 
 my $client = Beetle::Client->new;
@@ -19,6 +19,15 @@ $client->register_queue('testperl');
 $client->purge('testperl');
 $client->register_message( testperl => { redundant => 1 } );
 
-for ( 1 .. 1 ) {
+for ( 1 .. 3 ) {
     $client->publish( testperl => "Hello$_" );
 }
+
+$client->register_handler(
+    testperl => sub {
+        my $m = shift;
+        warn $m->server;
+    }
+);
+
+$client->listen;

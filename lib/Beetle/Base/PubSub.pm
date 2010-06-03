@@ -131,10 +131,15 @@ sub each_server {
 # end
 sub exchange {
     my ( $self, $name ) = @_;
-    unless ( $self->has_exchange($name) ) {
-        my $exchange = $self->create_exchange( $name => $self->client->get_exchange($name) );
-        $self->set_exchange( $name => $exchange );
-    }
+
+    # TODO: <plu> hmm make sure this is correct. If we check has_exchange
+    # using multiple servers does not work anymore...
+
+    # unless ( $self->has_exchange($name) ) {
+    my $exchange = $self->create_exchange( $name => $self->client->get_exchange($name) );
+    $self->set_exchange( $name => $exchange );
+
+    # }
 }
 
 # def queue(name)
@@ -173,8 +178,8 @@ sub queue {
 
     my $bindings = $self->client->get_binding($name);
     foreach my $row (@$bindings) {
-        my $binding_options = { %$row };
-        my $exchange_name = $binding_options->{exchange};
+        my $binding_options = {%$row};
+        my $exchange_name   = $binding_options->{exchange};
         foreach my $key ( keys %$binding_options ) {
             delete $binding_options->{$key} unless grep $_ eq $key, @QUEUE_BINDING_KEYS;
         }
