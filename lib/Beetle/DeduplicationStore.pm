@@ -77,6 +77,7 @@ sub msg_id {
 sub set {    ## no critic
     my ( $self, $msg_id, $suffix, $value ) = @_;
     my $key = $self->key( $msg_id, $suffix );
+    $self->log->debug( sprintf 'DeduplicationStore: set called for key: %s', $key );
     $self->with_failover( sub { $self->redis->set( $key => $value ) } );
 }
 
@@ -84,12 +85,14 @@ sub set {    ## no critic
 sub setnx {
     my ( $self, $msg_id, $suffix, $value ) = @_;
     my $key = $self->key( $msg_id, $suffix );
+    $self->log->debug( sprintf 'DeduplicationStore: setnx called for key: %s', $key );
     $self->with_failover( sub { $self->redis->setnx( $key => $value ) } );
 }
 
 # store some key/value pairs if none of the given keys exist.
 sub msetnx {
     my ( $self, $msg_id, $values ) = @_;
+    $self->log->debug('DeduplicationStore: msetnx called');
     my %result = ();
     foreach my $key ( CORE::keys %$values ) {
         my $value = $values->{$key};
@@ -103,6 +106,7 @@ sub msetnx {
 sub incr {
     my ( $self, $msg_id, $suffix ) = @_;
     my $key = $self->key( $msg_id, $suffix );
+    $self->log->debug( sprintf 'DeduplicationStore: incr called for key: %s', $key );
     $self->with_failover( sub { $self->redis->incr($key) } );
 }
 
@@ -110,6 +114,7 @@ sub incr {
 sub get {
     my ( $self, $msg_id, $suffix ) = @_;
     my $key = $self->key( $msg_id, $suffix );
+    $self->log->debug( sprintf 'DeduplicationStore: get called for key: %s', $key );
     $self->with_failover( sub { $self->redis->get($key) } );
 }
 
@@ -117,12 +122,14 @@ sub get {
 sub del {
     my ( $self, $msg_id, $suffix ) = @_;
     my $key = $self->key( $msg_id, $suffix );
+    $self->log->debug( sprintf 'DeduplicationStore: del called for key: %s', $key );
     $self->with_failover( sub { $self->redis->del($key) } );
 }
 
 # delete all keys associated with the given <tt>msg_id</tt>.
 sub del_keys {
     my ( $self, $msg_id ) = @_;
+    $self->log->debug('DeduplicationStore: del_keys called');
     $self->with_failover( sub { $self->redis->del($_) for $self->keys($msg_id) } );
 }
 
@@ -130,12 +137,14 @@ sub del_keys {
 sub exists {
     my ( $self, $msg_id, $suffix ) = @_;
     my $key = $self->key( $msg_id, $suffix );
+    $self->log->debug( sprintf 'DeduplicationStore: exists called for key: %s', $key );
     $self->with_failover( sub { $self->redis->exists($key) } );
 }
 
 # flush the configured redis database. useful for testing.
 sub flushdb {
     my ($self) = @_;
+    $self->log->debug('DeduplicationStore: flushdb called');
     $self->with_failover( sub { $self->redis->flushdb } );
 }
 
