@@ -3,7 +3,7 @@ use warnings;
 use Test::More;
 
 use FindBin qw( $Bin );
-use lib ( "$Bin/lib", "$Bin/../lib" );
+use lib ( "$Bin/../lib", "$Bin/../../lib" );
 use TestLib;
 use TestLib::Redis;
 

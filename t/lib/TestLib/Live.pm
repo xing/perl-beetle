@@ -34,11 +34,11 @@ sub test_beetle_live {
     test_multi_tcp(
         server1 => sub {
             my ( $port, $data_hash ) = @_;
-            exec "sudo -n $Bin/script/start_rabbit rabbit1 $port";
+            exec "sudo -n $Bin/../script/start_rabbit rabbit1 $port";
         },
         server2 => sub {
             my ( $port, $data_hash ) = @_;
-            exec "sudo -n $Bin/script/start_rabbit rabbit2 $port";
+            exec "sudo -n $Bin/../script/start_rabbit rabbit2 $port";
         },
         server3 => sub {
             my ( $port, $data_hash ) = @_;
