@@ -5,10 +5,7 @@ use Test::More;
 use FindBin qw( $Bin );
 use lib ( "$Bin/lib", "$Bin/../lib" );
 use TestLib::Live;
-
-BEGIN {
-    use_ok('Beetle::Client');
-}
+use Beetle::Client;
 
 test_beetle_live(
     sub {
