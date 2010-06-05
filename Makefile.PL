@@ -22,7 +22,7 @@ test_requires(
     'Test::TCP::Multi' => 0,
 );
 
-my @tests = ('t/*.t');
+my @tests = ('t/*.t', 't/*/*.t');
 
 if ( -e 'MANIFEST.SKIP' ) {
     system('pod2text lib/Beetle.pm > README');
