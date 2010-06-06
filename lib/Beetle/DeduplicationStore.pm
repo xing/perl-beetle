@@ -77,7 +77,7 @@ sub msg_id {
 sub set {    ## no critic
     my ( $self, $msg_id, $suffix, $value ) = @_;
     my $key = $self->key( $msg_id, $suffix );
-    $self->log->debug( sprintf 'DeduplicationStore: set called for key: %s', $key );
+    $self->log->debug( sprintf 'DeduplicationStore: set called for key: %s (value: %s)', $key, $value );
     $self->with_failover( sub { $self->redis->set( $key => $value ) } );
 }
 
