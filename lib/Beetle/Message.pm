@@ -509,6 +509,8 @@ sub _execute_handler {
 sub _handler_failed {
     my ( $self, $result ) = @_;
 
+    $self->increment_exception_count;
+
     if ( $self->attempts_limit_reached ) {
         $self->ack;
         $self->log->debug( sprintf 'Beetle: reached the handler execution attempts limit: %d on %s',
