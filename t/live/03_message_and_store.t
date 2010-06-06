@@ -9,11 +9,14 @@ use TestLib::Redis;
 
 BEGIN {
     use_ok('Beetle::Message');
+    use_ok('Beetle::Handler');
 }
 
 test_redis(
     sub {
         my $store = shift;
+
+        my $empty_handler = Beetle::Handler->create( sub { } );
 
         # test "should be able to extract msg_id from any key" do
         {
@@ -85,7 +88,7 @@ test_redis(
             is( $m->expired,   0, 'Message is not expired yet' );
             is( $m->redundant, 0, 'Message is not redundant' );
 
-            my $result = $m->process( sub { } );
+            my $result = $m->process($empty_handler);
 
             foreach my $key ( $store->keys( $m->msg_id ) ) {
                 is( $store->redis->exists($key), 0, "Key $key is not in store anymore" );
@@ -104,8 +107,8 @@ test_redis(
             is( $m->expired,   0, 'Message is not expired yet' );
             is( $m->redundant, 1, 'Message is redundant' );
 
-            $m->process( sub { } );
-            $m->process( sub { } );
+            $m->process($empty_handler);
+            $m->process($empty_handler);
 
             foreach my $key ( $store->keys( $m->msg_id ) ) {
                 is( $store->redis->exists($key), 0, "Key $key is removed from store after 2nd process call" );
@@ -125,18 +128,15 @@ test_redis(
             is( $m->expired,   0, 'Message is not expired yet' );
             is( $m->redundant, 1, 'Message is redundant' );
 
-            $m->process( sub { } );
+            $m->process($empty_handler);
 
-            is( $store->exists( $m->msg_id => 'status' ),    1, 'Key status exists for msg' );
-            is( $store->exists( $m->msg_id => 'expires' ),   1, 'Key expires exists for msg' );
-            is( $store->exists( $m->msg_id => 'attempts' ),  1, 'Key attempts exists for msg' );
-            is( $store->exists( $m->msg_id => 'timeout' ),   1, 'Key timeout exists for msg' );
-            is( $store->exists( $m->msg_id => 'ack_count' ), 1, 'Key ack_count exists for msg' );
-            is( $store->exists( $m->msg_id => 'delay' ),     0, 'Key delay does not exist for msg' );
-          SKIP: {
-                skip "TODO: <plu> fix this!", 1;
-                is( $store->exists( $m->msg_id => 'exceptions' ), 0, 'Key exceptions does not exist for msg' );
-            }
+            is( $store->exists( $m->msg_id => 'status' ),     1, 'Key status exists for msg' );
+            is( $store->exists( $m->msg_id => 'expires' ),    1, 'Key expires exists for msg' );
+            is( $store->exists( $m->msg_id => 'attempts' ),   1, 'Key attempts exists for msg' );
+            is( $store->exists( $m->msg_id => 'timeout' ),    1, 'Key timeout exists for msg' );
+            is( $store->exists( $m->msg_id => 'ack_count' ),  1, 'Key ack_count exists for msg' );
+            is( $store->exists( $m->msg_id => 'delay' ),      0, 'Key delay does not exist for msg' );
+            is( $store->exists( $m->msg_id => 'exceptions' ), 0, 'Key exceptions does not exist for msg' );
         }
 
         # test "an expired message should be acked without calling the handler" do
@@ -181,7 +181,7 @@ test_redis(
                 queue  => "somequeue",
                 store  => $store,
             );
-            $m->process( sub { } );
+            $m->process($empty_handler);
             is( $m->redundant, 0, 'Message is not redundant' );
             is( $store->exists( $m->msg_id, 'ack_count' ), 0, 'The key ack_count does not exist in store' );
         }
@@ -198,7 +198,7 @@ test_redis(
                 store  => $store,
             );
             is( $m->redundant, 1, 'Message is redundant' );
-            $m->process( sub { } );
+            $m->process($empty_handler);
         }
 
         # test "acking a redundant message should increment the ack_count key" do
@@ -211,7 +211,7 @@ test_redis(
                 store  => $store,
             );
             is( $store->get( $m->msg_id => 'ack_count' ), undef, 'The key ack_count is undef in store' );
-            $m->process( sub { } );
+            $m->process($empty_handler);
             is( $m->redundant, 1, 'Message is redundant' );
             is( $store->get( $m->msg_id => 'ack_count' ), 1, 'The key ack_count is 1 after processing the message' );
         }
@@ -226,8 +226,8 @@ test_redis(
                 store  => $store,
             );
             is( $store->get( $m->msg_id => 'ack_count' ), undef, 'The key ack_count is undef in store' );
-            $m->process( sub { } );
-            $m->process( sub { } );
+            $m->process($empty_handler);
+            $m->process($empty_handler);
             is( $m->redundant, 1, 'Message is redundant' );
             is( $store->exists( $m->msg_id, 'ack_count' ),
                 0, 'The key ack_count does not exist in store after processing twice' );
