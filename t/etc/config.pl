@@ -8,5 +8,6 @@
     'redis_hosts'  => 'somehost:123',
     'servers'      => 'otherhost:456',
     'user'         => 'admin',
+    'verbose'      => 1,
     'vhost'        => '/bar',
 }

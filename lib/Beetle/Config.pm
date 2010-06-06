@@ -83,4 +83,12 @@ has 'password' => (
     required      => 1,
 );
 
+has 'verbose' => (
+    default       => 0,
+    documentation => 'enable verbose logging, especially the AMQP frames (default: 0)',
+    is            => 'rw',
+    isa           => 'Bool',
+    required      => 1,
+);
+
 1;

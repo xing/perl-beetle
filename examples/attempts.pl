@@ -9,7 +9,12 @@ use TestLib::Handler::Attempts;
 use Data::Dumper;
 $Data::Dumper::Sortkeys = 1;
 
-my $client = Beetle::Client->new( config => { servers => 'localhost:5672' } );
+my $client = Beetle::Client->new(
+    config => {
+        servers => 'localhost:5672',
+        verbose => 1,
+    },
+);
 
 $client->register_queue('testperl');
 $client->purge('testperl');

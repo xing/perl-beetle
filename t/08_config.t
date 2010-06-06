@@ -24,6 +24,7 @@ BEGIN {
         'redis_hosts'  => 'localhost:6379',
         'servers'      => 'localhost:5672',
         'user'         => 'guest',
+        'verbose'      => 0,
         'vhost'        => '/',
     };
     is_deeply( $got, $expected, 'Empty config hashref uses default' );
@@ -40,6 +41,7 @@ BEGIN {
         'redis_hosts'  => 'somehost:6379',
         'servers'      => 'otherhost:5672',
         'user'         => 'me',
+        'verbose'      => 1,
         'vhost'        => '/foo',
     };
     my $client = Beetle::Client->new( config => $expected );
@@ -58,6 +60,7 @@ BEGIN {
         'redis_hosts'  => 'somehost:123',
         'servers'      => 'otherhost:456',
         'user'         => 'admin',
+        'verbose'      => 1,
         'vhost'        => '/bar',
     };
     my $client = Beetle::Client->new( configfile => "$Bin/etc/config.pl" );

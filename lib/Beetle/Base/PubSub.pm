@@ -206,11 +206,12 @@ sub bunny {
 sub new_bunny {
     my ($self) = @_;
     return Beetle::Bunny->new(
-        host  => $self->current_host,
-        user  => $self->config->user,
-        pass  => $self->config->password,
-        vhost => $self->config->vhost,
-        port  => $self->current_port,
+        host    => $self->current_host,
+        pass    => $self->config->password,
+        port    => $self->current_port,
+        user    => $self->config->user,
+        verbose => $self->config->verbose,
+        vhost   => $self->config->vhost,
     );
 }
 
