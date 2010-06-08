@@ -3,6 +3,8 @@ package Beetle::Bunny;
 use Moose;
 use AnyEvent;
 use Net::RabbitFoot;
+use Data::Dumper;
+extends qw(Beetle::Base);
 
 has 'host' => (
     is       => 'rw',
@@ -67,11 +69,9 @@ has '_channel' => (
 
 sub exchange_declare {
     my ( $self, $exchange, $options ) = @_;
-    $options ||= {};
-    $self->_declare_exchange(
-        exchange => $exchange,
-        %$options,
-    );
+    $options->{exchange} = $exchange;
+    $self->log->debug( sprintf 'Declaring exchange with options: %s', Dumper $options);
+    $self->_declare_exchange(%$options);
 }
 
 sub listen {
@@ -92,20 +92,22 @@ sub publish {
         routing_key => $message_name,
         header      => $header,
     );
+    $self->log->debug( sprintf 'Publishing message %s on exchange %s using data: %s',
+        $message_name, $exchange_name, Dumper \%data );
     $self->_publish(%data);
 }
 
 sub queue_declare {
     my ( $self, $queue, $options ) = @_;
-    $options ||= {};
-    $self->_declare_queue(
-        queue => $queue,
-        %$options,
-    );
+    $options->{queue} = $queue;
+    $self->log->debug( sprintf 'Declaring queue with options: %s', Dumper $options);
+    $self->_declare_queue(%$options);
 }
 
 sub queue_bind {
     my ( $self, $queue, $exchange, $routing_key ) = @_;
+    $self->log->debug( sprintf 'Binding to queue %s on exchange %s using routing key %s',
+        $queue, $exchange, $routing_key );
     $self->_bind_queue(
         exchange    => $exchange,
         queue       => $queue,
@@ -120,6 +122,7 @@ sub stop {
 
 sub subscribe {
     my ( $self, $queue, $callback ) = @_;
+    $self->log->debug( sprintf 'Subscribing to queue %s', $queue );
     $self->_consume(
         on_consume => $callback,
         queue      => $queue
