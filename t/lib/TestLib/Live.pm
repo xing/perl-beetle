@@ -16,6 +16,8 @@ sub test_beetle_live {
 
     plan skip_all => 'export BEETLE_LIVE_TEST to enable this test' unless $ENV{BEETLE_LIVE_TEST};
 
+    diag "You might get asked for your password to run rabbitmq-server and rabbitmqctl via sudo";
+
     chomp( my $rabbitmq_ctl = `which rabbitmqctl` );
     unless ( $rabbitmq_ctl && -e $rabbitmq_ctl && -x _ ) {
         die 'rabbitmqctl not found in your PATH';
@@ -34,11 +36,11 @@ sub test_beetle_live {
     test_multi_tcp(
         server1 => sub {
             my ( $port, $data_hash ) = @_;
-            exec "sudo -n $Bin/../script/start_rabbit perlrabbit1 $port";
+            exec "sudo $Bin/../script/start_rabbit perlrabbit1 $port";
         },
         server2 => sub {
             my ( $port, $data_hash ) = @_;
-            exec "sudo -n $Bin/../script/start_rabbit perlrabbit2 $port";
+            exec "sudo $Bin/../script/start_rabbit perlrabbit2 $port";
         },
         server3 => sub {
             my ( $port, $data_hash ) = @_;
