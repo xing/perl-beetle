@@ -268,6 +268,19 @@ sub create_subscription_callback {
                 %$message_options,
             );
             my $result = $message->process($processor);
+            if (
+                grep $_ eq $result,
+                qw(
+                RC::Delayed
+                RC::HandlerCrash
+                RC::HandlerNotYetTimedOut
+                RC::MutexLocked
+                RC::InternalError
+                )
+              )
+            {
+                $self->bunny->recover;
+            }
 
             # TODO: complete the implementation
             return $result;

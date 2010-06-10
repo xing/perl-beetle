@@ -62,6 +62,7 @@ has '_channel' => (
         _declare_exchange => 'declare_exchange',
         _declare_queue    => 'declare_queue',
         _publish          => 'publish',
+        _recover          => 'recover',
     },
     isa  => 'Any',
     lazy => 1,
@@ -70,6 +71,7 @@ has '_channel' => (
 sub exchange_declare {
     my ( $self, $exchange, $options ) = @_;
     $options->{exchange} = $exchange;
+    $options->{no_ack}   = 0;
     $self->log->debug( sprintf 'Declaring exchange with options: %s', Dumper $options);
     $self->_declare_exchange(%$options);
 }
@@ -91,15 +93,24 @@ sub publish {
         exchange    => $exchange_name,
         routing_key => $message_name,
         header      => $header,
+        no_ack      => 0,
     );
     $self->log->debug( sprintf 'Publishing message %s on exchange %s using data: %s',
         $message_name, $exchange_name, Dumper \%data );
     $self->_publish(%data);
 }
 
+sub recover {
+    my ( $self, $options ) = @_;
+    $options ||= {};
+    $options->{requeue} = 1;
+    $self->_recover(%$options);
+}
+
 sub queue_declare {
     my ( $self, $queue, $options ) = @_;
-    $options->{queue} = $queue;
+    $options->{queue}  = $queue;
+    $options->{no_ack} = 0;
     $self->log->debug( sprintf 'Declaring queue with options: %s', Dumper $options);
     $self->_declare_queue(%$options);
 }
@@ -112,6 +123,7 @@ sub queue_bind {
         exchange    => $exchange,
         queue       => $queue,
         routing_key => $routing_key,
+        no_ack      => 0,
     );
 }
 
@@ -125,7 +137,8 @@ sub subscribe {
     $self->log->debug( sprintf 'Subscribing to queue %s', $queue );
     $self->_consume(
         on_consume => $callback,
-        queue      => $queue
+        queue      => $queue,
+        no_ack     => 0,
     );
 }
 
