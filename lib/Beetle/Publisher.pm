@@ -318,7 +318,7 @@ sub purge {
     $self->each_server(
         sub {
             my $self = shift;
-            $self->bunny->purge($queue_name);
+            $self->bunny->purge( $self->queue($queue_name) );
         }
     );
 }
@@ -417,7 +417,7 @@ sub select_next_server {
         last if $server eq $self->server;
         $index++;
     }
-    my $next = ( $index + 1 ) % $self->count_servers;
+    my $next   = ( $index + 1 ) % $self->count_servers;
     my $server = $self->get_server($next);
     $self->set_current_server($server);
 }
