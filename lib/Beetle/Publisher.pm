@@ -318,8 +318,7 @@ sub purge {
     $self->each_server(
         sub {
             my $self = shift;
-
-            # TODO: <plu> finish this
+            $self->bunny->purge($queue_name);
         }
     );
 }
