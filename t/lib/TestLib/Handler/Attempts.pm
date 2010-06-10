@@ -10,6 +10,12 @@ has 'exceptions' => (
     isa     => 'Int',
 );
 
+has 'client' => (
+    is        => 'rw',
+    isa       => 'Any',
+    predicate => 'has_client',
+);
+
 sub process {
     my ($self) = @_;
     $self->exceptions( $self->exceptions + 1 );
@@ -23,7 +29,7 @@ sub error {
 
 sub failure {
     my ($self) = @_;
-    warn "implement this...";    # TODO: <plu> implement this
+    $self->client->stop_listening if $self->has_client;
 }
 
 1;
