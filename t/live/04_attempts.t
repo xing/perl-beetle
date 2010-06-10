@@ -28,20 +28,18 @@ test_beetle_live(
         $client->purge('testperl');
 
         my $exceptions     = 0;
-        my $max_exceptions = 10;
-        my $handler        = TestLib::Handler::Attempts->new();
+        my $max_exceptions = 3;
+        my $handler;
+        $handler = TestLib::Handler::Attempts->new(
+            on_failure => sub {
+                is( $handler->exceptions, $max_exceptions + 1, 'The handler got called 11 times' );
+                $client->stop_listening;
+            },
+        );
 
         $client->register_handler( testperl => $handler, { exceptions => $max_exceptions, delay => 0 } );
 
         $client->publish( testperl => 'snafu' );
-
-        my $timer = AnyEvent->timer(
-            after => 20,
-            cb    => sub {
-                $client->stop_listening;
-                is( $handler->exceptions, $max_exceptions + 1, 'The handler got called 11 times' );
-            },
-        );
 
         $client->listen;
     }

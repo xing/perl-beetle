@@ -23,7 +23,12 @@ $client->purge('testperl');
 
 my $exceptions     = 0;
 my $max_exceptions = 10;
-my $handler        = TestLib::Handler::Attempts->new( client => $client );
+my $handler;
+$handler = TestLib::Handler::Attempts->new(
+    on_failure => sub {
+        $client->stop_listening;
+    },
+);
 
 $client->register_handler( testperl => $handler, { exceptions => $max_exceptions, delay => 0 } );
 

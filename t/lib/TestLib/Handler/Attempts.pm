@@ -10,10 +10,10 @@ has 'exceptions' => (
     isa     => 'Int',
 );
 
-has 'client' => (
+has 'on_failure' => (
     is        => 'rw',
-    isa       => 'Any',
-    predicate => 'has_client',
+    isa       => 'CodeRef',
+    predicate => 'has_on_failure',
 );
 
 sub process {
@@ -29,7 +29,7 @@ sub error {
 
 sub failure {
     my ($self) = @_;
-    $self->client->stop_listening if $self->has_client;
+    $self->on_failure->() if $self->has_on_failure;
 }
 
 1;
