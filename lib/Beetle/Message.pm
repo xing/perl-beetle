@@ -8,6 +8,7 @@ use Moose;
 use Data::UUID;
 use Devel::StackTrace;
 extends qw(Beetle::Base);
+use Beetle::Handler;
 
 # current message format version
 our $FORMAT_VERSION = 1;
@@ -380,6 +381,7 @@ sub now {
 # TODO: <plu> make sure I got this right.
 sub process {
     my ( $self, $handler ) = @_;
+    $handler = Beetle::Handler->create($handler);
     $self->log->debug( sprintf 'Beetle: processing message %s', $self->msg_id );
     my $result;
     eval { $result = $self->_process_internal($handler); };
