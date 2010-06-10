@@ -390,7 +390,12 @@ sub process {
         $self->log->warn( sprintf "Beetle: backtrace: %s", $trace->as_string );
         $result = 'RC::InternalError';
     }
-    $handler->process_failure($result) if $result eq 'FAILURE'; # TODO: <plu> this is wrong!!!
+    $handler->process_failure($result)
+      if grep $result eq $_, qw(
+          RC::Ancient
+          RC::AttemptsLimitReached
+          RC::ExceptionsLimitReached
+    );
     return $result;
 }
 
@@ -647,7 +652,8 @@ sub _run_handler {
     return 'RC::OK' unless $@;
 
     $self->log->error( sprintf 'Beetle: message handler crashed on %s', $self->msg_id );
-    $self->log->error($@);
+    $self->log->error("Beetle: error message: $@");
+
     return 'RC::HandlerCrash';
 }
 
