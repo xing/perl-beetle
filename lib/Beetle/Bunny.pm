@@ -70,6 +70,13 @@ has '_channel' => (
     lazy => 1,
 );
 
+# TODO: <plu> talk to author of AnyEvent::RabbitMQ how to fix this properly
+{
+    no warnings 'redefine';
+    *AnyEvent::RabbitMQ::Channel::DESTROY = sub {};
+    *AnyEvent::RabbitMQ::DESTROY = sub {};
+}
+
 sub ack {
     my ( $self, $options ) = @_;
     $options ||= {};
@@ -145,7 +152,6 @@ sub queue_bind {
 sub stop {
     my ($self) = @_;
     $self->anyevent_condvar->send;
-    $self->_close;
 }
 
 sub subscribe {

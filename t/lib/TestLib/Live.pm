@@ -16,8 +16,6 @@ sub test_beetle_live {
 
     plan skip_all => 'export BEETLE_LIVE_TEST to enable this test' unless $ENV{BEETLE_LIVE_TEST};
 
-    diag "You might get asked for your password to run rabbitmq-server and rabbitmqctl via sudo";
-
     chomp( my $rabbitmq_ctl = `which rabbitmqctl` );
     unless ( $rabbitmq_ctl && -e $rabbitmq_ctl && -x _ ) {
         die 'rabbitmqctl not found in your PATH';
