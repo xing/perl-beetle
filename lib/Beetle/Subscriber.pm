@@ -279,6 +279,7 @@ sub create_subscription_callback {
                 )
               )
             {
+                sleep 1;
                 $self->bunny->recover;
             }
 
