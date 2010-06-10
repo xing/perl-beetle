@@ -11,28 +11,22 @@ $Data::Dumper::Sortkeys = 1;
 
 my $client = Beetle::Client->new(
     config => {
-        servers => 'localhost:5672',
-        verbose => 1,
+        loglevel => 'INFO',
+        servers  => 'localhost:5672',
+        verbose  => 0,
     },
 );
 
 $client->register_queue('testperl');
-$client->purge('testperl');
 $client->register_message('testperl');
+$client->purge('testperl');
 
 my $exceptions     = 0;
 my $max_exceptions = 10;
-my $handler        = TestLib::Handler::Attempts->new();
+my $handler        = TestLib::Handler::Attempts->new( client => $client );
 
 $client->register_handler( testperl => $handler, { exceptions => $max_exceptions, delay => 0 } );
 
 $client->publish( testperl => 'snafu' );
-
-my $timer = AnyEvent->timer(
-    after => 10,
-    cb    => sub {
-        $client->stop_listening;
-    },
-);
 
 $client->listen;
