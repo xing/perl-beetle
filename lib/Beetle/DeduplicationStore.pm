@@ -106,16 +106,18 @@ sub msetnx {
 sub incr {
     my ( $self, $msg_id, $suffix ) = @_;
     my $key = $self->key( $msg_id, $suffix );
-    $self->log->debug( sprintf 'DeduplicationStore: incr called for key: %s', $key );
-    $self->with_failover( sub { $self->redis->incr($key) } );
+    my $value = $self->with_failover( sub { $self->redis->incr($key) } );
+    $self->log->debug( sprintf 'DeduplicationStore: incr called for key: %s (value: %s)', $key, $value );
+    return $value;
 }
 
 # retrieve the value with given <tt>suffix</tt> for given <tt>msg_id</tt>. returns a string.
 sub get {
     my ( $self, $msg_id, $suffix ) = @_;
     my $key = $self->key( $msg_id, $suffix );
-    $self->log->debug( sprintf 'DeduplicationStore: get called for key: %s', $key );
-    $self->with_failover( sub { $self->redis->get($key) } );
+    my $value = $self->with_failover( sub { $self->redis->get($key) } );
+    $self->log->debug( sprintf 'DeduplicationStore: get called for key: %s (value: %s)', $key, $value || '' );
+    return $value;
 }
 
 # delete key with given <tt>suffix</tt> for given <tt>msg_id</tt>.
