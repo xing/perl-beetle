@@ -56,17 +56,25 @@ has '_mq' => (
 has '_channel' => (
     default => sub { shift->_open_channel },
     handles => {
+        _ack              => 'ack',
         _close            => 'close',
         _bind_queue       => 'bind_queue',
         _consume          => 'consume',
         _declare_exchange => 'declare_exchange',
         _declare_queue    => 'declare_queue',
         _publish          => 'publish',
+        _purge_queue      => 'purge_queue',
         _recover          => 'recover',
     },
     isa  => 'Any',
     lazy => 1,
 );
+
+sub ack {
+    my ( $self, $options ) = @_;
+    $options ||= {};
+    $self->_ack(%$options);
+}
 
 sub exchange_declare {
     my ( $self, $exchange, $options ) = @_;
@@ -98,6 +106,13 @@ sub publish {
     $self->log->debug( sprintf 'Publishing message %s on exchange %s using data: %s',
         $message_name, $exchange_name, Dumper \%data );
     $self->_publish(%data);
+}
+
+sub purge {
+    my ( $self, $queue, $options ) = @_;
+    $options ||= {};
+    $options->{queue} = $queue;
+    $self->_purge_queue(%$options);
 }
 
 sub recover {
