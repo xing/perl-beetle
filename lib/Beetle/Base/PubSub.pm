@@ -185,7 +185,8 @@ sub queue {
         }
         $the_queue = $self->bind_queue( $queue_name, $creation_options, $exchange_name, $binding_options );
     }
-    return $the_queue;
+
+    return $name;
 }
 
 # def bunny
