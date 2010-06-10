@@ -27,6 +27,15 @@ test_redis(
             is( $result, 0, 'Keys did already exist, using msetnx' );
         }
 
+        {
+            my ( $id, $sfx ) = qw(message_id_3 suffix);
+            for ( 1 .. 5 ) {
+                my $result = $store->incr( $id, $sfx );
+                is( $result, $_, 'Return value of incr call is correct' );
+                is( $store->get( $id, $sfx ), $_, 'Verify the value in redis is correct after incr' );
+            }
+        }
+
     }
 );
 
