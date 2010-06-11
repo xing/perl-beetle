@@ -175,23 +175,6 @@ sub subscribe_queues {
     );
 }
 
-# # returns the mq object for the given server or returns a new one created with the
-# # prefetch(1) option. this tells it to just send one message to the receiving buffer
-# # (instead of filling it). this is necesssary to ensure that one subscriber always just
-# # handles one single message. we cannot ensure reliability if the buffer is filled with
-# # messages and crashes.
-# def mq(server=@server)
-#   @mqs[server] ||= MQ.new(amqp_connection).prefetch(1)
-# end
-sub mq {
-    my ( $self, $server ) = @_;
-
-    # TODO: <plu> make sure that buffer things is possible in Perl's rabbitmq lib as well
-    $server ||= $self->server;
-    $self->set_mq( $server => 'TODO: Add MQ object - wtf' ) unless $self->has_mq($server);
-    return 'MQ-Object';
-}
-
 # def subscribe(queue_name)
 #   error("no handler for queue #{queue_name}") unless @handlers.include?(queue_name)
 #   opts, handler = @handlers[queue_name]
