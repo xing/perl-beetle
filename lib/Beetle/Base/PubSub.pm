@@ -207,14 +207,9 @@ sub bunny {
 sub new_bunny {
     my ($self) = @_;
     return Beetle::Bunny->new(
-        # TODO: <plu> eh, config => $self->config should be enough, fix interface!
-        config  => $self->config,
-        host    => $self->current_host,
-        pass    => $self->config->password,
-        port    => $self->current_port,
-        user    => $self->config->user,
-        verbose => $self->config->verbose,
-        vhost   => $self->config->vhost,
+        config => $self->config,
+        host   => $self->current_host,
+        port   => $self->current_port,
     );
 }
 

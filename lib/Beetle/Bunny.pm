@@ -18,30 +18,6 @@ has 'port' => (
     required => 1,
 );
 
-has 'user' => (
-    is       => 'rw',
-    isa      => 'Str',
-    required => 1,
-);
-
-has 'pass' => (
-    is       => 'rw',
-    isa      => 'Str',
-    required => 1,
-);
-
-has 'vhost' => (
-    is       => 'rw',
-    isa      => 'Str',
-    required => 1,
-);
-
-has 'verbose' => (
-    default => 0,
-    is      => 'rw',
-    isa     => 'Bool',
-);
-
 has 'anyevent_condvar' => (
     is  => 'rw',
     isa => 'Any',
@@ -166,13 +142,13 @@ sub subscribe {
 
 sub _build__mq {
     my ($self) = @_;
-    my $rf = Net::RabbitFoot->new( verbose => $self->verbose );
+    my $rf = Net::RabbitFoot->new( verbose => $self->config->verbose );
     $rf->connect(
         host  => $self->host,
         port  => $self->port,
-        user  => $self->user,
-        pass  => $self->pass,
-        vhost => $self->vhost,
+        user  => $self->config->user,
+        pass  => $self->config->password,
+        vhost => $self->config->vhost,
     );
     return $rf;
 }
