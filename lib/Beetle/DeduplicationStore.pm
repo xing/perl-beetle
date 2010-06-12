@@ -32,7 +32,7 @@ has 'db' => (
 has 'redis_instances' => (
     builder => '_build_redis_instances',
     is      => 'ro',
-    isa     => 'ArrayRef[Beetle::Redis]',
+    isa     => 'ArrayRef',
     lazy    => 1,
 );
 
