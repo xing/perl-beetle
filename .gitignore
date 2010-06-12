@@ -12,3 +12,4 @@
 /MANIFEST.bak
 /ruby-beetle
 /cover_db
+/t/redis.conf

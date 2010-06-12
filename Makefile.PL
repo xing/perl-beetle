@@ -22,14 +22,13 @@ test_requires(
     'Test::TCP::Multi' => 0,
 );
 
-my @tests = ('t/*.t', 't/*/*.t');
+tests 't/*.t t/*/*.t';
+author_tests 'xt';
+readme_from 'lib/Beetle.pm';
 
 if ( -e 'MANIFEST.SKIP' ) {
     system('pod2text lib/Beetle.pm > README');
-    unshift @tests, 'xt/*.t';
 }
-
-tests join ' ', @tests;
 
 auto_install;
 WriteAll;
