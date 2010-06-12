@@ -12,19 +12,26 @@ use Beetle::Handler;
 
 # current message format version
 our $FORMAT_VERSION = 1;
+
 # flag for encoding redundant messages
 my $FLAG_REDUNDANT = 1;
+
 # default lifetime of messages
 our $DEFAULT_TTL = 86400;
+
 # forcefully abort a running handler after this many seconds.
 # can be overriden when registering a handler.
 my $DEFAULT_HANDLER_TIMEOUT = 300;
+
 # how many times we should try to run a handler before giving up
 my $DEFAULT_HANDLER_EXECUTION_ATTEMPTS = 1;
+
 # how many seconds we should wait before retrying handler execution
 my $DEFAULT_HANDLER_EXECUTION_ATTEMPTS_DELAY = 10;
+
 # how many exceptions should be tolerated before giving up
 my $DEFAULT_EXCEPTION_LIMIT = 0;
+
 # AMQP options for message publishing
 my @PUBLISHING_KEYS = qw(key mandatory immediate persistent reply_to);
 
@@ -48,7 +55,7 @@ has 'header' => (
     required      => 1,
 );
 
-has 'body'  => (
+has 'body' => (
     documentation => '',
     is            => 'rw',
     isa           => 'Any',
@@ -130,6 +137,12 @@ has 'store' => (
     isa => 'Beetle::DeduplicationStore',
 );
 
+has '_ack' => (
+    default => 0,
+    is      => 'rw',
+    isa     => 'Bool',
+);
+
 around 'BUILDARGS' => sub {
     my $orig  = shift;
     my $class = shift;
@@ -166,6 +179,7 @@ sub ack {
 
     # TODO: <plu> implement the ack here! No clue how/why
     # $self->header->ack;
+    $self->_ack(1);
     return if $self->simple;    # simple messages don't use the deduplication store
     if ( !$self->redundant || $self->store->incr( $self->msg_id => 'ack_count' ) == 2 ) {
         $self->store->del_keys( $self->msg_id );
@@ -235,7 +249,7 @@ sub completed {
 sub decode {
     my ($self) = @_;
 
-    my $header = $self->header;
+    my $header       = $self->header;
     my $amqp_headers = $header->{headers};
 
     $self->{uuid}           = $header->{message_id};
@@ -359,7 +373,7 @@ sub msg_id {
 #   Time.now.to_i
 # end
 sub now {
-    return time(); # TODO: <plu> Hmmm... timezones'n'shit?!
+    return time();    # TODO: <plu> Hmmm... timezones'n'shit?!
 }
 
 # process this message and do not allow any exception to escape to the caller
@@ -412,7 +426,7 @@ sub publishing_options {
 
     my $expires_at = now() + $args{ttl};
 
-    foreach my $key (keys %args) {
+    foreach my $key ( keys %args ) {
         delete $args{$key} unless grep $_ eq $key, @PUBLISHING_KEYS;
     }
 
@@ -459,7 +473,7 @@ sub set_delay {
 # end
 sub set_timeout {
     my ($self) = @_;
-    $self->store->set( $self->msg_id => timeout => $self->now + $self->timeout);
+    $self->store->set( $self->msg_id => timeout => $self->now + $self->timeout );
 }
 
 # whether this is a message we can process without accessing the deduplication store
@@ -486,7 +500,7 @@ sub _execute_handler {
     my ( $self, $handler ) = @_;
     $self->increment_execution_attempts;
     my $result = $self->_run_handler($handler);
-    if ($result eq 'RC::OK') {
+    if ( $result eq 'RC::OK' ) {
         $self->completed;
         $self->ack;
         return $result;

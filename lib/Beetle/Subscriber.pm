@@ -265,6 +265,9 @@ sub create_subscription_callback {
                 sleep 1;
                 $self->bunny->recover;
             }
+            else {
+                $self->bunny->ack if $message->_ack;
+            }
 
             # TODO: complete the implementation
             return $result;
