@@ -42,3 +42,4 @@
 ^\.shipit
 ^xt.*
 ^benchmark.*
+^cover_db
