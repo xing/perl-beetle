@@ -36,6 +36,7 @@ has '_channel' => (
         _close            => 'close',
         _bind_queue       => 'bind_queue',
         _consume          => 'consume',
+        _get              => 'get',
         _declare_exchange => 'declare_exchange',
         _declare_queue    => 'declare_queue',
         _publish          => 'publish',
@@ -65,6 +66,14 @@ sub exchange_declare {
     $options->{no_ack}   = 0;
     $self->log->debug( sprintf 'Declaring exchange with options: %s', Dumper $options);
     $self->_declare_exchange(%$options);
+}
+
+sub get {
+    my ( $self, $queue, $options ) = @_;
+    $options ||= {};
+    $options->{no_ack} = 0;
+    $options->{queue}  = $queue;
+    $self->_get(%$options);
 }
 
 sub listen {
