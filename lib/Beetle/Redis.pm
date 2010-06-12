@@ -82,7 +82,7 @@ sub AUTOLOAD {
     }
 
     my $result = <$sock> || die "can't read socket: $!";
-    Encode::_utf8_on($result); ## no critic
+    Encode::_utf8_on($result);    ## no critic
     warn "<< $result" if $self->{debug};
     my $type = substr( $result, 0, 1 );
     $result = substr( $result, 1, -2 );
@@ -128,18 +128,19 @@ sub __connect {
             PeerAddr => $self->{server} || $ENV{REDIS_SERVER} || '127.0.0.1:6379',
             Proto => 'tcp',
         ) || die $!;
+
         # $self->select( $self->{db} || 0 ); # TODO: <plu> make this working
     }
 }
 
 sub __read_bulk {
     my ( $self, $len ) = @_;
-    return undef if $len < 0; ## no critic
+    return undef if $len < 0;    ## no critic
 
     my $v;
     if ( $len > 0 ) {
         read( $self->{sock}, $v, $len ) || die $!;
-        Encode::_utf8_on($v); ## no critic
+        Encode::_utf8_on($v);    ## no critic
         warn "<< ", Dumper($v), $/ if $self->{debug};
     }
     my $crlf;
@@ -149,7 +150,7 @@ sub __read_bulk {
 
 sub __read_multi_bulk {
     my ( $self, $size ) = @_;
-    return undef if $size < 0; ## no critic
+    return undef if $size < 0;          ## no critic
     my $sock = $self->{sock};
 
     $size--;

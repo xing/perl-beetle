@@ -12,7 +12,7 @@ my %config = (
     # port  => 5672,
 );
 
-Net::AMQP::Protocol->load_xml_spec(Net::RabbitFoot::default_amqp_spec());
+Net::AMQP::Protocol->load_xml_spec( Net::RabbitFoot::default_amqp_spec() );
 
 my $rf1 = Net::RabbitFoot->new->connect( %config, port => 5672 );
 my $rf2 = Net::RabbitFoot->new->connect( %config, port => 5672 );

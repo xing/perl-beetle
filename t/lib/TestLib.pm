@@ -5,6 +5,7 @@ use Moose;
 use Beetle::Message;
 
 BEGIN {
+
     # Disable logger in tests
     use Beetle::Config;
     no warnings 'redefine';

@@ -5,7 +5,7 @@ use Moose;
 extends qw(Beetle::Handler);
 
 sub process {
-    my ( $self ) = @_;
+    my ($self) = @_;
     return uc $self->message;
 }
 

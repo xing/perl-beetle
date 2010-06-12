@@ -49,8 +49,8 @@ has '_channel' => (
 # TODO: <plu> talk to author of AnyEvent::RabbitMQ how to fix this properly
 {
     no warnings 'redefine';
-    *AnyEvent::RabbitMQ::Channel::DESTROY = sub {};
-    *AnyEvent::RabbitMQ::DESTROY = sub {};
+    *AnyEvent::RabbitMQ::Channel::DESTROY = sub { };
+    *AnyEvent::RabbitMQ::DESTROY          = sub { };
 }
 
 sub ack {
