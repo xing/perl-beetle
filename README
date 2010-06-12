@@ -1,24 +1,35 @@
 NAME
-    Beetle - TODO
+    Beetle - High availability AMQP messaging with redundant queues
 
+SYNOPSIS
 DESCRIPTION
-    TODO
+    Beetle grew out of a project to improve an existing ActiveMQ based
+    messaging infrastructure. It offers the following features:
 
-COPYRIGHT
-    Copyright (C) 2010 XING AG
+    *   High Availability (by using multiple message broker instances)
 
-    This library is free software; you can redistribute it and/or modify it
-    under the same terms as Perl itself, either Perl version 5.8.9 or, at
-    your option, any later version of Perl 5 you may have available.
+    *   Redundancy (by replicating queues)
 
-WARRANTY
-    This is free software. IT COMES WITHOUT WARRANTY OF ANY KIND.
+    *   Simple client API (by encapsulating the publishing/ deduplication
+        logic)
 
-LICENSE
+    This is the Perl implementation of the Ruby Beetle project. More
+    information can be found on the <http://xing.github.com/beetle>.
+
+AUTHOR
+    Johannes Plunien <plu@cpan.org>
+
+COPYRIGHT AND LICENSE
+    Copyright 2010 XING AG
+
     This library is free software; you can redistribute it and/or modify it
     under the same terms as Perl itself.
 
-AUTHOR
-    Johannes Plunien <johannes.plunien@xing.com>, Dennis Schoen
-    <dennis.schoen@xing.com>
+    IT COMES WITHOUT WARRANTY OF ANY KIND.
+
+SEE ALSO
+    *   <http://xing.github.com/beetle/>
+
+REPOSITORY
+    <http://github.com/plu/perl-beetle/>
 
