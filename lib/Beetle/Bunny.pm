@@ -62,18 +62,23 @@ sub ack {
 
 sub exchange_declare {
     my ( $self, $exchange, $options ) = @_;
-    $options->{exchange} = $exchange;
-    $options->{no_ack}   = 0;
+    $options ||= {};
     $self->log->debug( sprintf 'Declaring exchange with options: %s', Dumper $options);
-    $self->_declare_exchange(%$options);
+    $self->_declare_exchange(
+        exchange => $exchange,
+        no_ack   => 0,
+        %$options
+    );
 }
 
 sub get {
     my ( $self, $queue, $options ) = @_;
     $options ||= {};
-    $options->{no_ack} = 0;
-    $options->{queue}  = $queue;
-    $self->_get(%$options);
+    $self->_get(
+        no_ack => 0,
+        queue  => $queue,
+        %$options
+    );
 }
 
 sub listen {
@@ -103,23 +108,23 @@ sub publish {
 sub purge {
     my ( $self, $queue, $options ) = @_;
     $options ||= {};
-    $options->{queue} = $queue;
-    $self->_purge_queue(%$options);
+    $self->_purge_queue( queue => $queue, %$options );
 }
 
 sub recover {
     my ( $self, $options ) = @_;
     $options ||= {};
-    $options->{requeue} = 1;
-    $self->_recover(%$options);
+    $self->_recover( requeue => 1, %$options );
 }
 
 sub queue_declare {
     my ( $self, $queue, $options ) = @_;
-    $options->{queue}  = $queue;
-    $options->{no_ack} = 0;
     $self->log->debug( sprintf 'Declaring queue with options: %s', Dumper $options);
-    $self->_declare_queue(%$options);
+    $self->_declare_queue(
+        no_ack => 0,
+        queue  => $queue,
+        %$options
+    );
 }
 
 sub queue_bind {
