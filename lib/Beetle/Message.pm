@@ -55,6 +55,13 @@ has 'header' => (
     required      => 1,
 );
 
+has 'deliver' => (
+    documentation => 'the AMQP deliver properties received with the message',
+    is            => 'rw',
+    isa           => 'Any',
+    required      => 0,
+);
+
 has 'body' => (
     documentation => '',
     is            => 'rw',

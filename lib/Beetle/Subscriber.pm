@@ -239,15 +239,17 @@ sub create_subscription_callback {
         my ($amqp_message) = @_;
         my $header         = $amqp_message->{header};
         my $body           = $amqp_message->{body}->payload;
+        my $deliver        = $amqp_message->{deliver};
         eval {
             my $processor = Beetle::Handler->create( $handler, $options );
             my $message_options = merge $options,
               { server => $self->server, store => $self->client->deduplication_store };
             my $message = Beetle::Message->new(
-                config => $self->config,
-                queue  => $amqp_queue_name,
-                header => $header,
-                body   => $body,
+                config  => $self->config,
+                queue   => $amqp_queue_name,
+                header  => $header,
+                body    => $body,
+                deliver => $deliver,
                 %$message_options,
             );
             my $result = $message->process($processor);
@@ -266,7 +268,8 @@ sub create_subscription_callback {
                 $self->bunny->recover;
             }
             else {
-                $self->bunny->ack if $message->_ack;
+                $self->bunny->ack( { delivery_tag => $message->deliver->method_frame->delivery_tag } )
+                  if $message->_ack;
             }
 
             # TODO: complete the implementation
