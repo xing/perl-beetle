@@ -32,6 +32,7 @@
 
 # Skip maint stuff
 ^maint/
+^\.perltidyrc
 
 # Skip generated files
 ^junit_output\.xml$
