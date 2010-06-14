@@ -8,6 +8,7 @@ use Data::Dumper;
 extends qw(Beetle::Base::PubSub);
 
 my $RPC_DEFAULT_TIMEOUT = 10;
+our $RECYCLE_DEAD_SERVERS_DELAY = 10;
 
 has 'client' => (
     is       => 'ro',
@@ -31,6 +32,7 @@ has 'dead_servers' => (
     default => sub { {} },
     handles => {
         all_dead_servers   => 'elements',
+        count_dead_servers => 'count',
         remove_dead_server => 'delete',
         set_dead_server    => 'set',
     },
@@ -375,7 +377,7 @@ sub recycle_dead_servers {
     my @recycle = ();
     my %servers = $self->all_dead_servers;
     while ( my ( $server, $time ) = each %servers ) {
-        if ( time - $time < 10 ) {
+        if ( time - $time > $RECYCLE_DEAD_SERVERS_DELAY ) {
             push @recycle, $server;
             $self->remove_dead_server($server);
         }
@@ -414,7 +416,7 @@ sub select_next_server {
     }
     my $index = 0;
     foreach my $server ( $self->all_servers ) {
-        last if $server eq $self->server;
+        last if defined $self->server && $self->server eq $server;
         $index++;
     }
     my $next   = ( $index + 1 ) % $self->count_servers;

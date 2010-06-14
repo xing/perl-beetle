@@ -35,4 +35,44 @@ BEGIN {
     is_deeply( $pub->{dead_servers}, {}, 'initially there should be no dead servers' );
 }
 
+{
+    $Beetle::Publisher::RECYCLE_DEAD_SERVERS_DELAY = 1;
+    my $client = Beetle::Client->new( config => { servers => 'localhost:3333 localhost:4444 localhost:5555' } );
+    my $publisher = $client->publisher;
+
+    is_deeply( $publisher->servers, [qw(localhost:3333 localhost:4444 localhost:5555)],
+        'Servers attribute is correct' );
+
+    my @servers = ();
+
+    for ( 0 .. 2 ) {
+        push @servers, $publisher->server;
+        $publisher->mark_server_dead;
+
+        isnt( $publisher->server, $servers[$_], 'The dead server moved away' );
+        is( defined( $publisher->dead_servers->{ $servers[$_] } ),
+            1, 'The dead server got added to the dead servers list' );
+    }
+
+    # This should not do anything (yet)
+    $publisher->recycle_dead_servers;
+
+    is( $publisher->count_servers,      0, 'No more servers left' );
+    is( $publisher->count_dead_servers, 3, 'All servers are in the dead servers list' );
+
+    sleep( $Beetle::Publisher::RECYCLE_DEAD_SERVERS_DELAY + 1 );
+
+    # Now it should recycle the servers
+    $publisher->recycle_dead_servers;
+
+    is( $publisher->count_servers,      3, '3 servers back to the servers list' );
+    is( $publisher->count_dead_servers, 0, 'No more servers are in the dead servers list' );
+
+    is( $publisher->server, undef, 'No server selected');
+
+    $publisher->select_next_server;
+
+    like($publisher->server, qr/localhost:\d{4}/, 'New server selected');
+}
+
 done_testing;
