@@ -1,8 +1,8 @@
 package    # hide from PAUSE
-  TestLib::Handler::SubFooBar;
+  Test::Beetle::Handler::SubFooBar;
 
 use Moose;
-extends qw(TestLib::Handler::FooBar);
+extends qw(Test::Beetle::Handler::FooBar);
 
 sub process {
     die "something";

@@ -4,7 +4,8 @@ use Test::More;
 
 use FindBin qw( $Bin );
 use lib ( "$Bin/../lib", "$Bin/../../lib" );
-use TestLib::Live;
+use Test::Beetle;
+use Test::Beetle::Live;
 use Beetle::Client;
 
 test_beetle_live(

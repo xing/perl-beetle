@@ -1,5 +1,5 @@
 package    # hide from PAUSE
-  TestLib::Handler::Attempts;
+  Test::Beetle::Handler::Attempts;
 
 use Moose;
 extends qw(Beetle::Handler);

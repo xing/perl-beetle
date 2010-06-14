@@ -1,12 +1,12 @@
 package    # hide from PAUSE
-  TestLib::Live;
+  Test::Beetle::Live;
 
 use strict;
 use warnings;
 use FindBin qw( $Bin );
 use Test::More;
 use Test::TCP::Multi;
-use TestLib::Redis ();
+use Test::Beetle::Redis ();
 
 use base qw(Exporter);
 our @EXPORT = qw(test_beetle_live);
@@ -42,7 +42,7 @@ sub test_beetle_live {
         },
         server3 => sub {
             my ( $port, $data_hash ) = @_;
-            TestLib::Redis::generate_redis_conf($port);
+            Test::Beetle::Redis::generate_redis_conf($port);
             exec 'redis-server', 't/redis.conf';
         },
 

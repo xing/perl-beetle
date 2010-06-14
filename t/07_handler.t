@@ -5,9 +5,9 @@ use Test::More;
 
 use FindBin qw( $Bin );
 use lib ( "$Bin/lib", "$Bin/../lib" );
-use TestLib::Handler::FooBar;
-use TestLib::Handler::SubFooBar;
-use TestLib;
+use Test::Beetle::Handler::FooBar;
+use Test::Beetle::Handler::SubFooBar;
+use Test::Beetle;
 
 BEGIN {
     use_ok('Beetle::Handler');
@@ -27,23 +27,23 @@ BEGIN {
 }
 
 {
-    my $handler = Beetle::Handler->create('TestLib::Handler::FooBar');
-    isa_ok( $handler, 'TestLib::Handler::FooBar', 'Got correct object' );
+    my $handler = Beetle::Handler->create('Test::Beetle::Handler::FooBar');
+    isa_ok( $handler, 'Test::Beetle::Handler::FooBar', 'Got correct object' );
 
     my $result = $handler->call('some_message');
     is( $result, 'SOME_MESSAGE', 'should allow using a subclass of a handler as a callback' );
 }
 
 {
-    my $handler = Beetle::Handler->create( TestLib::Handler::FooBar->new );
-    isa_ok( $handler, 'TestLib::Handler::FooBar', 'Got correct object' );
+    my $handler = Beetle::Handler->create( Test::Beetle::Handler::FooBar->new );
+    isa_ok( $handler, 'Test::Beetle::Handler::FooBar', 'Got correct object' );
 
     my $result = $handler->call('some_message');
     is( $result, 'SOME_MESSAGE', 'should allow using an instance of a subclass of handler as a callback' );
 }
 
 {
-    my $handler = Beetle::Handler->create('TestLib::Handler::FooBar');
+    my $handler = Beetle::Handler->create('Test::Beetle::Handler::FooBar');
     is( $handler->message, undef, 'The message attribute is not set yet' );
     $handler->call('message received');
     is( $handler->message, 'message received', 'should set the instance variable message to the received message' );
@@ -57,7 +57,7 @@ BEGIN {
 }
 
 {
-    my $handler = Beetle::Handler->create('TestLib::Handler::SubFooBar');
+    my $handler = Beetle::Handler->create('Test::Beetle::Handler::SubFooBar');
     no warnings 'redefine';
     *Beetle::Handler::error = sub {
         my ( $self, $exception ) = @_;
@@ -73,7 +73,7 @@ BEGIN {
 
 {
     my $handler = Beetle::Handler->create(
-        'TestLib::Handler::SubFooBar',
+        'Test::Beetle::Handler::SubFooBar',
         {
             errback => sub {
                 my ( $self, $exception ) = @_;
@@ -86,7 +86,7 @@ BEGIN {
 }
 
 {
-    my $handler = Beetle::Handler->create('TestLib::Handler::SubFooBar');
+    my $handler = Beetle::Handler->create('Test::Beetle::Handler::SubFooBar');
     no warnings 'redefine';
     *Beetle::Handler::failure = sub {
         my ( $self, $exception ) = @_;
@@ -102,7 +102,7 @@ BEGIN {
 
 {
     my $handler = Beetle::Handler->create(
-        'TestLib::Handler::SubFooBar',
+        'Test::Beetle::Handler::SubFooBar',
         {
             failback => sub {
                 my ( $self, $exception ) = @_;

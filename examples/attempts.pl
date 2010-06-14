@@ -5,7 +5,7 @@ use FindBin;
 use lib "$FindBin::Bin/../lib", "$FindBin::Bin/../t/lib";
 use Beetle::Client;
 use Beetle::Handler;
-use TestLib::Handler::Attempts;
+use Test::Beetle::Handler::Attempts;
 use Data::Dumper;
 $Data::Dumper::Sortkeys = 1;
 
@@ -24,7 +24,7 @@ $client->purge('testperl');
 my $exceptions     = 0;
 my $max_exceptions = 10;
 my $handler;
-$handler = TestLib::Handler::Attempts->new(
+$handler = Test::Beetle::Handler::Attempts->new(
     on_failure => sub {
         $client->stop_listening;
     },

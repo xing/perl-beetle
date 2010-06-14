@@ -5,7 +5,7 @@ use Test::More;
 
 use FindBin qw( $Bin );
 use lib ( "$Bin/lib", "$Bin/../lib" );
-use TestLib;
+use Test::Beetle;
 
 BEGIN {
     use_ok('Beetle::Base::PubSub');
@@ -68,11 +68,11 @@ BEGIN {
     is( $publisher->count_servers,      3, '3 servers back to the servers list' );
     is( $publisher->count_dead_servers, 0, 'No more servers are in the dead servers list' );
 
-    is( $publisher->server, undef, 'No server selected');
+    is( $publisher->server, undef, 'No server selected' );
 
     $publisher->select_next_server;
 
-    like($publisher->server, qr/localhost:\d{4}/, 'New server selected');
+    like( $publisher->server, qr/localhost:\d{4}/, 'New server selected' );
 }
 
 done_testing;

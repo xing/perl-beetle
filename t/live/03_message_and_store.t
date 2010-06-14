@@ -4,8 +4,8 @@ use Test::More;
 
 use FindBin qw( $Bin );
 use lib ( "$Bin/../lib", "$Bin/../../lib" );
-use TestLib;
-use TestLib::Redis;
+use Test::Beetle;
+use Test::Beetle::Redis;
 
 BEGIN {
     use_ok('Beetle::Message');
@@ -21,7 +21,7 @@ test_redis(
         # test "should be able to extract msg_id from any key" do
         {
             $store->flushdb;
-            my $header = TestLib->header_with_params();
+            my $header = Test::Beetle->header_with_params();
             my $m      = Beetle::Message->new(
                 body   => 'foo',
                 header => $header,
@@ -39,7 +39,7 @@ test_redis(
             $store->flushdb;
             no warnings 'redefine';
             *Beetle::Config::gc_threshold = sub { return 0; };
-            my $header = TestLib->header_with_params( ttl => 0 );
+            my $header = Test::Beetle->header_with_params( ttl => 0 );
             my $m = Beetle::Message->new(
                 body   => 'foo',
                 header => $header,
@@ -59,7 +59,7 @@ test_redis(
             $store->flushdb;
             no warnings 'redefine';
             *Beetle::Config::gc_threshold = sub { return 0; };
-            my $header = TestLib->header_with_params( ttl => 60 );
+            my $header = Test::Beetle->header_with_params( ttl => 60 );
             my $m = Beetle::Message->new(
                 body   => 'foo',
                 header => $header,
@@ -78,7 +78,7 @@ test_redis(
 
         # test "successful processing of a non redundant message should delete all keys from the database" do
         {
-            my $header = TestLib->header_with_params();
+            my $header = Test::Beetle->header_with_params();
             my $m      = Beetle::Message->new(
                 body   => 'foo',
                 header => $header,
@@ -97,7 +97,7 @@ test_redis(
 
         # test "succesful processing of a redundant message twice should delete all keys from the database" do
         {
-            my $header = TestLib->header_with_params( redundant => 1 );
+            my $header = Test::Beetle->header_with_params( redundant => 1 );
             my $m = Beetle::Message->new(
                 body   => 'foo',
                 header => $header,
@@ -118,7 +118,7 @@ test_redis(
         # test "successful processing of a redundant message once should insert all but the delay key and the
         # exception count key into the database" do
         {
-            my $header = TestLib->header_with_params( redundant => 1 );
+            my $header = Test::Beetle->header_with_params( redundant => 1 );
             my $m = Beetle::Message->new(
                 body   => 'foo',
                 header => $header,
@@ -141,7 +141,7 @@ test_redis(
 
         # test "an expired message should be acked without calling the handler" do
         {
-            my $header = TestLib->header_with_params( ttl => -1 );
+            my $header = Test::Beetle->header_with_params( ttl => -1 );
             my $m = Beetle::Message->new(
                 body   => 'foo',
                 header => $header,
@@ -156,7 +156,7 @@ test_redis(
 
         # test "a delayed message should not be acked and the handler should not be called" do
         {
-            my $header = TestLib->header_with_params();
+            my $header = Test::Beetle->header_with_params();
             my $m      = Beetle::Message->new(
                 attempts => 2,
                 body     => 'foo',
@@ -174,7 +174,7 @@ test_redis(
 
         # test "acking a non redundant message should remove the ack_count key" do
         {
-            my $header = TestLib->header_with_params();
+            my $header = Test::Beetle->header_with_params();
             my $m      = Beetle::Message->new(
                 body   => 'foo',
                 header => $header,
@@ -190,7 +190,7 @@ test_redis(
         {
 
             # TODO: <plu> hmm I think this test is crap. Talk to rubys about it.
-            my $header = TestLib->header_with_params( redundant => 1 );
+            my $header = Test::Beetle->header_with_params( redundant => 1 );
             my $m = Beetle::Message->new(
                 body   => 'foo',
                 header => $header,
@@ -203,7 +203,7 @@ test_redis(
 
         # test "acking a redundant message should increment the ack_count key" do
         {
-            my $header = TestLib->header_with_params( redundant => 1 );
+            my $header = Test::Beetle->header_with_params( redundant => 1 );
             my $m = Beetle::Message->new(
                 body   => 'foo',
                 header => $header,
@@ -218,7 +218,7 @@ test_redis(
 
         # test "acking a redundant message twice should remove the ack_count key" do
         {
-            my $header = TestLib->header_with_params( redundant => 1 );
+            my $header = Test::Beetle->header_with_params( redundant => 1 );
             my $m = Beetle::Message->new(
                 body   => 'foo',
                 header => $header,

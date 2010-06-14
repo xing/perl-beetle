@@ -1,5 +1,5 @@
 package    # hide from PAUSE
-  TestLib;
+  Test::Beetle;
 
 use Moose;
 use Beetle::Message;

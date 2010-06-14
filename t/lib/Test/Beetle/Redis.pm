@@ -1,5 +1,5 @@
 package    # hide from PAUSE
-  TestLib::Redis;
+  Test::Beetle::Redis;
 
 use strict;
 use warnings;
