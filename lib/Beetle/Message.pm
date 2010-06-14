@@ -9,6 +9,7 @@ use Data::UUID;
 use Devel::StackTrace;
 extends qw(Beetle::Base);
 use Beetle::Handler;
+use Beetle::Constants;
 
 # current message format version
 our $FORMAT_VERSION = 1;
@@ -411,14 +412,9 @@ sub process {
         my $trace = Devel::StackTrace->new;
         $self->log->warn( sprintf "Beetle: exception '%s' during processing of message %s", $@, $self->msg_id );
         $self->log->warn( sprintf "Beetle: backtrace: %s", $trace->as_string );
-        $result = 'RC::InternalError';
+        $result = $INTERNALERROR;
     }
-    $handler->process_failure($result)
-      if grep $result eq $_, qw(
-          RC::Ancient
-          RC::AttemptsLimitReached
-          RC::ExceptionsLimitReached
-    );
+    $handler->process_failure($result) if grep $result eq $_, @FAILURE;
     return $result;
 }
 
@@ -508,7 +504,7 @@ sub _execute_handler {
     my ( $self, $handler ) = @_;
     $self->increment_execution_attempts;
     my $result = $self->_run_handler($handler);
-    if ( $result eq 'RC::OK' ) {
+    if ( $result eq $OK ) {
         $self->completed;
         $self->ack;
         return $result;
@@ -544,14 +540,14 @@ sub _handler_failed {
         $self->ack;
         $self->log->debug( sprintf 'Beetle: reached the handler execution attempts limit: %d on %s',
             $self->attempts_limit, $self->msg_id );
-        return 'RC::AttemptsLimitReached';
+        return $ATTEMPTSLIMITREACHED;
     }
 
     elsif ( $self->exceptions_limit_reached ) {
         $self->ack;
         $self->log->debug( sprintf 'Beetle: reached the handle exceptions limit: %d on %s',
             $self->exceptions_limit, $self->msg_id );
-        return 'RC::ExceptionsLimitReached';
+        return $EXCEPTIONSLIMITREACHED;
     }
 
     else {
@@ -605,13 +601,13 @@ sub _process_internal {
     if ( $self->expired ) {
         $self->log->warn( sprintf 'Beetle: ignored expired message (%s)', $self->msg_id );
         $self->ack;
-        return 'RC::Ancient';
+        return $ANCIENT;
     }
 
     elsif ( $self->simple ) {
         $self->ack;
         my $result = $self->_run_handler($handler);
-        return $result eq 'RC::HandlerCrash' ? 'RC::AttemptsLimitReached' : 'RC::OK';
+        return $result eq $HANDLERCRASH ? $ATTEMPTSLIMITREACHED : $OK;
     }
 
     elsif ( !$self->key_exists ) {
@@ -621,30 +617,30 @@ sub _process_internal {
 
     elsif ( $self->is_completed ) {
         $self->ack;
-        return 'RC::OK';
+        return $OK;
     }
 
     elsif ( $self->delayed ) {
         $self->log->warn( sprintf 'Beetle: ignored delayed message (%s)!', $self->msg_id );
-        return 'RC::Delayed';
+        return $DELAYED;
     }
 
     elsif ( $self->is_timed_out ) {
-        return 'RC::HandlerNotYetTimedOut';
+        return $HANDLERNOTYETTIMEDOUT;
     }
 
     elsif ( $self->attempts_limit_reached ) {
         $self->ack;
         $self->log->warn( sprintf 'Beetle: reached the handler execution attempts limit: %d on %s',
             $self->attempts_limit, $self->msg_id );
-        return 'RC::AttemptsLimitReached';
+        return $ATTEMPTSLIMITREACHED;
     }
 
     elsif ( $self->exceptions_limit_reached ) {
         $self->ack;
         $self->log->warn( sprintf 'Beetle: reached the handler exceptions attempts limit: %d on %s',
             $self->exceptions_limit, $self->msg_id );
-        return 'RC::ExceptionsLimitReached';
+        return $EXCEPTIONSLIMITREACHED;
     }
 
     else {
@@ -653,7 +649,7 @@ sub _process_internal {
             $self->_execute_handler($handler);
         }
         else {
-            return 'RC::MutexLocked';
+            return $MUTEXLOCKED;
         }
     }
 }
@@ -673,12 +669,12 @@ sub _run_handler {
 
     # TODO: <plu> implement timeout here - not sure if this is a -really- good idea
     my $result = eval { $handler->call($self); };
-    return 'RC::OK' unless $@;
+    return $OK unless $@;
 
     $self->log->error( sprintf 'Beetle: message handler crashed on %s', $self->msg_id );
     $self->log->error("Beetle: error message: $@");
 
-    return 'RC::HandlerCrash';
+    return $HANDLERCRASH;
 }
 
 1;

@@ -5,6 +5,7 @@ BEGIN {
     use_ok('Beetle::Base');
     use_ok('Beetle::Base::PubSub');
     use_ok('Beetle::Bunny');
+    use_ok('Beetle::Constants');
     use_ok('Beetle::Client');
     use_ok('Beetle::Config');
     use_ok('Beetle::DeduplicationStore');

@@ -4,6 +4,7 @@ use Moose;
 use Hash::Merge::Simple qw( merge );
 use Beetle::Handler;
 use Beetle::Message;
+use Beetle::Constants;
 extends qw(Beetle::Base::PubSub);
 
 has 'handlers' => (
@@ -253,17 +254,7 @@ sub create_subscription_callback {
                 %$message_options,
             );
             my $result = $message->process($processor);
-            if (
-                grep $_ eq $result,
-                qw(
-                RC::Delayed
-                RC::HandlerCrash
-                RC::HandlerNotYetTimedOut
-                RC::MutexLocked
-                RC::InternalError
-                )
-              )
-            {
+            if ( grep $_ eq $result, @RECOVER ) {
                 sleep 1;
                 $self->bunny->recover;
             }
