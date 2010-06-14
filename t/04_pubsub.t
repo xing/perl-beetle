@@ -25,7 +25,6 @@ BEGIN {
 }
 
 {
-    no warnings 'redefine';
     my $client = Beetle::Client->new;
     my $base = Beetle::Base::PubSub->new( client => $client );
     throws_ok { $base->error('message') } qr/message/, 'the error method should raise a beetle error';

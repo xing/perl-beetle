@@ -38,7 +38,7 @@ test_redis(
         {
             $store->flushdb;
             no warnings 'redefine';
-            *Beetle::Config::gc_threshold = sub { return 0; };
+            local *Beetle::Config::gc_threshold = sub { return 0; };
             my $header = Test::Beetle->header_with_params( ttl => 0 );
             my $m = Beetle::Message->new(
                 body   => 'foo',
@@ -58,7 +58,7 @@ test_redis(
         {
             $store->flushdb;
             no warnings 'redefine';
-            *Beetle::Config::gc_threshold = sub { return 0; };
+            local *Beetle::Config::gc_threshold = sub { return 0; };
             my $header = Test::Beetle->header_with_params( ttl => 60 );
             my $m = Beetle::Message->new(
                 body   => 'foo',

@@ -16,7 +16,7 @@ BEGIN {
 # test "acccessing a bunny for a server which doesn't have one should create it and associate it with the server" do
 {
     no warnings 'redefine';
-    *Beetle::Base::PubSub::new_bunny = sub { return 42; };
+    local *Beetle::Base::PubSub::new_bunny = sub { return 42; };
     my $client = Beetle::Client->new;
     my $pub = Beetle::Publisher->new( client => $client );
     is( $pub->bunny,                     42, 'Method new_bunny works as expected' );
@@ -36,7 +36,7 @@ BEGIN {
 }
 
 {
-    $Beetle::Publisher::RECYCLE_DEAD_SERVERS_DELAY = 1;
+    local $Beetle::Publisher::RECYCLE_DEAD_SERVERS_DELAY = 1;
     my $client = Beetle::Client->new( config => { servers => 'localhost:3333 localhost:4444 localhost:5555' } );
     my $publisher = $client->publisher;
 
@@ -73,6 +73,21 @@ BEGIN {
     $publisher->select_next_server;
 
     like( $publisher->server, qr/localhost:\d{4}/, 'New server selected' );
+}
+
+{
+    {
+        my $client = Beetle::Client->new(
+            config => {
+                servers     => 'localhost:3333',
+                bunny_class => 'Test::Beetle::Bunny',
+            }
+        );
+        my $publisher = $client->publisher;
+        $client->register_queue( mama => { exchange => 'mama-exchange' } );
+        $client->register_message( mama => { ttl => 60 * 60, exchange => 'mama-exchange' } );
+        $publisher->publish( mama => 'XXX' );
+    }
 }
 
 done_testing;

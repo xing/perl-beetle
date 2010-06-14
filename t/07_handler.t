@@ -59,7 +59,7 @@ BEGIN {
 {
     my $handler = Beetle::Handler->create('Test::Beetle::Handler::SubFooBar');
     no warnings 'redefine';
-    *Beetle::Handler::error = sub {
+    local *Beetle::Handler::error = sub {
         my ( $self, $exception ) = @_;
         return uc $exception . '001';
     };
