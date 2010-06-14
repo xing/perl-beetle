@@ -6,6 +6,7 @@ use Test::More;
 use FindBin qw( $Bin );
 use lib ( "$Bin/lib", "$Bin/../lib" );
 use Test::Beetle;
+use Test::Beetle::Bunny;
 
 BEGIN {
     use_ok('Beetle::Base::PubSub');
@@ -76,18 +77,43 @@ BEGIN {
 }
 
 {
-    {
-        my $client = Beetle::Client->new(
-            config => {
-                servers     => 'localhost:3333',
-                bunny_class => 'Test::Beetle::Bunny',
-            }
-        );
-        my $publisher = $client->publisher;
-        $client->register_queue( mama => { exchange => 'mama-exchange' } );
-        $client->register_message( mama => { ttl => 60 * 60, exchange => 'mama-exchange' } );
-        $publisher->publish( mama => 'XXX' );
-    }
+    no warnings 'redefine';
+
+    my @servers = ();
+
+    local $Beetle::Publisher::RECYCLE_DEAD_SERVERS_DELAY = 1;
+
+    # If this dies, the publisher will mark the server as dead
+    local *Test::Beetle::Bunny::publish = sub {
+        my ($self) = @_;
+        push @servers, sprintf( '%s:%d', $self->host, $self->port );
+        die 'dead server';
+    };
+
+    my $client = Beetle::Client->new(
+        config => {
+            servers     => 'localhost:3333 localhost:4444',
+            bunny_class => 'Test::Beetle::Bunny',
+        }
+    );
+    my $publisher = $client->publisher;
+    $client->register_queue( mama => { exchange => 'mama-exchange' } );
+    $client->register_message( mama => { ttl => 60 * 60, exchange => 'mama-exchange' } );
+    $publisher->publish( mama => 'XXX' );
+
+    is_deeply( [ sort @servers ], [qw(localhost:3333 localhost:4444)], 'Server cycling works' );
+    is_deeply( $publisher->servers, [], 'Servers attribute is empty as well' );
+    is( $publisher->server,             undef, 'No server set because all are dead' );
+    is( $publisher->count_dead_servers, 2,     'There are two dead servers now' );
+
+    sleep( $Beetle::Publisher::RECYCLE_DEAD_SERVERS_DELAY + 1 );
+
+    # Override this again to see if the dead servers get recycled properly on a new publish call
+    local *Test::Beetle::Bunny::publish = sub { };
+    $publisher->publish( mama => 'XXX' );
+
+    is_deeply( [ sort @{ $publisher->servers } ], [qw(localhost:3333 localhost:4444)], 'Server recycling works' );
+    is( $publisher->count_dead_servers, 0, 'There are no dead servers anymore' );
 }
 
 done_testing;
