@@ -31,7 +31,8 @@ sub get {
 }
 
 sub listen {
-    my ($self) = @_;
+
+    # my ($self) = @_;
 }
 
 sub publish {

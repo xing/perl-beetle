@@ -116,4 +116,75 @@ BEGIN {
     is( $publisher->count_dead_servers, 0, 'There are no dead servers anymore' );
 }
 
+# test "redundant publishing should send the message to two servers" do
+{
+    no warnings 'redefine';
+
+    my @servers = ();
+
+    local *Test::Beetle::Bunny::publish = sub {
+        my ($self) = @_;
+        push @servers, sprintf( '%s:%d', $self->host, $self->port );
+    };
+
+    my $client = Beetle::Client->new(
+        config => {
+            servers     => 'localhost:3333 localhost:4444 localhost:5555',
+            bunny_class => 'Test::Beetle::Bunny',
+        }
+    );
+    my $publisher = $client->publisher;
+
+    my $count = $publisher->publish_with_redundancy( 'mama-exchange', 'mama', 'XXX', {} );
+    is( $count, scalar(@servers), 'Message got published to two servers' );
+}
+
+# test "redundant publishing should return 1 if the message was published to one server only" do
+{
+    no warnings 'redefine';
+
+    my @servers = ();
+
+    local *Test::Beetle::Bunny::publish = sub {
+        my ($self) = @_;
+        die if $self->host ne 'dead';
+        push @servers, sprintf( '%s:%d', $self->host, $self->port );
+    };
+
+    my $client = Beetle::Client->new(
+        config => {
+            servers     => 'dead:3333 alive:4444 dead:5555',
+            bunny_class => 'Test::Beetle::Bunny',
+        }
+    );
+    my $publisher = $client->publisher;
+
+    my $count = $publisher->publish_with_redundancy( 'mama-exchange', 'mama', 'XXX', {} );
+    is( $count, scalar(@servers), 'Message got published to one server because only one is alive' );
+}
+
+# test "redundant publishing should return 0 if the message was published to no server" do
+{
+    no warnings 'redefine';
+
+    my @servers = ();
+
+    local *Test::Beetle::Bunny::publish = sub {
+        my ($self) = @_;
+        die if $self->host ne 'dead';
+        push @servers, sprintf( '%s:%d', $self->host, $self->port );
+    };
+
+    my $client = Beetle::Client->new(
+        config => {
+            servers     => 'dead:3333 dead:4444 dead:5555',
+            bunny_class => 'Test::Beetle::Bunny',
+        }
+    );
+    my $publisher = $client->publisher;
+
+    my $count = $publisher->publish_with_redundancy( 'mama-exchange', 'mama', 'XXX', {} );
+    is( $count, scalar(@servers), 'Message got published to one server because only one is alive' );
+}
+
 done_testing;
