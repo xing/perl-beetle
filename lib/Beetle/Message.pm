@@ -170,17 +170,6 @@ sub BUILD {
     $self->decode;
 }
 
-# ack the message for rabbit. deletes all keys associated with this message in the
-# deduplication store if we are sure this is the last message with the given msg_id.
-# def ack!
-#   #:doc:
-#   logger.debug "Beetle: ack! for message #{msg_id}"
-#   header.ack
-#   return if simple? # simple messages don't use the deduplication store
-#   if !redundant? || @store.incr(msg_id, :ack_count) == 2
-#     @store.del_keys(msg_id)
-#   end
-# end
 sub ack {
     my ($self) = @_;
     $self->log->debug( sprintf 'Beetle: ack! for message %s', $self->msg_id );
@@ -195,15 +184,6 @@ sub ack {
     return;
 }
 
-# aquire execution mutex before we run the handler (and delete it if we can't aquire it).
-# def aquire_mutex!
-#   if mutex = @store.setnx(msg_id, :mutex, now)
-#     logger.debug "Beetle: aquired mutex: #{msg_id}"
-#   else
-#     delete_mutex!
-#   end
-#   mutex
-# end
 sub aquire_mutex {
     my ($self) = @_;
     my $mutex;
@@ -216,44 +196,22 @@ sub aquire_mutex {
     return $mutex;
 }
 
-# how many times we already tried running the handler
-# def attempts
-#   @store.get(msg_id, :attempts).to_i
-# end
 sub attempts {
     my ($self) = @_;
     $self->store->get( $self->msg_id => 'attempts' );
 }
 
-# whether we have already tried running the handler as often as specified when the handler was registered
-# def attempts_limit_reached?
-#   (limit = @store.get(msg_id, :attempts)) && limit.to_i >= attempts_limit
-# end
 sub attempts_limit_reached {
     my ($self) = @_;
     my $limit = $self->store->get( $self->msg_id => 'attempts' );
     return $limit && $limit >= $self->attempts_limit ? 1 : 0;
 }
 
-# mark message handling complete in the deduplication store
-# def completed!
-#   @store.set(msg_id, :status, "completed")
-#   timed_out!
-# end
 sub completed {
     my ($self) = @_;
     $self->store->set( $self->msg_id => status => 'completed' );
 }
 
-# def decode #:nodoc:
-#   amqp_headers = header.properties
-#   @uuid = amqp_headers[:message_id]
-#   headers = amqp_headers[:headers]
-#   @format_version = headers[:format_version].to_i
-#   @flags = headers[:flags].to_i
-#   @expires_at = headers[:expires_at].to_i
-# end
-# extracts various values form the AMQP header properties
 sub decode {
     my ($self) = @_;
 
@@ -266,98 +224,55 @@ sub decode {
     $self->{expires_at}     = $amqp_headers->{expires_at};
 }
 
-# whether we should wait before running the handler
-# def delayed?
-#   (t = @store.get(msg_id, :delay)) && t.to_i > now
-# end
 sub delayed {
     my ($self) = @_;
     my $t = $self->store->get( $self->msg_id => 'delay' );
     return $t && $t > $self->now ? 1 : 0;
 }
 
-# delete execution mutex
-# def delete_mutex!
-#   @store.del(msg_id, :mutex)
-#   logger.debug "Beetle: deleted mutex: #{msg_id}"
-# end
 sub delete_mutex {
     my ($self) = @_;
     $self->store->del( $self->msg_id => 'mutex' );
     $self->log->debug( sprintf 'Beetle: deleted mutex: %s', $self->msg_id );
 }
 
-# whether the number of exceptions has exceeded the limit set when the handler was registered
-# def exceptions_limit_reached?
-#   @store.get(msg_id, :exceptions).to_i > exceptions_limit
-# end
 sub exceptions_limit_reached {
     my ($self) = @_;
     my $value = $self->store->get( $self->msg_id => 'exceptions' );
     return $value > $self->exceptions_limit ? 1 : 0;
 }
 
-# a message has expired if the header expiration timestamp is msaller than the current time
-# def expired?
-#   @expires_at < now
-# end
 sub expired {
     my ($self) = @_;
     return $self->expires_at < time ? 1 : 0;
 }
 
-# generate uuid for publishing
 sub generate_uuid {
     return Data::UUID->new->create_str;
 }
 
-# increment number of exception occurences in the deduplication store
-# def increment_exception_count!
-#   @store.incr(msg_id, :exceptions)
-# end
 sub increment_exception_count {
     my ($self) = @_;
     $self->store->incr( $self->msg_id => 'exceptions' );
 }
 
-# record the fact that we are trying to run the handler
-# def increment_execution_attempts!
-#   @store.incr(msg_id, :attempts)
-# end
 sub increment_execution_attempts {
     my ($self) = @_;
     $self->store->incr( $self->msg_id => 'attempts' );
 }
 
-# message handling completed?
-# def completed?
-#   @store.get(msg_id, :status) == "completed"
-# end
 sub is_completed {
     my ($self) = @_;
     my $value = $self->store->get( $self->msg_id => 'status' );
     return $value && $value eq 'completed' ? 1 : 0;
 }
 
-# handler timed out?
-# def timed_out?
-#   (t = @store.get(msg_id, :timeout)) && t.to_i < now
-# end
 sub is_timed_out {
     my ($self) = @_;
     my $t = $self->store->get( $self->msg_id => 'timeout' );
     return $t && $t < $self->now ? 1 : 0;
 }
 
-# # have we already seen this message? if not, set the status to "incomplete" and store
-# # the message exipration timestamp in the deduplication store.
-# def key_exists?
-#   old_message = 0 == @store.msetnx(msg_id, :status =>"incomplete", :expires => @expires_at)
-#   if old_message
-#     logger.debug "Beetle: received duplicate message: #{msg_id} on queue: #{@queue}"
-#   end
-#   old_message
-# end
 sub key_exists {
     my ($self) = @_;
     my $successful = $self->store->msetnx( $self->msg_id => { status => 'incomplete', expires => $self->expires_at } );
@@ -368,38 +283,15 @@ sub key_exists {
     return 1;
 }
 
-# # unique message id. used to form various keys in the deduplication store.
-# def msg_id
-#   @msg_id ||= "msgid:#{queue}:#{uuid}"
-# end
 sub msg_id {
     my ($self) = @_;
     return sprintf "msgid:%s:%s", $self->queue, $self->uuid;
 }
 
-# def now #:nodoc:
-#   Time.now.to_i
-# end
 sub now {
     return time();    # TODO: <plu> Hmmm... timezones'n'shit?!
 }
 
-# process this message and do not allow any exception to escape to the caller
-# def process(handler)
-#   logger.debug "Beetle: processing message #{msg_id}"
-#   result = nil
-#   begin
-#     result = process_internal(handler)
-#     handler.process_exception(@exception) if @exception
-#     handler.process_failure(result) if result.failure?
-#   rescue Exception => e
-#     Beetle::reraise_expectation_errors!
-#     logger.warn "Beetle: exception '#{e}' during processing of message #{msg_id}"
-#     logger.warn "Beetle: backtrace: #{e.backtrace.join("\n")}"
-#     result = RC::InternalError
-#   end
-#   result
-# end
 # TODO: <plu> make sure I got this right.
 sub process {
     my ( $self, $handler ) = @_;
@@ -418,7 +310,6 @@ sub process {
     return $result;
 }
 
-# build hash with options for the publisher
 sub publishing_options {
     my ( $package, %args ) = @_;
 
@@ -444,62 +335,31 @@ sub publishing_options {
     return wantarray ? %args : \%args;
 }
 
-# whether the publisher has tried sending this message to two servers
-# def redundant?
-#   @flags & FLAG_REDUNDANT == FLAG_REDUNDANT
-# end
 sub redundant {
     my ($self) = @_;
     return $self->flags & $FLAG_REDUNDANT ? 1 : 0;
 }
 
-# reset handler timeout in the deduplication store
-# def timed_out!
-#   @store.set(msg_id, :timeout, 0)
-# end
 sub reset_timeout {
     my ($self) = @_;
     $self->store->set( $self->msg_id => timeout => 0 );
 }
 
-# store delay value in the deduplication store
-# def set_delay!
-#   @store.set(msg_id, :delay, now + delay)
-# end
 sub set_delay {
     my ($self) = @_;
     $self->store->set( $self->msg_id => delay => $self->now + $self->delay );
 }
 
-# store handler timeout timestamp in the deduplication store
-# def set_timeout!
-#   @store.set(msg_id, :timeout, now + timeout)
-# end
 sub set_timeout {
     my ($self) = @_;
     $self->store->set( $self->msg_id => timeout => $self->now + $self->timeout );
 }
 
-# whether this is a message we can process without accessing the deduplication store
-# def simple?
-#   !redundant? && attempts_limit == 1
-# end
 sub simple {
     my ($self) = @_;
     return !$self->redundant && $self->attempts_limit == 1 ? 1 : 0;
 }
 
-# def run_handler!(handler)
-#   increment_execution_attempts!
-#   case result = run_handler(handler)
-#   when RC::OK
-#     completed!
-#     ack!
-#     result
-#   else
-#     handler_failed!(result)
-#   end
-# end
 sub _execute_handler {
     my ( $self, $handler ) = @_;
     $self->increment_execution_attempts;
@@ -514,23 +374,6 @@ sub _execute_handler {
     }
 }
 
-# def handler_failed!(result)
-#   increment_exception_count!
-#   if attempts_limit_reached?
-#     ack!
-#     logger.debug "Beetle: reached the handler execution attempts limit: #{attempts_limit} on #{msg_id}"
-#     RC::AttemptsLimitReached
-#   elsif exceptions_limit_reached?
-#     ack!
-#     logger.debug "Beetle: reached the handler exceptions limit: #{exceptions_limit} on #{msg_id}"
-#     RC::ExceptionsLimitReached
-#   else
-#     delete_mutex!
-#     timed_out!
-#     set_delay!
-#     result
-#   end
-# end
 sub _handler_failed {
     my ( $self, $result ) = @_;
 
@@ -558,42 +401,6 @@ sub _handler_failed {
     }
 }
 
-# def process_internal(handler)
-#   if expired?
-#     logger.warn "Beetle: ignored expired message (#{msg_id})!"
-#     ack!
-#     RC::Ancient
-#   elsif simple?
-#     ack!
-#     run_handler(handler) == RC::HandlerCrash ? RC::AttemptsLimitReached : RC::OK
-#   elsif !key_exists?
-#     set_timeout!
-#     run_handler!(handler)
-#   elsif completed?
-#     ack!
-#     RC::OK
-#   elsif delayed?
-#     logger.warn "Beetle: ignored delayed message (#{msg_id})!"
-#     RC::Delayed
-#   elsif !timed_out?
-#     RC::HandlerNotYetTimedOut
-#   elsif attempts_limit_reached?
-#     ack!
-#     logger.warn "Beetle: reached the handler execution attempts limit: #{attempts_limit} on #{msg_id}"
-#     RC::AttemptsLimitReached
-#   elsif exceptions_limit_reached?
-#     ack!
-#     logger.warn "Beetle: reached the handler exceptions limit: #{exceptions_limit} on #{msg_id}"
-#     RC::ExceptionsLimitReached
-#   else
-#     set_timeout!
-#     if aquire_mutex!
-#       run_handler!(handler)
-#     else
-#       RC::MutexLocked
-#     end
-#   end
-# end
 sub _process_internal {
     my ( $self, $handler ) = @_;
 
@@ -654,16 +461,6 @@ sub _process_internal {
     }
 }
 
-# def run_handler(handler)
-#   Timeout::timeout(@timeout) { @handler_result = handler.call(self) }
-#   RC::OK
-# rescue Exception => @exception
-#   Beetle::reraise_expectation_errors!
-#   logger.debug "Beetle: message handler crashed on #{msg_id}"
-#   RC::HandlerCrash
-# ensure
-#   ActiveRecord::Base.clear_active_connections! if defined?(ActiveRecord)
-# end
 sub _run_handler {
     my ( $self, $handler ) = @_;
 

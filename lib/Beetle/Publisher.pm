@@ -74,27 +74,6 @@ sub publish {
     }
 }
 
-# def publish_with_failover(exchange_name, message_name, data, opts) #:nodoc:
-#   tries = @servers.size
-#   logger.debug "Beetle: sending #{message_name}"
-#   published = 0
-#   opts = Message.publishing_options(opts)
-#   begin
-#     select_next_server
-#     bind_queues_for_exchange(exchange_name)
-#     logger.debug "Beetle: trying to send message #{message_name}:#{opts[:message_id]} to #{@server}"
-#     exchange(exchange_name).publish(data, opts)
-#     logger.debug "Beetle: message sent!"
-#     published = 1
-#   rescue Bunny::ServerDownError, Bunny::ConnectionError
-#     stop!
-#     mark_server_dead
-#     tries -= 1
-#     retry if tries > 0
-#     logger.error "Beetle: message could not be delivered: #{message_name}"
-#   end
-#   published
-# end
 sub publish_with_failover {
     my ( $self, $exchange_name, $message_name, $data, $options ) = @_;
 
@@ -143,36 +122,6 @@ sub publish_with_failover {
     return $published;
 }
 
-# def publish_with_redundancy(exchange_name, message_name, data, opts) #:nodoc:
-#   if @servers.size < 2
-#     logger.error "Beetle: at least two active servers are required for redundant publishing"
-#     return publish_with_failover(exchange_name, message_name, data, opts)
-#   end
-#   published = []
-#   opts = Message.publishing_options(opts)
-#   loop do
-#     break if published.size == 2 || @servers.empty? || published == @servers
-#     begin
-#       select_next_server
-#       next if published.include? @server
-#       bind_queues_for_exchange(exchange_name)
-#       logger.debug "Beetle: trying to send #{message_name}:#{opts[:message_id]} to #{@server}"
-#       exchange(exchange_name).publish(data, opts)
-#       published << @server
-#       logger.debug "Beetle: message sent (#{published})!"
-#     rescue Bunny::ServerDownError, Bunny::ConnectionError
-#       stop!
-#       mark_server_dead
-#     end
-#   end
-#   case published.size
-#   when 0
-#     logger.error "Beetle: message could not be delivered: #{message_name}"
-#   when 1
-#     logger.warn "Beetle: failed to send message redundantly"
-#   end
-#   published.size
-# end
 sub publish_with_redundancy {
     my ( $self, $exchange_name, $message_name, $data, $options ) = @_;
 
@@ -230,40 +179,6 @@ sub publish_with_redundancy {
     return scalar @published;
 }
 
-# def rpc(message_name, data, opts={}) #:nodoc:
-#   opts = @client.messages[message_name].merge(opts.symbolize_keys)
-#   exchange_name = opts.delete(:exchange)
-#   opts.delete(:queue)
-#   recycle_dead_servers unless @dead_servers.empty?
-#   tries = @servers.size
-#   logger.debug "Beetle: performing rpc with message #{message_name}"
-#   result = nil
-#   status = "TIMEOUT"
-#   begin
-#     select_next_server
-#     bind_queues_for_exchange(exchange_name)
-#     # create non durable, autodeleted temporary queue with a server assigned name
-#     queue = bunny.queue
-#     opts = Message.publishing_options(opts.merge :reply_to => queue.name)
-#     logger.debug "Beetle: trying to send #{message_name}:#{opts[:message_id]} to #{@server}"
-#     exchange(exchange_name).publish(data, opts)
-#     logger.debug "Beetle: message sent!"
-#     logger.debug "Beetle: listening on reply queue #{queue.name}"
-#     queue.subscribe(:message_max => 1, :timeout => opts[:timeout] || RPC_DEFAULT_TIMEOUT) do |msg|
-#       logger.debug "Beetle: received reply!"
-#       result = msg[:payload]
-#       status = msg[:header].properties[:headers][:status]
-#     end
-#     logger.debug "Beetle: rpc complete!"
-#   rescue Bunny::ServerDownError, Bunny::ConnectionError
-#     stop!
-#     mark_server_dead
-#     tries -= 1
-#     retry if tries > 0
-#     logger.error "Beetle: message could not be delivered: #{message_name}"
-#   end
-#   [status, result]
-# end
 sub rpc {
     my ( $self, $message_name, $data, $options ) = @_;
     $options ||= {};
@@ -312,9 +227,6 @@ sub rpc {
     return ( $status, $result );
 }
 
-# def purge(queue_name) #:nodoc:
-#   each_server { queue(queue_name).purge rescue nil }
-# end
 sub purge {
     my ( $self, $queue_name ) = @_;
     $self->each_server(
@@ -324,21 +236,6 @@ sub purge {
         }
     );
 }
-
-# def stop #:nodoc:
-#   each_server { stop! }
-# end
-# def stop!
-#   begin
-#     bunny.stop
-#   rescue Exception
-#     Beetle::reraise_expectation_errors!
-#   ensure
-#     @bunnies[@server] = nil
-#     @exchanges[@server] = {}
-#     @queues[@server] = {}
-#   end
-# end
 
 sub stop_bunny {
     my ($self) = @_;
@@ -364,14 +261,6 @@ sub stop {
 
 # private
 
-# def recycle_dead_servers
-#   recycle = []
-#   @dead_servers.each do |s, dead_since|
-#     recycle << s if dead_since < 10.seconds.ago
-#   end
-#   @servers.concat recycle
-#   recycle.each {|s| @dead_servers.delete(s)}
-# end
 sub recycle_dead_servers {
     my ($self)  = @_;
     my @recycle = ();
@@ -385,12 +274,6 @@ sub recycle_dead_servers {
     $self->add_server(@recycle);
 }
 
-# def mark_server_dead
-#   logger.info "Beetle: server #{@server} down: #{$!}"
-#   @dead_servers[@server] = Time.now
-#   @servers.delete @server
-#   @server = @servers[rand @servers.size]
-# end
 sub mark_server_dead {
     my ($self) = @_;
 
@@ -404,10 +287,6 @@ sub mark_server_dead {
     $self->{server}  = $servers[ int rand scalar @servers ];
 }
 
-# def select_next_server
-#   return logger.error("Beetle: message could not be delivered - no server available") && 0 if @servers.empty?
-#   set_current_server(@servers[((@servers.index(@server) || 0)+1) % @servers.size])
-# end
 sub select_next_server {
     my ($self) = @_;
     unless ( $self->count_servers ) {
@@ -424,11 +303,6 @@ sub select_next_server {
     $self->set_current_server($server);
 }
 
-# def bind_queues_for_exchange(exchange_name)
-#   return if @exchanges_with_bound_queues.include?(exchange_name)
-#   @client.exchanges[exchange_name][:queues].each {|q| queue(q) }
-#   @exchanges_with_bound_queues[exchange_name] = true
-# end
 sub bind_queues_for_exchange {
     my ( $self, $exchange_name ) = @_;
     return if $self->has_exchanges_with_bound_queues($exchange_name);
@@ -440,14 +314,6 @@ sub bind_queues_for_exchange {
     }
 }
 
-# # TODO: Refactor, fethch the keys and stuff itself
-# def bind_queue!(queue_name, creation_keys, exchange_name, binding_keys)
-#   logger.debug("Creating queue with opts: #{creation_keys.inspect}")
-#   queue = bunny.queue(queue_name, creation_keys)
-#   logger.debug("Binding queue #{queue_name} to #{exchange_name} with opts: #{binding_keys.inspect}")
-#   queue.bind(exchange(exchange_name), binding_keys)
-#   queue
-# end
 sub bind_queue {
     my ( $self, $queue_name, $creation_keys, $exchange_name, $binding_keys ) = @_;
     $self->log->debug( sprintf 'Creating queue with options: %s', Dumper($creation_keys) );

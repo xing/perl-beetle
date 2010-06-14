@@ -14,9 +14,6 @@ has 'client' => (
     isa => 'Any',
 );
 
-# def exchanges
-#   @exchanges[@server] ||= {}
-# end
 has 'exchanges' => (
     default => sub {
         { shift->server => {} }
@@ -37,9 +34,6 @@ has 'options' => (
     isa => 'Any',
 );
 
-# def queues
-#   @queues[@server] ||= {}
-# end
 has 'queues' => (
     default => sub {
         { shift->server => {} }
@@ -49,9 +43,6 @@ has 'queues' => (
     lazy => 1,
 );
 
-# def set_current_server(s)
-#   @server = s
-# end
 has 'server' => (
     is     => 'ro',
     isa    => 'Any',
@@ -97,25 +88,16 @@ sub error {
     die $message;
 }
 
-# def current_host
-#   @server.split(':').first
-# end
 sub current_host {
     my ($self) = @_;
     return ( split /:/, $self->server )[0];
 }
 
-# def current_port
-#   @server =~ /:(\d+)$/ ? $1.to_i : 5672
-# end
 sub current_port {
     my ($self) = @_;
     return ( split /:/, $self->server )[1] || 5672;
 }
 
-# def each_server
-#   @servers.each { |s| set_current_server(s); yield }
-# end
 sub each_server {
     my ( $self, $code ) = @_;
 
@@ -126,9 +108,6 @@ sub each_server {
     }
 }
 
-# def exchange(name)
-#   exchanges[name] ||= create_exchange!(name, @client.exchanges[name])
-# end
 sub exchange {
     my ( $self, $name ) = @_;
 
@@ -142,23 +121,6 @@ sub exchange {
     # }
 }
 
-# def queue(name)
-#   queues[name] ||=
-#     begin
-#       opts = @client.queues[name]
-#       error("You are trying to bind a queue #{name} which is not configured!") unless opts
-#       logger.debug("Beetle: binding queue #{name} with internal name #{opts[:amqp_name]} on server #{@server}")
-#       queue_name = opts[:amqp_name]
-#       creation_options = opts.slice(*QUEUE_CREATION_KEYS)
-#       the_queue = nil
-#       @client.bindings[name].each do |binding_options|
-#         exchange_name = binding_options[:exchange]
-#         binding_options = binding_options.slice(*QUEUE_BINDING_KEYS)
-#         the_queue = bind_queue!(queue_name, creation_options, exchange_name, binding_options)
-#       end
-#       the_queue
-#     end
-# end
 sub queue {
     my ( $self, $name ) = @_;
 
@@ -189,21 +151,12 @@ sub queue {
     return $name;
 }
 
-# def bunny
-#   @bunnies[@server] ||= new_bunny
-# end
 sub bunny {
     my ($self) = @_;
     $self->set_bunny( $self->server => $self->new_bunny ) unless $self->has_bunny( $self->server );
     return $self->get_bunny( $self->server );
 }
 
-# def new_bunny
-#   b = Bunny.new(:host => current_host, :port => current_port, :logging => !!@options[:logging],
-#                 :user => Beetle.config.user, :pass => Beetle.config.password, :vhost => Beetle.config.vhost)
-#   b.start
-#   b
-# end
 sub new_bunny {
     my ($self) = @_;
     my $class = $self->config->bunny_class;
@@ -215,9 +168,6 @@ sub new_bunny {
     );
 }
 
-# def create_exchange!(name, opts)
-#   bunny.exchange(name, opts)
-# end
 sub create_exchange {
     my ( $self, $name, $options ) = @_;
     my %rmq_options = %{ $options || {} };
