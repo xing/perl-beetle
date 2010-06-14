@@ -2,7 +2,7 @@ package Beetle::Base::PubSub;
 
 use Moose;
 extends qw(Beetle::Base);
-use Beetle::Bunny;
+use Class::MOP;
 
 # Base class for publisher/subscriber
 
@@ -206,7 +206,9 @@ sub bunny {
 # end
 sub new_bunny {
     my ($self) = @_;
-    return Beetle::Bunny->new(
+    my $class = $self->config->bunny_class;
+    Class::MOP::load_class($class);
+    return $class->new(
         config => $self->config,
         host   => $self->current_host,
         port   => $self->current_port,

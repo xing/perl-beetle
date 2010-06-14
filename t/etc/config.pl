@@ -1,4 +1,5 @@
 {
+    'bunny_class'  => 'Foo::Bunny',
     'gc_threshold' => 456,
     'logger'       => '/dev/zero',
     'loglayout'    => 'FOO: %m%n',

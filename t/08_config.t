@@ -15,6 +15,7 @@ BEGIN {
     my $client   = Beetle::Client->new( config => {} );
     my $got      = $client->config;
     my $expected = {
+        'bunny_class'  => 'Beetle::Bunny',
         'gc_threshold' => 259200,
         'logger'       => 'STDERR',
         'loglayout'    => '[%d] [%p] (%C:%L) %m%n',
@@ -32,6 +33,7 @@ BEGIN {
 
 {
     my $expected = {
+        'bunny_class'  => 'Test::Beetle::Bunny',
         'gc_threshold' => 123,
         'logger'       => '/dev/null',
         'loglayout'    => '%m%n',
@@ -51,6 +53,7 @@ BEGIN {
 
 {
     my $expected = {
+        'bunny_class'  => 'Foo::Bunny',
         'gc_threshold' => 456,
         'logger'       => '/dev/zero',
         'loglayout'    => 'FOO: %m%n',

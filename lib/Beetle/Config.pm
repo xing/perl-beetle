@@ -91,4 +91,12 @@ has 'verbose' => (
     required      => 1,
 );
 
+has 'bunny_class' => (
+    default       => 'Beetle::Bunny',
+    documentation => 'defaults to Beetle::Bunny',
+    is            => 'rw',
+    isa           => 'Str',
+    required      => 1,
+);
+
 1;
