@@ -266,4 +266,37 @@ BEGIN {
     }
 }
 
+# test "select_next_server should cycle through the list of all servers" do
+{
+    my $client = Beetle::Client->new(
+        config => {
+            servers     => 'localhost:3333 localhost:4444 localhost:5555',
+            bunny_class => 'Test::Beetle::Bunny',
+        }
+    );
+    my $publisher = $client->publisher;
+    is_deeply( $publisher->servers, [qw(localhost:3333 localhost:4444 localhost:5555)], 'All servers there' );
+    ok( $publisher->set_current_server('localhost:3333'), 'Method set_current_server works' );
+    is( $publisher->server, 'localhost:3333', 'Correct server set #1' );
+    ok( $publisher->select_next_server, 'Select next server #1' );
+    is( $publisher->server, 'localhost:4444', 'Correct server set #2' );
+    ok( $publisher->select_next_server, 'Select next server #2' );
+    is( $publisher->server, 'localhost:5555', 'Correct server set #3' );
+    ok( $publisher->select_next_server, 'Select next server #3' );
+    is( $publisher->server, 'localhost:3333', 'Correct server set #4' );
+}
+
+# test "select_next_server should return 0 if there are no servers to publish to" do
+{
+    my $client = Beetle::Client->new(
+        config => {
+            servers     => 'localhost:3333 localhost:4444 localhost:5555',
+            bunny_class => 'Test::Beetle::Bunny',
+        }
+    );
+    my $publisher = $client->publisher;
+    $publisher->{servers} = [];
+    is( $publisher->select_next_server, 0, 'The method select_next_server returns 0 when no servers are configured' );
+}
+
 done_testing;
