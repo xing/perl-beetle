@@ -442,6 +442,7 @@ sub publishing_options {
         format_version => $FORMAT_VERSION,
         flags          => $flags,
         expires_at     => $expires_at,
+        reply_to       => $args{reply_to} || '',
     };
 
     return wantarray ? %args : \%args;
