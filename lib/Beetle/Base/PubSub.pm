@@ -111,14 +111,12 @@ sub each_server {
 sub exchange {
     my ( $self, $name ) = @_;
 
-    # TODO: <plu> hmm make sure this is correct. If we check has_exchange
-    # using multiple servers does not work anymore...
+    my $exchanges = $self->get_exchange( $self->server );
 
-    # unless ( $self->has_exchange($name) ) {
-    my $exchange = $self->create_exchange( $name => $self->client->get_exchange($name) );
-    $self->set_exchange( $name => $exchange );
-
-    # }
+    unless ( $exchanges->{$name} ) {
+        my $exchange = $self->create_exchange( $name => $self->client->get_exchange($name) );
+        $self->set_exchange( $self->server => { $name => $exchange } );
+    }
 }
 
 sub queue {

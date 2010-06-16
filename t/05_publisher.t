@@ -252,23 +252,18 @@ BEGIN {
         $client->publisher->exchange('some_exchange');
     }
 
-  TODO: {
-        local $TODO = 'This needs to be fixed in sub Beetle::Base::PubSub::exchange. If you'
-          . ' start working on this, make sure to have a -real- clean rabbitmq setup with no exchanges.';
-
-        is_deeply(
-            \@data,
-            [
-                {
-                    'some_exchange' => {
-                        'durable' => 1,
-                        'type'    => 'topic'
-                    }
+    is_deeply(
+        \@data,
+        [
+            {
+                'some_exchange' => {
+                    'durable' => 1,
+                    'type'    => 'topic'
                 }
-            ],
-            'Exchange got created only once'
-        );
-    }
+            }
+        ],
+        'Exchange got created only once'
+    );
 }
 
 # test "select_next_server should cycle through the list of all servers" do
