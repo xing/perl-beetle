@@ -71,16 +71,6 @@ sub exchange_declare {
     );
 }
 
-sub get {
-    my ( $self, $queue, $options ) = @_;
-    $options ||= {};
-    $self->_get(
-        no_ack => 0,
-        queue  => $queue,
-        %$options
-    );
-}
-
 sub listen {
     my ($self) = @_;
     my $c = AnyEvent->condvar;
