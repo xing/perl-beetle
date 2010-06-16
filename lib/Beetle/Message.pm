@@ -203,8 +203,8 @@ sub attempts {
 
 sub attempts_limit_reached {
     my ($self) = @_;
-    my $limit = $self->store->get( $self->msg_id => 'attempts' );
-    return $limit && $limit >= $self->attempts_limit ? 1 : 0;
+    my $attempts = $self->attempts;
+    return $attempts && $attempts >= $self->attempts_limit ? 1 : 0;
 }
 
 sub completed {
