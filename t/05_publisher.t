@@ -2,6 +2,7 @@ use strict;
 use warnings;
 use Test::Exception;
 use Test::More;
+use Sub::Override;
 
 use FindBin qw( $Bin );
 use lib ( "$Bin/lib", "$Bin/../lib" );
@@ -16,10 +17,9 @@ BEGIN {
 
 # test "acccessing a bunny for a server which doesn't have one should create it and associate it with the server" do
 {
-    no warnings 'redefine';
-    local *Beetle::Base::PubSub::new_bunny = sub { return 42; };
-    my $client = Beetle::Client->new;
-    my $pub = Beetle::Publisher->new( client => $client );
+    my $override = Sub::Override->new( 'Beetle::Base::PubSub::new_bunny' => sub { return 42; } );
+    my $client   = Beetle::Client->new;
+    my $pub      = Beetle::Publisher->new( client => $client );
     is( $pub->bunny,                     42, 'Method new_bunny works as expected' );
     is( $pub->get_bunny( $pub->server ), 42, 'Bunnies got set correctly' );
 }
@@ -77,18 +77,18 @@ BEGIN {
 }
 
 {
-    no warnings 'redefine';
-
     my @servers = ();
 
     local $Beetle::Publisher::RECYCLE_DEAD_SERVERS_DELAY = 1;
 
     # If this dies, the publisher will mark the server as dead
-    local *Test::Beetle::Bunny::publish = sub {
-        my ($self) = @_;
-        push @servers, sprintf( '%s:%d', $self->host, $self->port );
-        die 'dead server';
-    };
+    my $o1 = Sub::Override->new(
+        'Test::Beetle::Bunny::publish' => sub {
+            my ($self) = @_;
+            push @servers, sprintf( '%s:%d', $self->host, $self->port );
+            die 'dead server';
+        }
+    );
 
     my $client = Beetle::Client->new(
         config => {
@@ -109,7 +109,7 @@ BEGIN {
     sleep( $Beetle::Publisher::RECYCLE_DEAD_SERVERS_DELAY + 1 );
 
     # Override this again to see if the dead servers get recycled properly on a new publish call
-    local *Test::Beetle::Bunny::publish = sub { };
+    my $o2 = Sub::Override->new( 'Test::Beetle::Bunny::publish' => sub { } );
     $publisher->publish( mama => 'XXX' );
 
     is_deeply( [ sort @{ $publisher->servers } ], [qw(localhost:3333 localhost:4444)], 'Server recycling works' );
@@ -118,14 +118,14 @@ BEGIN {
 
 # test "redundant publishing should send the message to two servers" do
 {
-    no warnings 'redefine';
-
     my @servers = ();
 
-    local *Test::Beetle::Bunny::publish = sub {
-        my ($self) = @_;
-        push @servers, sprintf( '%s:%d', $self->host, $self->port );
-    };
+    my $override = Sub::Override->new(
+        'Test::Beetle::Bunny::publish' => sub {
+            my ($self) = @_;
+            push @servers, sprintf( '%s:%d', $self->host, $self->port );
+        }
+    );
 
     my $client = Beetle::Client->new(
         config => {
@@ -141,15 +141,15 @@ BEGIN {
 
 # test "redundant publishing should return 1 if the message was published to one server only" do
 {
-    no warnings 'redefine';
-
     my @servers = ();
 
-    local *Test::Beetle::Bunny::publish = sub {
-        my ($self) = @_;
-        die if $self->host ne 'dead';
-        push @servers, sprintf( '%s:%d', $self->host, $self->port );
-    };
+    my $override = Sub::Override->new(
+        'Test::Beetle::Bunny::publish' => sub {
+            my ($self) = @_;
+            die if $self->host ne 'dead';
+            push @servers, sprintf( '%s:%d', $self->host, $self->port );
+        }
+    );
 
     my $client = Beetle::Client->new(
         config => {
@@ -165,15 +165,15 @@ BEGIN {
 
 # test "redundant publishing should return 0 if the message was published to no server" do
 {
-    no warnings 'redefine';
-
     my @servers = ();
 
-    local *Test::Beetle::Bunny::publish = sub {
-        my ($self) = @_;
-        die if $self->host ne 'dead';
-        push @servers, sprintf( '%s:%d', $self->host, $self->port );
-    };
+    my $override = Sub::Override->new(
+        'Test::Beetle::Bunny::publish' => sub {
+            my ($self) = @_;
+            die if $self->host ne 'dead';
+            push @servers, sprintf( '%s:%d', $self->host, $self->port );
+        }
+    );
 
     my $client = Beetle::Client->new(
         config => {
@@ -189,19 +189,23 @@ BEGIN {
 
 # test "binding a queue should create it using the config and bind it to the exchange with the name specified" do
 {
-    no warnings 'redefine';
 
     my @queue_declare = ();
-    local *Test::Beetle::Bunny::queue_declare = sub {
-        my ( $self, $queue, $options ) = @_;
-        push @queue_declare, { queue => $queue, options => $options };
-    };
+    my @queue_bind    = ();
 
-    my @queue_bind = ();
-    local *Test::Beetle::Bunny::queue_bind = sub {
-        my ( $self, $queue, $exchange, $key ) = @_;
-        push @queue_bind, { queue => $queue, exchange => $exchange, key => $key };
-    };
+    my $o1 = Sub::Override->new(
+        'Test::Beetle::Bunny::queue_declare' => sub {
+            my ( $self, $queue, $options ) = @_;
+            push @queue_declare, { queue => $queue, options => $options };
+        }
+    );
+
+    my $o2 = Sub::Override->new(
+        'Test::Beetle::Bunny::queue_bind' => sub {
+            my ( $self, $queue, $exchange, $key ) = @_;
+            push @queue_bind, { queue => $queue, exchange => $exchange, key => $key };
+        }
+    );
 
     my $client = Beetle::Client->new( config => { bunny_class => 'Test::Beetle::Bunny' } );
     $client->register_queue( some_queue => { exchange => 'some_exchange', key => 'some_key' } );
@@ -232,13 +236,14 @@ BEGIN {
 
 # test "accessing a given exchange should create it using the config. further access should return the created exchange" do
 {
-    no warnings 'redefine';
-
     my @data = ();
-    local *Test::Beetle::Bunny::exchange_declare = sub {
-        my ( $self, $exchange, $options ) = @_;
-        push @data, { $exchange => $options };
-    };
+
+    my $override = Sub::Override->new(
+        'Test::Beetle::Bunny::exchange_declare' => sub {
+            my ( $self, $exchange, $options ) = @_;
+            push @data, { $exchange => $options };
+        }
+    );
 
     my $client = Beetle::Client->new( config => { bunny_class => 'Test::Beetle::Bunny' } );
     $client->register_exchange( some_exchange => { type => 'topic', durable => 1 } );

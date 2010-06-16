@@ -1,6 +1,7 @@
 use strict;
 use warnings;
 use Test::More;
+use Sub::Override;
 
 use FindBin qw( $Bin );
 use lib ( "$Bin/../lib", "$Bin/../../lib" );
@@ -37,8 +38,7 @@ test_redis(
         # test "should be able to garbage collect expired keys" do
         {
             $store->flushdb;
-            no warnings 'redefine';
-            local *Beetle::Config::gc_threshold = sub { return 0; };
+            my $override = Sub::Override->new( 'Beetle::Config::gc_threshold' => sub { return 0; } );
             my $header = Test::Beetle->header_with_params( ttl => 0 );
             my $m = Beetle::Message->new(
                 body   => 'foo',
@@ -57,8 +57,7 @@ test_redis(
         # test "should not garbage collect not yet expired keys" do
         {
             $store->flushdb;
-            no warnings 'redefine';
-            local *Beetle::Config::gc_threshold = sub { return 0; };
+            my $override = Sub::Override->new( 'Beetle::Config::gc_threshold' => sub { return 0; } );
             my $header = Test::Beetle->header_with_params( ttl => 60 );
             my $m = Beetle::Message->new(
                 body   => 'foo',

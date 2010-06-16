@@ -2,6 +2,7 @@ use strict;
 use warnings;
 use Test::Exception;
 use Test::More;
+use Sub::Override;
 
 use FindBin qw( $Bin );
 use lib ( "$Bin/lib", "$Bin/../lib" );
@@ -57,12 +58,13 @@ BEGIN {
 }
 
 {
-    my $handler = Beetle::Handler->create('Test::Beetle::Handler::SubFooBar');
-    no warnings 'redefine';
-    local *Beetle::Handler::error = sub {
-        my ( $self, $exception ) = @_;
-        return uc $exception . '001';
-    };
+    my $handler  = Beetle::Handler->create('Test::Beetle::Handler::SubFooBar');
+    my $override = Sub::Override->new(
+        'Beetle::Handler::error' => sub {
+            my ( $self, $exception ) = @_;
+            return uc $exception . '001';
+        }
+    );
     my $result = $handler->process_exception('some exception');
     is(
         $result,
@@ -86,12 +88,13 @@ BEGIN {
 }
 
 {
-    my $handler = Beetle::Handler->create('Test::Beetle::Handler::SubFooBar');
-    no warnings 'redefine';
-    *Beetle::Handler::failure = sub {
-        my ( $self, $exception ) = @_;
-        return uc $exception . '003';
-    };
+    my $handler  = Beetle::Handler->create('Test::Beetle::Handler::SubFooBar');
+    my $override = Sub::Override->new(
+        'Beetle::Handler::failure' => sub {
+            my ( $self, $exception ) = @_;
+            return uc $exception . '003';
+        }
+    );
     my $result = $handler->process_failure('some failure');
     is(
         $result,

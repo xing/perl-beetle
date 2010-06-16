@@ -1,6 +1,7 @@
 use strict;
 use warnings;
 use Test::More;
+use Sub::Override;
 
 use FindBin qw( $Bin );
 use lib ( "$Bin/lib", "$Bin/../lib" );
@@ -26,18 +27,16 @@ BEGIN {
 }
 
 {
-    no warnings 'redefine';
-    local *Beetle::Message::now = sub { return 25; };
+    my $override = Sub::Override->new( 'Beetle::Message::now' => sub { return 25; } );
     my $header = Test::Beetle->header_with_params( ttl => 17 );
     my $m = Beetle::Message->new( queue => "queue", header => $header, body => 'foo' );
     is( $m->expires_at, 42, 'encoding a message with a specfied time to live should set an expiration time' );
 }
 
 {
-    no warnings 'redefine';
-    local *Beetle::Message::now = sub { return 1; };
-    my $header = Test::Beetle->header_with_params();
-    my $m = Beetle::Message->new( queue => "queue", header => $header, body => 'foo' );
+    my $override = Sub::Override->new( 'Beetle::Message::now' => sub { return 1; } );
+    my $header   = Test::Beetle->header_with_params();
+    my $m        = Beetle::Message->new( queue => "queue", header => $header, body => 'foo' );
     is(
         $m->expires_at,
         1 + $Beetle::Message::DEFAULT_TTL,
@@ -103,10 +102,9 @@ BEGIN {
 }
 
 {
-    my $uuid = 'wadduyouwantfromme';
-    no warnings 'redefine';
-    local *Beetle::Message::generate_uuid = sub { return $uuid; };
-    my $o = Beetle::Message->publishing_options( redundant => 1, );
+    my $uuid     = 'wadduyouwantfromme';
+    my $override = Sub::Override->new( 'Beetle::Message::generate_uuid' => sub { return $uuid; } );
+    my $o        = Beetle::Message->publishing_options( redundant => 1, );
     is(
         $o->{message_id} => $uuid,
         'the publishing options for a redundant message should include the uuid'

@@ -241,7 +241,7 @@ sub stop_bunny {
     my ($self) = @_;
 
     # TODO: <plu> proper exception handling missing
-    eval { $self->bunny->close };
+    eval { $self->bunny->stop };
 }
 
 sub stop {
