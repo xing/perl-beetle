@@ -187,6 +187,30 @@ BEGIN {
     is( $count, scalar(@servers), 'Message got published to one server because only one is alive' );
 }
 
+# test "redundant publishing should publish to two of three servers if one server is dead" do
+{
+    my @servers = ();
+
+    my $override = Sub::Override->new(
+        'Test::Beetle::Bunny::publish' => sub {
+            my ($self) = @_;
+            die if $self->host ne 'dead';
+            push @servers, sprintf( '%s:%d', $self->host, $self->port );
+        }
+    );
+
+    my $client = Beetle::Client->new(
+        config => {
+            servers     => 'dead:3333 alive:4444 alive:5555',
+            bunny_class => 'Test::Beetle::Bunny',
+        }
+    );
+    my $publisher = $client->publisher;
+
+    my $count = $publisher->publish_with_redundancy( 'mama-exchange', 'mama', 'XXX', {} );
+    is( $count, scalar(@servers), 'Message got published to two servers' );
+}
+
 # test "binding a queue should create it using the config and bind it to the exchange with the name specified" do
 {
 
@@ -297,6 +321,209 @@ BEGIN {
     my $publisher = $client->publisher;
     $publisher->{servers} = [];
     is( $publisher->select_next_server, 0, 'The method select_next_server returns 0 when no servers are configured' );
+}
+
+# test "stop! should shut down bunny and clean internal data structures" do
+{
+    my $bunny_closed = 0;
+
+    my $override = Sub::Override->new(
+        'Test::Beetle::Bunny::stop' => sub {
+            $bunny_closed++;
+        }
+    );
+
+    my $client = Beetle::Client->new(
+        config => {
+            servers     => 'localhost:3333',
+            bunny_class => 'Test::Beetle::Bunny',
+        }
+    );
+    my $publisher = $client->publisher;
+
+    $client->register_exchange('some_exchange');
+    $client->publisher->exchange('some_exchange');
+
+    $client->register_queue( some_queue => { exchange => 'some_exchange', key => 'some_key' } );
+    $client->publisher->queue('some_queue');
+
+    is_deeply( $publisher->exchanges, { some_exchange => 1 }, 'Exchange is there' );
+    is_deeply( $publisher->queues,    { some_queue    => 1 }, 'Queue is there' );
+
+    $publisher->stop;
+
+    is( $bunny_closed, 1, 'The bunny got closed properly' );
+    is_deeply( $publisher->exchanges, {}, 'Exchanges got cleaned up' );
+    is_deeply( $publisher->queues,    {}, 'Queues got cleaned up' );
+}
+
+# test "should bind the defined queues for the used exchanges when publishing" do
+{
+    my $bind_queue_calls = 0;
+    my $override         = Sub::Override->new(
+        'Beetle::Publisher::bind_queue' => sub {
+            $bind_queue_calls++;
+        }
+    );
+
+    my $client = Beetle::Client->new(
+        config => {
+            servers     => 'localhost:3333',
+            bunny_class => 'Test::Beetle::Bunny',
+        }
+    );
+    $client->register_queue( 'test_queue_1' => { exchange => 'test_exchange' } );
+    $client->register_queue( 'test_queue_2' => { exchange => 'test_exchange' } );
+    $client->register_queue( 'test_queue_3' => { exchange => 'test_exchange_2' } );
+    $client->publisher->bind_queues_for_exchange('test_exchange');
+    $client->publisher->bind_queues_for_exchange('test_exchange_2');
+    is( $bind_queue_calls, 3, 'The method bind_queue got called 3 times' );
+}
+
+# test "should not rebind the defined queues for the used exchanges if they already have been bound" do
+{
+    my $bind_queue_calls = 0;
+    my $override         = Sub::Override->new(
+        'Beetle::Publisher::bind_queue' => sub {
+            $bind_queue_calls++;
+        }
+    );
+
+    my $client = Beetle::Client->new(
+        config => {
+            servers     => 'localhost:3333',
+            bunny_class => 'Test::Beetle::Bunny',
+        }
+    );
+    $client->register_queue( 'test_queue_1' => { exchange => 'test_exchange' } );
+    $client->register_queue( 'test_queue_2' => { exchange => 'test_exchange' } );
+    $client->publisher->bind_queues_for_exchange('test_exchange');
+    $client->publisher->bind_queues_for_exchange('test_exchange');
+    is( $bind_queue_calls, 2, 'The method bind_queue got called 2 times' );
+}
+
+# test "call the queue binding method when publishing" do
+{
+    my @exchange_args = ();
+    my $o1            = Sub::Override->new(
+        'Beetle::Base::PubSub::exchange' => sub {
+            my $self = shift;
+            push @exchange_args, @_;
+        }
+    );
+
+    my @bind_queues_for_exchange_args = ();
+    my $o2                            = Sub::Override->new(
+        'Beetle::Publisher::bind_queues_for_exchange' => sub {
+            my $self = shift;
+            push @bind_queues_for_exchange_args, @_;
+        }
+    );
+
+    my $client = Beetle::Client->new(
+        config => {
+            servers     => 'localhost:3333',
+            bunny_class => 'Test::Beetle::Bunny',
+        }
+    );
+    $client->register_queue( 'mama' => { exchange => 'mama-exchange' } );
+    $client->register_message( 'mama' => { ttl => 60 * 60, exchange => 'mama-exchange' } );
+    $client->publish( 'mama' => 'XXX' );
+
+    my $exp = ['mama-exchange'];
+
+    is_deeply( \@exchange_args,                 $exp, 'Correct args to exchange call given' );
+    is_deeply( \@bind_queues_for_exchange_args, $exp, 'Correct args to bind_queues_for_exchange call given' );
+}
+
+# test "purging a queue should purge the queues on all servers" do
+{
+    my @callstack = ();
+
+    my $o1 = Sub::Override->new(
+        'Beetle::Base::PubSub::set_current_server' => sub {
+            push @callstack, 'set_current_server';
+        }
+    );
+
+    my $o2 = Sub::Override->new(
+        'Beetle::Base::PubSub::queue' => sub {
+            my $self = shift;
+            push @callstack, { method => 'queue', args => \@_ };
+        }
+    );
+
+    my $o3 = Sub::Override->new(
+        'Test::Beetle::Bunny::purge' => sub {
+            push @callstack, 'purge';
+        }
+    );
+
+    my $client = Beetle::Client->new(
+        config => {
+            servers     => 'localhost:3333 localhost:4444',
+            bunny_class => 'Test::Beetle::Bunny',
+        }
+    );
+    $client->publisher->purge('some_queue');
+
+    is_deeply(
+        \@callstack,
+        [
+            'set_current_server',
+            {
+                'args'   => ['some_queue'],
+                'method' => 'queue'
+            },
+            'purge',
+            'set_current_server',
+            {
+                'args'   => ['some_queue'],
+                'method' => 'queue'
+            },
+            'purge'
+        ],
+        'Callstack is correct'
+    );
+}
+
+# test "stop should shut down all bunnies" do
+{
+    my @callstack = ();
+
+    my $o1 = Sub::Override->new(
+        'Beetle::Base::PubSub::set_current_server' => sub {
+            my $self = shift;
+            push @callstack, { method => 'set_current_server', args => \@_ };
+        }
+    );
+
+    my $o2 = Sub::Override->new(
+        'Beetle::Base::PubSub::bunny' => sub {
+            push @callstack, 'bunny';
+        }
+    );
+
+    my $client = Beetle::Client->new( config => { bunny_class => 'Test::Beetle::Bunny' } );
+    $client->publisher->{servers} = [qw(localhost:3333 localhost:4444)];
+    $client->publisher->stop;
+
+    is_deeply(
+        \@callstack,
+        [
+            {
+                'args'   => ['localhost:3333'],
+                'method' => 'set_current_server'
+            },
+            'bunny',
+            {
+                'args'   => ['localhost:4444'],
+                'method' => 'set_current_server'
+            },
+            'bunny'
+        ],
+        'Callstack is correct'
+    );
 }
 
 done_testing;
