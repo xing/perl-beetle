@@ -14,7 +14,7 @@ has 'client' => (
     isa => 'Any',
 );
 
-has 'exchanges' => (
+has '_exchanges' => (
     default => sub {
         { shift->server => {} }
     },
@@ -34,13 +34,18 @@ has 'options' => (
     isa => 'Any',
 );
 
-has 'queues' => (
+has '_queues' => (
     default => sub {
         { shift->server => {} }
     },
-    is   => 'ro',
-    isa  => 'HashRef',
-    lazy => 1,
+    handles => {
+        get_queue => 'get',
+        set_queue => 'set',
+    },
+    is     => 'ro',
+    isa    => 'HashRef',
+    lazy   => 1,
+    traits => [qw(Hash)],
 );
 
 has 'server' => (
@@ -108,15 +113,23 @@ sub each_server {
     }
 }
 
+sub exchanges {
+    my ($self) = @_;
+    return $self->get_exchange( $self->server ) || {};
+}
+
 sub exchange {
     my ( $self, $name ) = @_;
 
-    my $exchanges = $self->get_exchange( $self->server );
-
-    unless ( $exchanges->{$name} ) {
+    unless ( $self->exchanges->{$name} ) {
         my $exchange = $self->create_exchange( $name => $self->client->get_exchange($name) );
         $self->set_exchange( $self->server => { $name => $exchange } );
     }
+}
+
+sub queues {
+    my ($self) = @_;
+    return $self->get_queue( $self->server ) || {};
 }
 
 sub queue {
@@ -145,6 +158,8 @@ sub queue {
         }
         $the_queue = $self->bind_queue( $queue_name, $creation_options, $exchange_name, $binding_options );
     }
+
+    $self->set_queue( $self->server => { $name => 1 } );
 
     return $name;
 }

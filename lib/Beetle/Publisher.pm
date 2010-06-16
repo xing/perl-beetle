@@ -252,9 +252,9 @@ sub stop {
 
             $self->stop_bunny;
 
-            $self->{bunnies}{ $self->server }   = undef;
-            $self->{exchanges}{ $self->server } = {};
-            $self->{queues}{ $self->server }    = {};
+            $self->{bunnies}{ $self->server }    = undef;
+            $self->{_exchanges}{ $self->server } = {};
+            $self->{_queues}{ $self->server }    = {};
         }
     );
 }
