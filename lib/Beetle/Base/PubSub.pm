@@ -115,16 +115,22 @@ sub each_server {
 
 sub exchanges {
     my ($self) = @_;
-    return $self->get_exchange( $self->server ) || {};
+    my $exchanges = $self->get_exchange( $self->server );
+    return $exchanges || {};
 }
 
 sub exchange {
     my ( $self, $name ) = @_;
 
-    unless ( $self->exchanges->{$name} ) {
-        my $exchange = $self->create_exchange( $name => $self->client->get_exchange($name) );
-        $self->set_exchange( $self->server => { $name => $exchange } );
+    my $exchanges = $self->exchanges;
+
+    unless ( defined $exchanges->{$name} ) {
+        $exchanges->{$name} = $self->create_exchange( $name => $self->client->get_exchange($name) );
+        $self->set_exchange( $self->server => $exchanges );
+        return 0;
     }
+
+    return 1;
 }
 
 sub queues {
@@ -166,7 +172,8 @@ sub queue {
 
 sub bunny {
     my ($self) = @_;
-    $self->set_bunny( $self->server => $self->new_bunny ) unless $self->has_bunny( $self->server );
+    my $has_bunny = $self->has_bunny( $self->server );
+    $self->set_bunny( $self->server => $self->new_bunny ) unless $has_bunny;
     return $self->get_bunny( $self->server );
 }
 
