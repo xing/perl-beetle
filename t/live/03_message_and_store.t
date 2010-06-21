@@ -275,6 +275,26 @@ test_redis(
             is( $m->exceptions_limit_reached, 1, 'exceptions limit reached' );
             is( $m->attempts_limit_reached,   1, 'attempts limit reached' );
         }
+
+        {
+            my $header = Test::Beetle->header_with_params();
+            my $m      = Beetle::Message->new(
+                body    => 'foo',
+                header  => $header,
+                queue   => "queue",
+                store   => $store,
+                timeout => 1,
+            );
+            my $o1 = Sub::Override->new( 'Beetle::Message::now' => sub { return 42; } );
+
+            ok( $m->set_timeout, 'Call to set_timeout works' );
+            is( $m->is_timed_out, 0, 'Message is not yet timed out' );
+
+            # Let the time machine run...
+            my $o2 = Sub::Override->new( 'Beetle::Message::now' => sub { return 48; } );
+
+            is( $m->is_timed_out, 1, 'Message is timed out now' );
+        }
     }
 );
 

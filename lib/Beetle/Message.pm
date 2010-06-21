@@ -268,13 +268,15 @@ sub increment_execution_attempts {
 sub is_completed {
     my ($self) = @_;
     my $value = $self->store->get( $self->msg_id => 'status' );
-    return $value && $value eq 'completed' ? 1 : 0;
+    my $result = $value && $value eq 'completed';
+    return $result ? 1 : 0;
 }
 
 sub is_timed_out {
     my ($self) = @_;
     my $t = $self->store->get( $self->msg_id => 'timeout' );
-    return $t && $t < $self->now ? 1 : 0;
+    my $result = $t && $t < $self->now;
+    return $result ? 1 : 0;
 }
 
 sub key_exists {
