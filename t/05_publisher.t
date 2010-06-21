@@ -210,7 +210,6 @@ BEGIN {
 
     my @servers = $publisher->publish_with_redundancy( 'mama-exchange', 'mama', 'XXX', {} );
     is( scalar(@servers), 2, 'Even if there is a server listed twice it should get published to two unique servers' );
-    is_deeply(\@servers, [qw(xx:3333 xx:5555)], 'Message sent to the correct servers');
 }
 
 # test "redundant publishing should return 1 if the message was published to one server only" do
