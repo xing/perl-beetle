@@ -48,6 +48,13 @@ test_redis(
               'invalid redis command';
         }
 
+        {
+            ok( $store->redis->set( 'one' => 1 ), 'Set one' );
+            ok( $store->redis->set( 'two' => 2 ), 'Set two' );
+            my @result = $store->redis->mget(qw(one two));
+            is_deeply( \@result, [qw(1 2)], 'Multi bulk get command works' );
+        }
+
         ok( $store->redis->quit, 'Quit works' );
     }
 );
