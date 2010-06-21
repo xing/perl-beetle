@@ -25,7 +25,7 @@ our $DEFAULT_TTL = 86400;
 my $DEFAULT_HANDLER_TIMEOUT = 300;
 
 # how many times we should try to run a handler before giving up
-my $DEFAULT_HANDLER_EXECUTION_ATTEMPTS = 1;
+our $DEFAULT_HANDLER_EXECUTION_ATTEMPTS = 1;
 
 # how many seconds we should wait before retrying handler execution
 my $DEFAULT_HANDLER_EXECUTION_ATTEMPTS_DELAY = 10;
@@ -166,7 +166,8 @@ around 'BUILDARGS' => sub {
 sub BUILD {
     my ($self) = @_;
 
-    $self->{attempts_limit} = $self->exceptions_limit + 1 if $self->attempts_limit <= $self->exceptions_limit;
+    my $ae_limit = $self->attempts_limit <= $self->exceptions_limit;
+    $self->{attempts_limit} = $self->exceptions_limit + 1 if $ae_limit;
     $self->decode;
 }
 
@@ -204,7 +205,8 @@ sub attempts {
 sub attempts_limit_reached {
     my ($self) = @_;
     my $attempts = $self->attempts;
-    return $attempts && $attempts >= $self->attempts_limit ? 1 : 0;
+    my $result = $attempts && $attempts >= $self->attempts_limit;
+    return $result ? 1 : 0;
 }
 
 sub completed {
@@ -239,12 +241,14 @@ sub delete_mutex {
 sub exceptions_limit_reached {
     my ($self) = @_;
     my $value = $self->store->get( $self->msg_id => 'exceptions' );
-    return $value > $self->exceptions_limit ? 1 : 0;
+    my $result = $value && $value > $self->exceptions_limit;
+    return $result ? 1 : 0;
 }
 
 sub expired {
     my ($self) = @_;
-    return $self->expires_at < time ? 1 : 0;
+    my $result = $self->expires_at < time;
+    return $result ? 1 : 0;
 }
 
 sub generate_uuid {
@@ -336,7 +340,8 @@ sub publishing_options {
 
 sub redundant {
     my ($self) = @_;
-    return $self->flags & $FLAG_REDUNDANT ? 1 : 0;
+    my $result = $self->flags & $FLAG_REDUNDANT;
+    return $result ? 1 : 0;
 }
 
 sub reset_timeout {

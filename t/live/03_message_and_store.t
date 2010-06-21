@@ -11,6 +11,7 @@ use Test::Beetle::Redis;
 BEGIN {
     use_ok('Beetle::Message');
     use_ok('Beetle::Handler');
+    use_ok('Beetle::Constants');
 }
 
 test_redis(
@@ -240,8 +241,39 @@ test_redis(
                 queue  => "queue",
                 store  => $store,
             );
-            $m->aquire_mutex;
-            $m->aquire_mutex;
+            is( $m->aquire_mutex, 1, 'Mutex aquiring #1' );
+            is( $m->aquire_mutex, 0, 'Mutex aquiring #2' );
+        }
+
+        {
+            my $override = Sub::Override->new( 'Beetle::Message::ack' => sub { } );
+            my $header   = Test::Beetle->header_with_params();
+            my $m        = Beetle::Message->new(
+                body       => 'foo',
+                header     => $header,
+                queue      => "queue",
+                store      => $store,
+                attempts   => 10,
+                exceptions => 5,
+            );
+
+            is( $m->attempts_limit,   10, 'attempts limit set correctly' );
+            is( $m->exceptions_limit, 5,  'exceptions limit set correctly' );
+
+            is( $m->exceptions_limit_reached, 0, 'exceptions limit not reached yet' );
+            is( $m->attempts_limit_reached,   0, 'attempts limit not reached yet' );
+
+            ok( $m->increment_exception_count, 'incr exception count 4 times' ) for 1 .. 4;
+
+            is( $m->_handler_failed, undef, 'No limit reached yet' );
+            is( $m->_handler_failed, $EXCEPTIONSLIMITREACHED, 'Exceptions limit reached' );
+
+            ok( $m->increment_execution_attempts, 'incr execution attempts 10 times' ) for 1 .. 10;
+
+            is( $m->_handler_failed, $ATTEMPTSLIMITREACHED, 'Attempts limit reached' );
+
+            is( $m->exceptions_limit_reached, 1, 'exceptions limit reached' );
+            is( $m->attempts_limit_reached,   1, 'attempts limit reached' );
         }
     }
 );
