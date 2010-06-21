@@ -47,6 +47,17 @@ has '_channel' => (
     lazy => 1,
 );
 
+has '_subscriptions' => (
+    default => sub { return {}; },
+    handles => {
+        set_subscription => 'set',
+        has_subscription => 'exists'
+    },
+    is     => 'ro',
+    isa    => 'HashRef',
+    traits => [qw(Hash)],
+);
+
 # TODO: <plu> talk to author of AnyEvent::RabbitMQ how to fix this properly
 {
     no warnings 'redefine';
@@ -136,6 +147,9 @@ sub stop {
 
 sub subscribe {
     my ( $self, $queue, $callback ) = @_;
+    my $has_subscription = $self->has_subscription($queue);
+    die "Already subscribed to queue $queue" if $has_subscription;
+    $self->set_subscription( $queue => 1 );
     $self->log->debug( sprintf 'Subscribing to queue %s', $queue );
     $self->_consume(
         on_consume => $callback,

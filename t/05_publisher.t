@@ -139,6 +139,80 @@ BEGIN {
     is( $count, scalar(@servers), 'Message got published to two servers' );
 }
 
+{
+    my @servers = ();
+
+    my $override = Sub::Override->new(
+        'Test::Beetle::Bunny::publish' => sub {
+            my ($self) = @_;
+            push @servers, sprintf( '%s:%d', $self->host, $self->port );
+        }
+    );
+
+    my $client = Beetle::Client->new(
+        config => {
+            servers     => 'localhost:3333',
+            bunny_class => 'Test::Beetle::Bunny',
+        }
+    );
+    my $publisher = $client->publisher;
+
+    my $count = $publisher->publish_with_redundancy( 'mama-exchange', 'mama', 'XXX', {} );
+    is( $count, scalar(@servers),
+        'If there is one server publish_with_redundancy falls back to publish_with_failover' );
+}
+
+{
+    my @servers = ();
+
+    my $override = Sub::Override->new(
+        'Test::Beetle::Bunny::publish' => sub {
+            die;
+        }
+    );
+
+    my $client = Beetle::Client->new(
+        config => {
+            servers     => 'localhost:3333 localhost:4444',
+            bunny_class => 'Test::Beetle::Bunny',
+        }
+    );
+    my $publisher = $client->publisher;
+
+    my $count = $publisher->publish_with_redundancy( 'mama-exchange', 'mama', 'XXX', {} );
+    is( $count, 0, 'Both servers dead, no messages published at all' );
+}
+
+{
+    my @servers = ();
+
+    my $client = Beetle::Client->new(
+        config => {
+            servers     => 'localhost:3333 localhost:4444 localhost:5555 localhost:6666',
+            bunny_class => 'Test::Beetle::Bunny',
+        }
+    );
+    my $publisher = $client->publisher;
+
+    my $count = $publisher->publish_with_redundancy( 'mama-exchange', 'mama', 'XXX', {} );
+    is( $count, 2, 'Even if there are four servers the message gets published to two of them only' );
+}
+
+# This should publish to localhost:3333 and localhost:5555 even though localhost:3333 is listed twice
+{
+    my $client = Beetle::Client->new(
+        config => {
+            servers     => 'xx:3333 xx:3333 xx:5555 xx:6666',
+            bunny_class => 'Test::Beetle::Bunny',
+        }
+    );
+    my $publisher = $client->publisher;
+
+    my @servers = $publisher->publish_with_redundancy( 'mama-exchange', 'mama', 'XXX', {} );
+    is( scalar(@servers), 2, 'Even if there is a server listed twice it should get published to two unique servers' );
+    is_deeply(\@servers, [qw(xx:3333 xx:5555)], 'Message sent to the correct servers');
+}
+
 # test "redundant publishing should return 1 if the message was published to one server only" do
 {
     my @servers = ();
@@ -506,7 +580,7 @@ BEGIN {
 
     my $client = Beetle::Client->new( config => { bunny_class => 'Test::Beetle::Bunny' } );
     $client->publisher->{servers} = [qw(localhost:3333 localhost:4444)];
-    $client->publisher->stop;
+    $client->stop_publishing;
 
     is_deeply(
         \@callstack,

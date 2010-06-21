@@ -216,10 +216,6 @@ sub register_handler {
     $self->subscriber->register_handler( $queues, $handler_args, $handler );
 }
 
-sub configure {
-    die 'This is not supported this in the Perl implementation of Beetle';
-}
-
 sub publish {
     my ( $self, $message_name, $data, $options ) = @_;
     $options ||= {};
@@ -227,15 +223,6 @@ sub publish {
     die "unknown message ${message_name}" unless $self->has_message($message_name);
 
     $self->publisher->publish( $message_name, $data, $options );
-}
-
-sub rpc {
-    my ( $self, $message_name, $data, $options ) = @_;
-    $options ||= {};
-
-    die "unknown message ${message_name}" unless $self->has_message($message_name);
-
-    $self->publisher->rpc( $message_name, $data, $options );
 }
 
 sub purge {
@@ -264,24 +251,6 @@ sub stop_listening {
 sub stop_publishing {
     my ($self) = @_;
     $self->publisher->stop;
-}
-
-sub trace {
-    my ( $self, $block ) = @_;
-
-    my %queues = $self->all_queues;
-    while ( my ( $name, $options ) = each %queues ) {
-        $options->{durable}     = 0;
-        $options->{auto_delete} = 1;
-        $options->{amqp_name}   = _queue_name_for_tracing($name);
-    }
-
-    # TODO: <plu> finish this
-}
-
-sub _queue_name_for_tracing {
-    my ($queue) = @_;
-    return sprintf 'trace-%s-%s-%d', $queue, Sys::Hostname::hostname(), $$;
 }
 
 1;

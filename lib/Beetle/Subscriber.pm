@@ -177,14 +177,9 @@ sub create_subscription_callback {
                   if $message->_ack;
             }
 
-            # TODO: complete the implementation
+            # TODO: complete the implementation of reply_to
             return $result;
         };
-        if ($@) {
-            warn $@;
-
-            # TODO: <plu> add exception handling
-        }
     };
 }
 

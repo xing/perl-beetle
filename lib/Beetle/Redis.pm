@@ -17,7 +17,7 @@ our $VERSION = '1.2001';
 sub new {
     my $class = shift;
     my $self  = {@_};
-    $self->{debug} ||= $ENV{REDIS_DEBUG};
+    # $self->{debug} ||= $ENV{REDIS_DEBUG};
     bless( $self, $class );
     return $self;
 }
@@ -60,7 +60,7 @@ sub AUTOLOAD {
     my $command = $AUTOLOAD;
     $command =~ s/.*://;
 
-    warn "## $command ", Dumper(@_) if $self->{debug};
+    # warn "## $command ", Dumper(@_) if $self->{debug};
 
     my $send;
 
@@ -73,7 +73,7 @@ sub AUTOLOAD {
         $send = uc($command) . ' ' . join( ' ', @_ ) . "\r\n";
     }
 
-    warn ">> $send" if $self->{debug};
+    # warn ">> $send" if $self->{debug};
     print $sock $send;
 
     if ( $command eq 'quit' ) {
@@ -83,7 +83,7 @@ sub AUTOLOAD {
 
     my $result = <$sock> || die "can't read socket: $!";
     Encode::_utf8_on($result);    ## no critic
-    warn "<< $result" if $self->{debug};
+    # warn "<< $result" if $self->{debug};
     my $type = substr( $result, 0, 1 );
     $result = substr( $result, 1, -2 );
 
@@ -141,7 +141,7 @@ sub __read_bulk {
     if ( $len > 0 ) {
         read( $self->{sock}, $v, $len ) || die $!;
         Encode::_utf8_on($v);    ## no critic
-        warn "<< ", Dumper($v), $/ if $self->{debug};
+        # warn "<< ", Dumper($v), $/ if $self->{debug};
     }
     my $crlf;
     read( $self->{sock}, $crlf, 2 );    # skip cr/lf
@@ -160,7 +160,7 @@ sub __read_multi_bulk {
         $list[$_] = $self->__read_bulk( substr( <$sock>, 1, -2 ) );
     }
 
-    warn "## list = ", Dumper(@list) if $self->{debug};
+    # warn "## list = ", Dumper(@list) if $self->{debug};
     return @list;
 }
 

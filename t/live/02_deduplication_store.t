@@ -1,6 +1,7 @@
 use strict;
 use warnings;
 use Test::More;
+use Test::Exception;
 
 use FindBin qw( $Bin );
 use lib ( "$Bin/../lib", "$Bin/../../lib" );
@@ -36,6 +37,18 @@ test_redis(
             }
         }
 
+        {
+            ok( $store->redis->set( 'foo' => undef ), 'Setting undef works' );
+            is( $store->redis->get('foo'), undef, 'Getting undef works' );
+        }
+
+        {
+            throws_ok { $store->redis->blah }
+            qr/\[blah\] ERR unknown command 'BLAH'/,
+              'invalid redis command';
+        }
+
+        ok( $store->redis->quit, 'Quit works' );
     }
 );
 

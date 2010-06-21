@@ -4,4 +4,7 @@
 * fix private/public methods/attributes
 * verify all calls to the Net::RabbitMQ objects are correct
 * fix: DESTROY created new reference to dead object 'AnyEvent::RabbitMQ' during global destruction.
-* fix ack'ing of messages
+* -maybe- implement following optional things (again):
+  * rpc
+  * reply_to
+  * trace

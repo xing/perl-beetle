@@ -43,6 +43,12 @@ has '_redis' => (
     predicate => '_has_redis',
 );
 
+has 'attempts' => (
+    default => 120,
+    is      => 'ro',
+    isa     => 'Int',
+);
+
 # list of key suffixes to use for storing values in Redis.
 my @KEY_SUFFIXES = qw(status ack_count timeout delay attempts exceptions mutex expires);
 
@@ -174,12 +180,13 @@ sub with_failover {
 
     # TODO: <plu> fix logger + exception
     my $result;
+    my $max_attempts = $self->attempts;
 
-    for ( 1 .. 120 ) {
+    foreach my $attempt ( 1 .. $max_attempts ) {
         $result = eval { $code->(); };
         last unless $@;
         $self->log->error("Beetle: redis connection error $@");
-        if ( $_ < 120 ) {
+        if ( $attempt < $max_attempts ) {
             $self->log->info("Beetle: retrying redis operation");
         }
         else {

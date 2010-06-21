@@ -82,6 +82,14 @@ BEGIN {
       'searching a redis master should raise an exception if there is more than one';
 }
 
+{
+    my $store = Beetle::DeduplicationStore->new( hosts => 'localhost:1, localhost:2', attempts => 2 );
+    throws_ok {
+        $store->with_failover( sub { die "foo"; } );
+    }
+    qr/NoRedisMaster/, 'no redis master found';
+}
+
 sub _create_redis_mockup {
     my ( $type, $info_sub ) = @_;
 

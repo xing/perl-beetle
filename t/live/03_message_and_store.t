@@ -232,6 +232,17 @@ test_redis(
                 0, 'The key ack_count does not exist in store after processing twice' );
         }
 
+        {
+            my $header = Test::Beetle->header_with_params();
+            my $m      = Beetle::Message->new(
+                body   => 'foo',
+                header => $header,
+                queue  => "queue",
+                store  => $store,
+            );
+            $m->aquire_mutex;
+            $m->aquire_mutex;
+        }
     }
 );
 

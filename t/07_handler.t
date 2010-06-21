@@ -147,4 +147,10 @@ BEGIN {
     lives_ok { $handler->process_failure('test'); } 'should silently rescue exceptions in the process_failure call';
 }
 
+{
+    throws_ok { Beetle::Handler->create('Test::Beetle::Handler::Invalid') }
+    qr/Invalid handler/,
+      'invalid usage of create call';
+}
+
 done_testing;

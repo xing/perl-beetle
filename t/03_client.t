@@ -123,4 +123,56 @@ BEGIN {
       'registering a message should raise a configuration error if it is already configured';
 }
 
+{
+    my $client = Beetle::Client->new;
+    $client->register_queue( some_queue => { exchange => 'some_exchange' } );
+    $client->register_handler( [qw(some_queue)], sub { } );
+}
+
+{
+    my $client = Beetle::Client->new;
+    throws_ok {
+        $client->register_handler( [qw(some_queue)], sub { } );
+    }
+    qr/unknown queue: some_queue/, 'registering a handler for a unknown queue should throw an error';
+}
+
+{
+    my $client = Beetle::Client->new;
+    throws_ok {
+        $client->register_handler( [qw(some_queue)], sub { } );
+    }
+    qr/unknown queue: some_queue/, 'registering a handler for a unknown queue should throw an error';
+}
+
+{
+    my $client = Beetle::Client->new;
+    throws_ok {
+        $client->purge('some_queue');
+    }
+    qr/unknown queue some_queue/, 'purging an unknown should throw an error';
+}
+
+{
+    my $client = Beetle::Client->new;
+    throws_ok {
+        $client->publish( some_message => 'blah', {} );
+    }
+    qr/unknown message some_message/, 'publishing an unknown message should throw an error';
+}
+
+{
+    my $client = Beetle::Client->new;
+    throws_ok {
+        $client->listen( [qw(some_message)] );
+    }
+    qr/unknown message some_message/, 'listening for an unknown should throw an error';
+}
+
+{
+    my $client = Beetle::Client->new;
+    lives_ok { $client->register_binding( 'some_queue' => {} ); } 'first call to register_binding';
+    lives_ok { $client->register_binding( 'some_queue' => {} ); } 'second call to register_binding';
+}
+
 done_testing;

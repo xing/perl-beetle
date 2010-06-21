@@ -34,16 +34,22 @@ sub create {
 
     $args ||= {};
 
+    my @isa = eval { $thing->meta->linearized_isa };
+
     if ( defined $thing && ref $thing eq 'CODE' ) {
         return $package->new( processor => $thing, %$args );
     }
 
-    elsif ( defined $thing && Scalar::Util::blessed $thing && grep $_ eq __PACKAGE__, $thing->meta->linearized_isa ) {
+    elsif ( defined $thing && Scalar::Util::blessed $thing && grep $_ eq $package, @isa ) {
         return $thing;
     }
 
-    elsif ( defined $thing && grep $_ eq __PACKAGE__, $thing->meta->linearized_isa ) {
+    elsif ( defined $thing && grep $_ eq $package, @isa ) {
         return $thing->new(%$args);
+    }
+
+    else {
+        die "Invalid handler";
     }
 }
 

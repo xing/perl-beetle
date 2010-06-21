@@ -33,13 +33,24 @@ has 'dead_servers' => (
     handles => {
         all_dead_servers   => 'elements',
         count_dead_servers => 'count',
+        has_dead_servers   => 'count',
         remove_dead_server => 'delete',
         set_dead_server    => 'set',
     },
-    is        => 'ro',
-    isa       => 'HashRef',
-    predicate => 'has_dead_servers',
-    traits    => [qw(Hash)],
+    is     => 'ro',
+    isa    => 'HashRef',
+    traits => [qw(Hash)],
+);
+
+has 'server_index' => (
+    default => 0,
+    is      => 'ro',
+    isa     => 'Num',
+    handles => {
+        inc_server_index   => 'inc',
+        reset_server_index => 'reset',
+    },
+    traits => ['Counter'],
 );
 
 # def publish(message_name, data, opts={}) #:nodoc:
@@ -125,7 +136,9 @@ sub publish_with_failover {
 sub publish_with_redundancy {
     my ( $self, $exchange_name, $message_name, $data, $options ) = @_;
 
-    if ( $self->count_servers < 2 ) {
+    my $count_servers = $self->count_servers;
+
+    if ( $count_servers < 2 ) {
         $self->log->error('Beetle: at least two active servers are required for redundant publishing');
         return $self->publish_with_failover( $exchange_name, $message_name, $data, $options );
     }
@@ -135,19 +148,22 @@ sub publish_with_redundancy {
     $options = Beetle::Message->publishing_options(%$options);
 
     while (1) {
+        my $server        = $self->server;
+        my $count_servers = $self->count_servers;
+
         last if scalar(@published) == 2;
-        last unless $self->count_servers;
-        last if scalar(@published) == $self->count_servers;
+        last unless $count_servers;
+        last if scalar(@published) == $count_servers;
 
         $self->select_next_server;
-        next if grep $_ eq $self->server, @published;
+        next if grep $_ eq $server, @published;
 
         $self->bind_queues_for_exchange($exchange_name);
 
         $self->log->debug(
             sprintf 'Beetle: trying to send message %s:%s to %s',
             $message_name, $options->{message_id},
-            $self->server
+            $server
         );
 
         my $header = {
@@ -160,7 +176,7 @@ sub publish_with_redundancy {
 
         eval { $self->bunny->publish( $exchange_name, $message_name, $data, $header ); };
         unless ($@) {
-            push @published, $self->server;
+            push @published, $server;
             $self->log->debug( sprintf 'Beetle: message sent (%d)!', scalar(@published) );
             next;
         }
@@ -176,55 +192,7 @@ sub publish_with_redundancy {
         $self->log->error('Beetle: failed to send message redundantly');
     }
 
-    return scalar @published;
-}
-
-sub rpc {
-    my ( $self, $message_name, $data, $options ) = @_;
-    $options ||= {};
-
-    my $exchange_name = delete $options->{exchange};
-    delete $options->{queue};
-
-    $self->recycle_dead_servers if $self->has_dead_servers;
-
-    $self->log->debug( sprintf 'Beetle: performing rpc with message %s', $message_name );
-
-    my $status = 'TIMEOUT';
-    my $tries  = $self->count_servers;
-    my $result;
-
-    $self->select_next_server;
-    $self->bind_queues_for_exchange($exchange_name);
-
-    # TODO: <plu> Check rabbitmq-interface if this is correct
-
-    # create non durable, autodeleted temporary queue with a server assigned name
-    my $queue = $self->bunny->queue;
-    $options = Beetle::Message->publishing_options( %$options, reply_to => $queue->{name} );
-
-    $self->log->debug(
-        sprintf 'Beetle: trying to send message %s:%s to %s',
-        $message_name, $options->{message_id},
-        $self->server
-    );
-
-    eval { $self->exchange($exchange_name)->publish( $data, $options ); };
-    unless ($@) {
-        $self->log->debug('Beetle: message sent!');
-        $self->log->debug( sprintf 'Beetle: listening on reply queue %s', $queue->{name} );
-
-        # TODO: <plu> finish this
-        # $queue->subscribe( message_max => 1, timeout => $options->{timeout} || $RPC_DEFAULT_TIMEOUT );
-        #     queue.subscribe(:message_max => 1, :timeout => opts[:timeout] || RPC_DEFAULT_TIMEOUT) do |msg|
-        #       logger.debug "Beetle: received reply!"
-        #       result = msg[:payload]
-        #       status = msg[:header].properties[:headers][:status]
-        #     end
-        #     logger.debug "Beetle: rpc complete!"
-    }
-
-    return ( $status, $result );
+    return wantarray ? @published : scalar @published;
 }
 
 sub purge {
@@ -293,12 +261,8 @@ sub select_next_server {
         $self->log->error('Beetle: message could not be delivered - no server available');
         return 0;
     }
-    my $index = 0;
-    foreach my $server ( $self->all_servers ) {
-        last if defined $self->server && $self->server eq $server;
-        $index++;
-    }
-    my $next   = ( $index + 1 ) % $self->count_servers;
+    $self->inc_server_index;
+    my $next   = $self->server_index % $self->count_servers;
     my $server = $self->get_server($next);
     $self->set_current_server($server);
 }

@@ -297,9 +297,8 @@ sub process {
     my ( $self, $handler ) = @_;
     $handler = Beetle::Handler->create($handler);
     $self->log->debug( sprintf 'Beetle: processing message %s', $self->msg_id );
-    my $result;
-    eval { $result = $self->_process_internal($handler); };
-    if ($@) {
+    my $result = $self->_process_internal($handler);
+    if ($result eq $HANDLERCRASH) {
         $handler->process_exception($@);
         my $trace = Devel::StackTrace->new;
         $self->log->warn( sprintf "Beetle: exception '%s' during processing of message %s", $@, $self->msg_id );
@@ -358,20 +357,6 @@ sub set_timeout {
 sub simple {
     my ($self) = @_;
     return !$self->redundant && $self->attempts_limit == 1 ? 1 : 0;
-}
-
-sub _execute_handler {
-    my ( $self, $handler ) = @_;
-    $self->increment_execution_attempts;
-    my $result = $self->_run_handler($handler);
-    if ( $result eq $OK ) {
-        $self->completed;
-        $self->ack;
-        return $result;
-    }
-    else {
-        return $self->_handler_failed($result);
-    }
 }
 
 sub _handler_failed {
@@ -472,6 +457,20 @@ sub _run_handler {
     $self->log->error("Beetle: error message: $@");
 
     return $HANDLERCRASH;
+}
+
+sub _execute_handler {
+    my ( $self, $handler ) = @_;
+    $self->increment_execution_attempts;
+    my $result = $self->_run_handler($handler);
+    if ( $result eq $OK ) {
+        $self->completed;
+        $self->ack;
+        return $result;
+    }
+    else {
+        return $self->_handler_failed($result);
+    }
 }
 
 1;
