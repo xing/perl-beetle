@@ -453,6 +453,7 @@ sub _process_internal {
     }
 }
 
+# def run_handler(handler)
 sub _run_handler {
     my ( $self, $handler ) = @_;
 
@@ -466,6 +467,7 @@ sub _run_handler {
     return $HANDLERCRASH;
 }
 
+# def run_handler!(handler)
 sub _execute_handler {
     my ( $self, $handler ) = @_;
     $self->increment_execution_attempts;

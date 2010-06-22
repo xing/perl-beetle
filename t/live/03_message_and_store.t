@@ -295,6 +295,65 @@ test_redis(
 
             is( $m->is_timed_out, 1, 'Message is timed out now' );
         }
+
+        {
+            my $override = Sub::Override->new( 'Beetle::Message::ack' => sub { } );
+            my $header   = Test::Beetle->header_with_params();
+            my $m        = Beetle::Message->new(
+                body             => 'foo',
+                header           => $header,
+                queue            => "queue",
+                store            => $store,
+                exceptions_limit => 6,
+                attempts_limit   => 5,
+                delay            => 0,
+            );
+
+            is( $m->attempts_limit,   7, 'attempts limit set correctly to exceptions limit + 1' );
+            is( $m->exceptions_limit, 6, 'attempts limit set correctly' );
+
+            my @rc = ();
+            push @rc, $m->_process_internal( sub { die "foo"; } ) for 1 .. 7;
+
+            is_deeply(
+                \@rc,
+                [
+                    'RC::HandlerCrash', 'RC::HandlerCrash', 'RC::HandlerCrash', 'RC::HandlerCrash',
+                    'RC::HandlerCrash', 'RC::HandlerCrash', 'RC::AttemptsLimitReached'
+                ],
+                'Got 6 times RC::HandlerCrash + 1 time RC::AttemptsLimitReached'
+            );
+        }
+
+        {
+            my $override = Sub::Override->new( 'Beetle::Message::ack' => sub { } );
+            my $header   = Test::Beetle->header_with_params();
+            my $m        = Beetle::Message->new(
+                body             => 'foo',
+                header           => $header,
+                queue            => "queue",
+                store            => $store,
+                attempts_limit   => 7,
+                exceptions_limit => 5,
+                delay            => 0,
+            );
+
+            is( $m->attempts_limit,   7, 'attempts limit set correctly' );
+            is( $m->exceptions_limit, 5, 'exceptions limit set correctly' );
+
+            my @rc = ();
+            push @rc, $m->_process_internal( sub { die "foo"; } ) for 1 .. 6;
+
+            is_deeply(
+                \@rc,
+                [
+                    'RC::HandlerCrash', 'RC::HandlerCrash',
+                    'RC::HandlerCrash', 'RC::HandlerCrash',
+                    'RC::HandlerCrash', 'RC::ExceptionsLimitReached'
+                ],
+                'Got 5 times RC::HandlerCrash + 1 time RC::ExceptionsLimitReached'
+            );
+        }
     }
 );
 
