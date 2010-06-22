@@ -19,13 +19,6 @@ has 'handlers' => (
     traits => [qw(Hash)],
 );
 
-has 'amqp_connections' => (
-    default => sub { {} },
-    is      => 'ro',
-    isa     => 'HashRef',
-    traits  => [qw(Hash)],
-);
-
 has 'mqs' => (
     default => sub { {} },
     handles => {
