@@ -33,19 +33,34 @@ sub test_redis {
 }
 
 sub generate_redis_conf {
-    my $port = shift;
-    my $dir  = $FindBin::Bin;
+    my $port    = shift;
+    my $slaveof = shift || 0;
+    my $dir     = $FindBin::Bin;
 
-    open my $in,  "<", "t/redis.conf.template" or die $!;
-    open my $out, ">", "t/redis.conf"          or die $!;
+    my $filename = 't/redis.conf';
+    $filename .= "-slave" if $slaveof;
+
+    open my $in, "<", "t/redis.conf.template" or die $!;
+    open my $out, ">", $filename or die $!;
 
     while (<$in>) {
         s/__PORT__/$port/;
         s/__DIR__/$dir/;
+        if ($slaveof) {
+            s/__SLAVEOF__/$slaveof/;
+        }
+        else {
+            s/__SLAVEOF__//;
+        }
         print $out $_;
     }
+
+    return $filename;
 }
 
-END { unlink "t/redis.conf" }
+END {
+    unlink "t/redis.conf";
+    unlink "t/redis.conf-slave" if -e "t/redis.conf-slave";
+}
 
 1;

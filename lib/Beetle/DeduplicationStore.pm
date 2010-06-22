@@ -222,7 +222,7 @@ sub _find_redis_master {
         my $role = '';
         eval { $role = $redis->info->{role}; };
         if ($@) {
-
+            $self->log->error("Redis error: $@");
             # TODO: <plu> add proper error logging here
         }
         else {

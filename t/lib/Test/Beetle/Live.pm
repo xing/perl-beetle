@@ -42,8 +42,14 @@ sub test_beetle_live {
         },
         server3 => sub {
             my ( $port, $data_hash ) = @_;
-            Test::Beetle::Redis::generate_redis_conf($port);
-            exec 'redis-server', 't/redis.conf';
+            my $filename = Test::Beetle::Redis::generate_redis_conf($port);
+            exec 'redis-server', $filename;
+        },
+        server4 => sub {
+            my ( $port, $data_hash ) = @_;
+            my $slaveof = sprintf( 'slaveof 127.0.0.1 %d', $data_hash->{server3}{port} );
+            my $filename = Test::Beetle::Redis::generate_redis_conf( $port, $slaveof );
+            exec 'redis-server', $filename;
         },
 
         client1 => sub {
@@ -53,11 +59,19 @@ sub test_beetle_live {
                     rabbit1 => $data_hash->{server1}{port},
                     rabbit2 => $data_hash->{server2}{port},
                     redis1  => $data_hash->{server3}{port},
+                    redis2  => $data_hash->{server4}{port},
+                },
+                {
+                    rabbit1 => $data_hash->{server1}{pid},
+                    rabbit2 => $data_hash->{server2}{pid},
+                    redis1  => $data_hash->{server3}{pid},
+                    redis2  => $data_hash->{server4}{pid},
                 }
             );
             system("sudo $rabbitmq_ctl -n perlrabbit1 stop");
             system("sudo $rabbitmq_ctl -n perlrabbit2 stop");
             kill 9, $data_hash->{server3}{pid};
+            kill 9, $data_hash->{server4}{pid};
         },
     );
 }

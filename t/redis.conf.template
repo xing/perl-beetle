@@ -66,6 +66,7 @@ databases 16
 # different interval, or to listen to another port, and so on.
 
 # slaveof <masterip> <masterport>
+__SLAVEOF__
 
 ################################## SECURITY ###################################
 
