@@ -52,20 +52,3 @@ my $timer = AnyEvent->timer(
 );
 
 $client->listen;
-
-# client.register_handler(:rails_handler) do |msg|
-#   puts "received #{msg.data.inspect}"
-#   payload = ActiveSupport::JSON.decode(msg.data)
-#   testcase = payload["testcase"]
-#   if (testcase == "redundancy" && !msg.redundant?) || (testcase == "non-redundancy" && msg.redundant?)
-#     puts "***ERROR*** received wrong message type for testcase #{testcase}: #{msg.inspect}"
-#   end
-#   response = {:response => payload["testcase"], :count => payload["count"] * 10}
-#   client.publish(:result, response.to_json)
-# end
-#
-# client.listen do
-#   EM.add_timer(5) { client.stop_listening }
-# end
-#
-# puts "Finished"
