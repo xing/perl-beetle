@@ -66,7 +66,7 @@ has '_subscriptions' => (
     *AnyEvent::RabbitMQ::DESTROY          = sub { };
 
     # TODO: <plu> remove this once my patch got accepted
-    *AnyEvent::RabbitMQ::Channel::_header = sub {
+    *AnyEvent::RabbitMQ::Channel::_header = sub { ## no critic
         my ( $self, $args, $body, ) = @_;
 
         $self->{connection}->_push_write(
