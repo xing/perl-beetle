@@ -75,7 +75,7 @@ sub redis {
 # extract message id from a given Redis key
 sub msg_id {
     my ( $package, $key ) = @_;
-    my ($msg_id) = $key =~ /^(msgid:[^:]+:[-0-9A-F]+):.*?$/;
+    my ($msg_id) = $key =~ /^(msgid:[^:]+:[-0-9A-F]+):.*?$/i;
     return $msg_id;
 }
 
