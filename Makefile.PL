@@ -5,6 +5,7 @@ all_from 'lib/Beetle.pm';
 no_index directory => 'examples';
 
 requires(
+    'Coro'                  => '5.23',
     'Data::UUID'            => '1.203',
     'Devel::StackTrace'     => '1.22',
     'Hash::Merge::Simple'   => '0.05',
