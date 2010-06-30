@@ -11,7 +11,7 @@ requires(
     'Moose'                 => '0.92',
     'MooseX::Log::Log4perl' => '0.40',
     'MooseX::SimpleConfig'  => 0,
-    'Net::RabbitFoot'       => '1.01',
+    'Net::RabbitFoot'       => '1.02',
 );
 
 test_requires(
