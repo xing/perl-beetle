@@ -5,6 +5,7 @@ package Beetle::Message;
 #             this seems to be a Ruby singleton string
 
 use Moose;
+use Coro;
 use Data::UUID;
 use Devel::StackTrace;
 extends qw(Beetle::Base);
@@ -457,8 +458,12 @@ sub _process_internal {
 sub _run_handler {
     my ( $self, $handler ) = @_;
 
+    my $usub = unblock_sub {
+        $handler->call(shift);
+    };
+
     # TODO: <plu> implement timeout here - not sure if this is a -really- good idea
-    my $result = eval { $handler->call($self); };
+    my $result = eval { $usub->($self) };
     return $OK unless $@;
 
     $self->log->error( sprintf 'Beetle: message handler crashed on %s', $self->msg_id );
