@@ -58,11 +58,45 @@ has '_subscriptions' => (
     traits => [qw(Hash)],
 );
 
-# TODO: <plu> talk to author of AnyEvent::RabbitMQ how to fix this properly
 {
     no warnings 'redefine';
+
+    # TODO: <plu> talk to author of AnyEvent::RabbitMQ how to fix this properly
     *AnyEvent::RabbitMQ::Channel::DESTROY = sub { };
     *AnyEvent::RabbitMQ::DESTROY          = sub { };
+
+    # TODO: <plu> remove this once my patch got accepted
+    *AnyEvent::RabbitMQ::Channel::_header = sub {
+        my ( $self, $args, $body, ) = @_;
+
+        $self->{connection}->_push_write(
+            Net::AMQP::Frame::Header->new(
+                weight => $args->{weight} || 0,
+                body_size    => length($body),
+                header_frame => Net::AMQP::Protocol::Basic::ContentHeader->new(
+                    content_type     => 'application/octet-stream',
+                    content_encoding => '',
+                    headers          => {},
+                    delivery_mode    => 1,
+                    priority         => 0,
+                    correlation_id   => '',
+
+                    # reply_to         => '',
+                    expiration => '',
+                    message_id => '',
+                    timestamp  => time,
+                    type       => '',
+                    user_id    => '',
+                    app_id     => '',
+                    cluster_id => '',
+                    %$args,
+                ),
+            ),
+            $self->{id},
+        );
+
+        return $self;
+    };
 }
 
 sub ack {
