@@ -417,7 +417,7 @@ sub _process_internal {
         return $DELAYED;
     }
 
-    elsif ( $self->is_timed_out ) {
+    elsif ( !$self->is_timed_out ) {
         return $HANDLERNOTYETTIMEDOUT;
     }
 
