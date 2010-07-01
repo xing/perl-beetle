@@ -28,7 +28,7 @@ my $DEFAULT_HANDLER_TIMEOUT = 300;
 our $DEFAULT_HANDLER_EXECUTION_ATTEMPTS = 1;
 
 # how many seconds we should wait before retrying handler execution
-my $DEFAULT_HANDLER_EXECUTION_ATTEMPTS_DELAY = 10;
+our $DEFAULT_HANDLER_EXECUTION_ATTEMPTS_DELAY = 10;
 
 # how many exceptions should be tolerated before giving up
 my $DEFAULT_EXCEPTION_LIMIT = 0;
