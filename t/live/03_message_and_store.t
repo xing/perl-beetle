@@ -296,64 +296,680 @@ test_redis(
             is( $m->is_timed_out, 1, 'Message is timed out now' );
         }
 
+        # {
+        #     my $override = Sub::Override->new( 'Beetle::Message::ack' => sub { } );
+        #     my $header   = Test::Beetle->header_with_params();
+        #     my $m        = Beetle::Message->new(
+        #         body             => 'foo',
+        #         header           => $header,
+        #         queue            => "queue",
+        #         store            => $store,
+        #         exceptions_limit => 6,
+        #         attempts_limit   => 5,
+        #         delay            => 0,
+        #     );
+        #
+        #     is( $m->attempts_limit,   7, 'attempts limit set correctly to exceptions limit + 1' );
+        #     is( $m->exceptions_limit, 6, 'attempts limit set correctly' );
+        #
+        #     my @rc = ();
+        #     for ( 1 .. 7 ) {
+        #         push @rc, $m->_process_internal( sub { die "foo"; } );
+        #     }
+        #
+        #     is_deeply(
+        #         \@rc,
+        #         [
+        #             'RC::HandlerCrash', 'RC::HandlerCrash', 'RC::HandlerCrash', 'RC::HandlerCrash',
+        #             'RC::HandlerCrash', 'RC::HandlerCrash', 'RC::AttemptsLimitReached'
+        #         ],
+        #         'Got 6 times RC::HandlerCrash + 1 time RC::AttemptsLimitReached'
+        #     );
+        # }
+        #
+        # {
+        #     my $override = Sub::Override->new( 'Beetle::Message::ack' => sub { } );
+        #     my $header   = Test::Beetle->header_with_params();
+        #     my $m        = Beetle::Message->new(
+        #         body             => 'foo',
+        #         header           => $header,
+        #         queue            => "queue",
+        #         store            => $store,
+        #         attempts_limit   => 7,
+        #         exceptions_limit => 5,
+        #         delay            => 0,
+        #     );
+        #
+        #     is( $m->attempts_limit,   7, 'attempts limit set correctly' );
+        #     is( $m->exceptions_limit, 5, 'exceptions limit set correctly' );
+        #
+        #     my @rc = ();
+        #     push @rc, $m->_process_internal( sub { die "foo"; } ) for 1 .. 6;
+        #
+        #     is_deeply(
+        #         \@rc,
+        #         [
+        #             'RC::HandlerCrash', 'RC::HandlerCrash',
+        #             'RC::HandlerCrash', 'RC::HandlerCrash',
+        #             'RC::HandlerCrash', 'RC::ExceptionsLimitReached'
+        #         ],
+        #         'Got 5 times RC::HandlerCrash + 1 time RC::ExceptionsLimitReached'
+        #     );
+        # }
+
         {
-            my $override = Sub::Override->new( 'Beetle::Message::ack' => sub { } );
-            my $header   = Test::Beetle->header_with_params();
-            my $m        = Beetle::Message->new(
-                body             => 'foo',
-                header           => $header,
-                queue            => "queue",
-                store            => $store,
-                exceptions_limit => 6,
-                attempts_limit   => 5,
-                delay            => 0,
+            my $header = Test::Beetle->header_with_params();
+            my $m      = Beetle::Message->new(
+                body     => 'foo',
+                header   => $header,
+                queue    => "somequeue",
+                store    => $store,
+                attempts => 2,
             );
 
-            is( $m->attempts_limit,   7, 'attempts limit set correctly to exceptions limit + 1' );
-            is( $m->exceptions_limit, 6, 'attempts limit set correctly' );
+            my @callstack = ();
 
-            my @rc = ();
-            push @rc, $m->_process_internal( sub { die "foo"; } ) for 1 .. 7;
+            my $o1 = Sub::Override->new(
+                'Beetle::Handler::call' => sub {
+                    push @callstack, 'Beetle::Handler::call';
+                }
+            );
 
+            my $o2 = Sub::Override->new(
+                'Beetle::Message::ack' => sub {
+                    push @callstack, 'Beetle::Message::ack';
+                }
+            );
+
+            is( $m->attempts_limit_reached, 0, 'Attempts limit not yet reached' );
+            is( $m->process( sub { } ), $OK, 'Return value is correct' );
             is_deeply(
-                \@rc,
-                [
-                    'RC::HandlerCrash', 'RC::HandlerCrash', 'RC::HandlerCrash', 'RC::HandlerCrash',
-                    'RC::HandlerCrash', 'RC::HandlerCrash', 'RC::AttemptsLimitReached'
-                ],
-                'Got 6 times RC::HandlerCrash + 1 time RC::AttemptsLimitReached'
+                \@callstack,
+                [qw(Beetle::Handler::call Beetle::Message::ack)],
+                'processing a fresh message sucessfully should first run the handler and then ack it'
             );
         }
 
         {
-            my $override = Sub::Override->new( 'Beetle::Message::ack' => sub { } );
-            my $header   = Test::Beetle->header_with_params();
-            my $m        = Beetle::Message->new(
-                body             => 'foo',
-                header           => $header,
-                queue            => "queue",
-                store            => $store,
-                attempts_limit   => 7,
-                exceptions_limit => 5,
-                delay            => 0,
+            my $header = Test::Beetle->header_with_params( redundant => 1 );
+            my $m = Beetle::Message->new(
+                body    => 'foo',
+                header  => $header,
+                queue   => "somequeue",
+                store   => $store,
+                timeout => 10,
             );
 
-            is( $m->attempts_limit,   7, 'attempts limit set correctly' );
-            is( $m->exceptions_limit, 5, 'exceptions limit set correctly' );
+            my @callstack = ();
 
-            my @rc = ();
-            push @rc, $m->_process_internal( sub { die "foo"; } ) for 1 .. 6;
+            my $o1 = Sub::Override->new(
+                'Beetle::Handler::call' => sub {
+                    push @callstack, 'Beetle::Handler::call';
+                }
+            );
 
+            my $o2 = Sub::Override->new(
+                'Beetle::Message::ack' => sub {
+                    my ($self) = @_;
+                    $self->store->incr( $self->msg_id => 'ack_count' );
+                    push @callstack, 'Beetle::Message::ack';
+                }
+            );
+
+            my $o3 = Sub::Override->new(
+                'Beetle::Message::completed' => sub {
+                    my ($self) = @_;
+                    $self->store->set( $self->msg_id => status => 'completed' );
+                    push @callstack, 'Beetle::Message::completed';
+                }
+            );
+
+            is( $m->attempts_limit_reached, 0, 'Attempts limit not yet reached' );
+            is( $m->redundant,              1, 'Message is redundant' );
+            is( $m->process( sub { } ), $OK, 'Return value is correct' );
             is_deeply(
-                \@rc,
+                \@callstack,
                 [
-                    'RC::HandlerCrash', 'RC::HandlerCrash',
-                    'RC::HandlerCrash', 'RC::HandlerCrash',
-                    'RC::HandlerCrash', 'RC::ExceptionsLimitReached'
+                    qw(Beetle::Handler::call
+                      Beetle::Message::completed
+                      Beetle::Message::ack)
                 ],
-                'Got 5 times RC::HandlerCrash + 1 time RC::ExceptionsLimitReached'
+                'after processing a redundant fresh message successfully the ack'
+                  . ' count should be 1 and the status should be completed'
+            );
+            is( $store->get( $m->msg_id => 'ack_count' ), 1,           'ack_count is correct' );
+            is( $store->get( $m->msg_id => 'status' ),    'completed', 'status is correct' );
+        }
+
+        {
+            my $header = Test::Beetle->header_with_params();
+            my $m      = Beetle::Message->new(
+                body     => 'foo',
+                header   => $header,
+                queue    => "somequeue",
+                store    => $store,
+                attempts => 1,
+            );
+
+            my @callstack = ();
+
+            my $o1 = Sub::Override->new(
+                'Beetle::Handler::call' => sub {
+                    push @callstack, 'Beetle::Handler::call';
+                }
+            );
+
+            my $o2 = Sub::Override->new(
+                'Beetle::Message::ack' => sub {
+                    push @callstack, 'Beetle::Message::ack';
+                }
+            );
+
+            is( $m->process( sub { } ), $OK, 'Return value is correct' );
+            is_deeply(
+                \@callstack,
+                [qw(Beetle::Message::ack Beetle::Handler::call)],
+                'when processing a simple message, ack should precede calling the handler'
             );
         }
+
+        {
+            my $header = Test::Beetle->header_with_params();
+            my $m      = Beetle::Message->new(
+                body     => 'foo',
+                header   => $header,
+                queue    => "somequeue",
+                store    => $store,
+                attempts => 1,
+            );
+
+            my @callstack = ();
+
+            my $o1 = Sub::Override->new(
+                'Beetle::Message::ack' => sub {
+                    push @callstack, 'Beetle::Message::ack';
+                }
+            );
+
+            my $o2 = Sub::Override->new(
+                'Beetle::Handler::process_exception' => sub {
+                    push @callstack, 'Beetle::Handler::process_exception';
+                }
+            );
+
+            my $o3 = Sub::Override->new(
+                'Beetle::Handler::process_failure' => sub {
+                    push @callstack, 'Beetle::Handler::process_failure';
+                }
+            );
+
+            is( $m->process( sub { die "blah"; } ), $ATTEMPTSLIMITREACHED, 'Return value is correct' );
+            is_deeply(
+                \@callstack,
+                [
+                    qw(
+                      Beetle::Message::ack
+                      Beetle::Handler::process_exception
+                      Beetle::Handler::process_failure
+                      )
+                ],
+                'when processing a simple message, RC::AttemptsLimitReached should be returned if the handler crashes'
+            );
+        }
+
+        # test "a message should not be acked if the handler crashes and the exception limit has not been reached" do
+        {
+            my $header = Test::Beetle->header_with_params();
+            my $m      = Beetle::Message->new(
+                body       => 'foo',
+                header     => $header,
+                queue      => "somequeue",
+                store      => $store,
+                delay      => 42,
+                exceptions => 1,
+                timeout    => 10,
+            );
+
+            my $o1 = Sub::Override->new( 'Beetle::Message::now' => sub { return 10; } );
+            my $o2 = Sub::Override->new(
+                'Beetle::Message::completed' => sub {
+                    fail('Beetle::Message::completed may not be called');
+                }
+            );
+            my $o3 = Sub::Override->new(
+                'Beetle::Message::ack' => sub {
+                    fail('Beetle::Message::ack may not be called');
+                }
+            );
+
+            is( $m->attempts_limit_reached,   0, 'attempts limit is not reached yet' );
+            is( $m->exceptions_limit_reached, 0, 'exceptions limit is not reached yet' );
+            is( $m->is_timed_out,             0, 'message is not timed out yet' );
+
+            is( $m->process( sub { die "blah"; } ), $HANDLERCRASH, 'Return value is correct' );
+            is( $m->is_completed, 0, 'message is still incomplete' );
+
+            is( $store->get( $m->msg_id => 'exceptions' ), 1,  'exceptions count is correct' );
+            is( $store->get( $m->msg_id => 'timeout' ),    0,  'timeout was reset' );
+            is( $store->get( $m->msg_id => 'delay' ),      52, 'delay has been raised' );
+        }
+
+# test "a message should delete the mutex before resetting the timer if attempts and exception limits havn't been reached" do
+        {
+            my $header = Test::Beetle->header_with_params();
+            my $m      = Beetle::Message->new(
+                body       => 'foo',
+                header     => $header,
+                queue      => "somequeue",
+                store      => $store,
+                delay      => 42,
+                exceptions => 1,
+                timeout    => 10,
+            );
+
+            my $delete_mutex = 0;
+
+            my $o1 = Sub::Override->new( 'Beetle::Message::now' => sub { return 9; } );
+            my $o2 = Sub::Override->new(
+                'Beetle::Message::completed' => sub {
+                    fail('Beetle::Message::completed may not be called');
+                }
+            );
+            my $o3 = Sub::Override->new(
+                'Beetle::Message::ack' => sub {
+                    fail('Beetle::Message::ack may not be called');
+                }
+            );
+            my $o4 = Sub::Override->new(
+                'Beetle::Message::delete_mutex' => sub {
+                    $delete_mutex++;
+                }
+            );
+
+            is( $m->attempts_limit_reached,   0, 'attempts limit is not reached yet' );
+            is( $m->exceptions_limit_reached, 0, 'exceptions limit is not reached yet' );
+            is( $m->is_timed_out,             0, 'message is not timed out yet' );
+
+            is( $store->get( $m->msg_id => 'mutext' ), undef, 'mutex is not set' );
+
+            is( $m->process( sub { die "blah"; } ), $HANDLERCRASH, 'Return value is correct' );
+            is( $delete_mutex, 1, 'delete_mutex got called' );
+        }
+
+        # test "a message should be acked if the handler crashes and the exception limit has been reached" do
+        {
+            my $header = Test::Beetle->header_with_params();
+            my $m      = Beetle::Message->new(
+                body     => 'foo',
+                header   => $header,
+                queue    => "somequeue",
+                store    => $store,
+                attempts => 2,
+                timeout  => 10,
+            );
+
+            my $ack = 0;
+
+            my $o1 = Sub::Override->new( 'Beetle::Message::now' => sub { return 9; } );
+            my $o2 = Sub::Override->new(
+                'Beetle::Message::completed' => sub {
+                    fail('Beetle::Message::completed may not be called');
+                }
+            );
+            my $o3 = Sub::Override->new(
+                'Beetle::Message::ack' => sub {
+                    $ack++;
+                }
+            );
+
+            is( $m->attempts_limit_reached,   0, 'attempts limit is not reached yet' );
+            is( $m->exceptions_limit_reached, 0, 'exceptions limit is not reached yet' );
+            is( $m->is_timed_out,             0, 'message is not timed out yet' );
+            is( $m->simple,                   0, 'message is not simple' );
+
+            is( $m->process( sub { die "blah"; } ), $EXCEPTIONSLIMITREACHED, 'Return value is correct' );
+            is( $ack, 1, 'ack got called' );
+        }
+
+        # test "a message should be acked if the handler crashes and the attempts limit has been reached" do
+        {
+            my $header = Test::Beetle->header_with_params();
+            my $m      = Beetle::Message->new(
+                body     => 'foo',
+                header   => $header,
+                queue    => "somequeue",
+                store    => $store,
+                attempts => 2,
+                timeout  => 10,
+            );
+            $m->increment_execution_attempts;
+
+            my $ack = 0;
+
+            my $o1 = Sub::Override->new( 'Beetle::Message::now' => sub { return 9; } );
+            my $o2 = Sub::Override->new(
+                'Beetle::Message::completed' => sub {
+                    fail('Beetle::Message::completed may not be called');
+                }
+            );
+            my $o3 = Sub::Override->new(
+                'Beetle::Message::ack' => sub {
+                    $ack++;
+                }
+            );
+
+            is( $m->attempts_limit_reached,   0, 'attempts limit is not reached yet' );
+            is( $m->exceptions_limit_reached, 0, 'exceptions limit is not reached yet' );
+            is( $m->is_timed_out,             0, 'message is not timed out yet' );
+            is( $m->simple,                   0, 'message is not simple' );
+
+            is( $m->process( sub { die "blah"; } ), $ATTEMPTSLIMITREACHED, 'Return value is correct' );
+            is( $ack, 1, 'ack got called' );
+        }
+
+        # test "a completed existing message should be just acked and not run the handler" do
+        {
+            my $header = Test::Beetle->header_with_params();
+            my $m      = Beetle::Message->new(
+                body     => 'foo',
+                header   => $header,
+                queue    => "somequeue",
+                store    => $store,
+                attempts => 2,
+            );
+
+            my $ack = 0;
+
+            my $o1 = Sub::Override->new(
+                'Beetle::Handler::call' => sub {
+                    fail('Beetle::Handler::call may not be called');
+                }
+            );
+
+            my $o2 = Sub::Override->new(
+                'Beetle::Message::ack' => sub {
+                    $ack++;
+                }
+            );
+
+            is( $m->key_exists, 0, 'keys do not exist yet' );
+            ok( $m->completed, 'set message to completed' );
+            is( $m->is_completed, 1, 'message is completed' );
+
+            is( $m->process( sub { } ), $OK, 'Return value is correct' );
+        }
+
+        # test "an incomplete, delayed existing message should be processed later" do
+        {
+            my $header = Test::Beetle->header_with_params();
+            my $m      = Beetle::Message->new(
+                body     => 'foo',
+                header   => $header,
+                queue    => "somequeue",
+                store    => $store,
+                attempts => 2,
+            );
+
+            my $o1 = Sub::Override->new(
+                'Beetle::Handler::call' => sub {
+                    fail('Beetle::Handler::call may not be called');
+                }
+            );
+
+            my $o2 = Sub::Override->new(
+                'Beetle::Message::ack' => sub {
+                    fail('Beetle::Message::ack may not be called');
+                }
+            );
+
+            is( $m->key_exists,   0, 'keys do not exist yet' );
+            is( $m->is_completed, 0, 'message is not completed' );
+            ok( $m->set_delay, 'set_delay call ok' );
+            is( $m->delayed, 1, 'message is delayed' );
+
+            is( $m->process( sub { } ), $DELAYED, 'Return value is correct' );
+            is( $m->delayed,      1, 'message is delayed' );
+            is( $m->is_completed, 0, 'message is not completed' );
+        }
+
+        # test "an incomplete, undelayed, not yet timed out, existing message should be processed later" do
+        {
+            my $header = Test::Beetle->header_with_params();
+            my $m      = Beetle::Message->new(
+                body     => 'foo',
+                header   => $header,
+                queue    => "somequeue",
+                store    => $store,
+                attempts => 2,
+                timeout  => 10,
+            );
+
+            my $o1 = Sub::Override->new(
+                'Beetle::Handler::call' => sub {
+                    fail('Beetle::Handler::call may not be called');
+                }
+            );
+
+            my $o2 = Sub::Override->new(
+                'Beetle::Message::ack' => sub {
+                    fail('Beetle::Message::ack may not be called');
+                }
+            );
+
+            is( $m->key_exists,   0, 'keys do not exist yet' );
+            is( $m->is_completed, 0, 'message is not completed' );
+            is( $m->delayed,      0, 'message is not delayed' );
+            ok( $m->set_timeout, 'set_timeout call ok' );
+            is( $m->is_timed_out, 0, 'message is not yet timed out' );
+            is( $m->process( sub { } ), $HANDLERNOTYETTIMEDOUT, 'Return value is correct' );
+            is( $m->delayed,      0, 'message is not delayed' );
+            is( $m->is_completed, 0, 'message is not completed' );
+            is( $m->is_timed_out, 0, 'message is not yet timed out' );
+        }
+
+        # test "an incomplete, undelayed, not yet timed out, existing message which has
+        # reached the handler execution attempts limit should be acked and not run the handler" do
+        {
+            my $header = Test::Beetle->header_with_params();
+            my $m      = Beetle::Message->new(
+                body     => 'foo',
+                header   => $header,
+                queue    => "somequeue",
+                store    => $store,
+                attempts => 2,
+            );
+
+            my $o1 = Sub::Override->new(
+                'Beetle::Handler::call' => sub {
+                    fail('Beetle::Handler::call may not be called');
+                }
+            );
+
+            $m->increment_execution_attempts;
+
+            is( $m->key_exists,   0, 'keys do not exist yet' );
+            is( $m->is_completed, 0, 'message is not completed' );
+            is( $m->delayed,      0, 'message is not delayed' );
+
+            ok( $m->reset_timeout, 'reset_timeout call ok' );
+            is( $m->is_timed_out, 1, 'message is timed out' );
+
+            is( $m->attempts_limit_reached, 0, 'attempts_limit_reached not yet reached' );
+            $m->increment_execution_attempts for 1 .. $m->attempts_limit;
+            is( $m->attempts_limit_reached, 1, 'attempts_limit_reached has been reached now' );
+
+            is( $m->process( sub { } ), $ATTEMPTSLIMITREACHED, 'Return value is correct' );
+        }
+
+        # test "an incomplete, undelayed, timed out, existing message which has reached the
+        # exceptions limit should be acked and not run the handler" do
+        {
+            my $header = Test::Beetle->header_with_params();
+            my $m      = Beetle::Message->new(
+                body     => 'foo',
+                header   => $header,
+                queue    => "somequeue",
+                store    => $store,
+                attempts => 2,
+            );
+
+            my $o1 = Sub::Override->new(
+                'Beetle::Handler::call' => sub {
+                    fail('Beetle::Handler::call may not be called');
+                }
+            );
+
+            is( $m->key_exists,   0, 'keys do not exist yet' );
+            is( $m->is_completed, 0, 'message is not completed' );
+            is( $m->delayed,      0, 'message is not delayed' );
+
+            ok( $m->reset_timeout, 'reset_timeout call ok' );
+            is( $m->is_timed_out, 1, 'message is timed out' );
+
+            is( $m->attempts_limit_reached, 0, 'attempts_limit_reached not yet reached' );
+            ok( $m->increment_exception_count, 'call increment_exception_count ok' );
+            is( $m->exceptions_limit_reached, 1, 'exceptions_limit_reached has been reached' );
+
+            is( $m->process( sub { } ), $EXCEPTIONSLIMITREACHED, 'Return value is correct' );
+        }
+
+        # test "an incomplete, undelayed, timed out, existing message should
+        # be processed again if the mutex can be aquired" do
+        {
+            my $header = Test::Beetle->header_with_params( redundant => 1 );
+            my $m = Beetle::Message->new(
+                body   => 'foo',
+                header => $header,
+                queue  => "somequeue",
+                store  => $store,
+            );
+
+            my @callstack = ();
+
+            my $o1 = Sub::Override->new(
+                'Beetle::Message::set_timeout' => sub {
+                    push @callstack, 'Beetle::Message::set_timeout';
+                }
+            );
+
+            my $o2 = Sub::Override->new(
+                'Beetle::Message::ack' => sub {
+                    push @callstack, 'Beetle::Message::ack';
+                }
+            );
+
+            my $o3 = Sub::Override->new(
+                'Beetle::Handler::call' => sub {
+                    push @callstack, 'Beetle::Handler::call';
+                }
+            );
+
+            is( $m->key_exists,   0, 'keys do not exist yet' );
+            is( $m->is_completed, 0, 'message is not completed' );
+            is( $m->delayed,      0, 'message is not delayed' );
+
+            ok( $m->reset_timeout, 'reset_timeout call ok' );
+            is( $m->is_timed_out, 1, 'message is timed out' );
+
+            is( $m->attempts_limit_reached,   0, 'attempts_limit_reached not yet reached' );
+            is( $m->exceptions_limit_reached, 0, 'exceptions_limit_reached not yet reached' );
+
+            is( $m->process( sub { } ), $OK, 'Return value is correct' );
+            is( $m->is_completed, 1, 'message is completed' );
+            is_deeply(
+                \@callstack,
+                [
+                    qw(Beetle::Message::set_timeout
+                      Beetle::Handler::call
+                      Beetle::Message::ack)
+                ],
+                'callstack is correct'
+            );
+        }
+
+        # test "an incomplete, undelayed, timed out, existing message should not be processed
+        # again if the mutex cannot be aquired" do
+        {
+            my $header = Test::Beetle->header_with_params( redundant => 1 );
+            my $m = Beetle::Message->new(
+                body   => 'foo',
+                header => $header,
+                queue  => "somequeue",
+                store  => $store,
+            );
+
+            my $o1 = Sub::Override->new(
+                'Beetle::Handler::call' => sub {
+                    fail('Beetle::Handler::call may not be called');
+                }
+            );
+
+            my $o2 = Sub::Override->new(
+                'Beetle::Message::ack' => sub {
+                    fail('Beetle::Message::ack may not be called');
+                }
+            );
+
+            is( $m->key_exists,   0, 'keys do not exist yet' );
+            is( $m->is_completed, 0, 'message is not completed' );
+            is( $m->delayed,      0, 'message is not delayed' );
+
+            ok( $m->reset_timeout, 'reset_timeout call ok' );
+            is( $m->is_timed_out, 1, 'message is timed out' );
+
+            is( $m->attempts_limit_reached,   0, 'attempts_limit_reached not yet reached' );
+            is( $m->exceptions_limit_reached, 0, 'exceptions_limit_reached not yet reached' );
+
+            ok( $m->aquire_mutex, 'aquire_mutex call ok' );
+            is( $store->exists( $m->msg_id => 'mutex' ), 1, 'mutex is set' );
+
+            is( $m->process( sub { } ), $MUTEXLOCKED, 'Return value is correct' );
+
+            is( $store->exists( $m->msg_id => 'mutex' ), 0, 'mutex is not set' );
+        }
+
+# test "processing a message with a crashing processor calls the processors exception handler and returns an internal error" do
+        {
+            my $header = Test::Beetle->header_with_params( redundant => 1 );
+            my $m = Beetle::Message->new(
+                body       => 'foo',
+                header     => $header,
+                queue      => "somequeue",
+                store      => $store,
+                exceptions => 1,
+            );
+
+            my @callstack = ();
+
+            my $handler = Beetle::Handler->create(
+                sub {
+                    push @callstack, 'handler';
+                    die "blah";
+                },
+                {
+                    errback => sub {
+                        push @callstack, 'errback';
+                    },
+                },
+            );
+
+            is( $m->process($handler), $HANDLERCRASH, 'Return value is correct' );
+            is_deeply( \@callstack, [qw(handler errback)], 'callstack is correct' );
+        }
+
+        #   header = header_with_params({})
+        #   message = Message.new("somequeue", header, 'foo', :exceptions => 1, :store => @store)
+        #   errback = lambda{|*args|}
+        #   exception = Exception.new
+        #   action = lambda{|*args| raise exception}
+        #   handler = Handler.create(action, :errback => errback)
+        #   handler.expects(:process_exception).with(exception).once
+        #   handler.expects(:process_failure).never
+        #   result = message.process(handler)
+        #   assert_equal RC::HandlerCrash, result
+        #   assert result.recover?
+        #   assert !result.failure?
+        # end
     }
 );
 
