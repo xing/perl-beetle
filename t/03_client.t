@@ -2,6 +2,7 @@ use strict;
 use warnings;
 use Test::Exception;
 use Test::More;
+use Sub::Override;
 
 use FindBin qw( $Bin );
 use lib ( "$Bin/lib", "$Bin/../lib" );
@@ -166,13 +167,109 @@ BEGIN {
     throws_ok {
         $client->listen( [qw(some_message)] );
     }
-    qr/unknown message some_message/, 'listening for an unknown should throw an error';
+    qr/unknown message some_message/, 'listening for an unknown message should throw an error';
 }
 
 {
     my $client = Beetle::Client->new;
     lives_ok { $client->register_binding( 'some_queue' => {} ); } 'first call to register_binding';
     lives_ok { $client->register_binding( 'some_queue' => {} ); } 'second call to register_binding';
+}
+
+{
+    my $client = Beetle::Client->new;
+    is( $client->{publisher},  undef, 'instantiating a client should not instantiate the publisher' );
+    is( $client->{subscriber}, undef, 'instantiating a client should not instantiate the subscriber' );
+}
+
+{
+    my $client = Beetle::Client->new;
+    $client->register_queue('superman');
+    $client->register_message('superman');
+    $client->register_handler( 'superman' => sub { } );
+    isa_ok( $client->{subscriber}, 'Beetle::Subscriber', 'should instantiate a subscriber when used for subscribing' );
+}
+
+{
+    my $client = Beetle::Client->new;
+    $client->register_message('foobar');
+    $client->publish( 'foobar' => 'payload' );
+    isa_ok( $client->{publisher}, 'Beetle::Publisher', 'should instantiate a publisher when used for publishing' );
+}
+
+{
+    my $client = Beetle::Client->new;
+    $client->register_message('deadletter');
+    my @args     = ( 'deadletter' => 'x', { a => 1 } );
+    my @result   = ();
+    my $override = Sub::Override->new(
+        'Beetle::Publisher::publish' => sub {
+            my $self = shift;
+            @result = @_;
+            return 42;
+        }
+    );
+    is( $client->publish(@args), 42, 'Got correct return value' );
+    is_deeply( \@result, \@args, 'should delegate publishing to the publisher instance' );
+}
+
+{
+    my $client   = Beetle::Client->new;
+    my $called   = 0;
+    my $override = Sub::Override->new( 'Beetle::Publisher::stop' => sub { $called++ } );
+    $client->stop_publishing;
+    is( $called, 1, 'should delegate stop_publishing to the publisher instance' );
+}
+
+{
+    my $client = Beetle::Client->new;
+    my @result = ();
+
+    my $override = Sub::Override->new(
+        'Beetle::Publisher::purge' => sub {
+            my $self = shift;
+            @result = @_;
+            return 42;
+        }
+    );
+
+    $client->register_queue('queue');
+    is( $client->purge('queue'), 42, 'correct return value' );
+
+    is_deeply( \@result, ['queue'], 'should delegate queue purging to the publisher instance' );
+}
+
+{
+    my $client = Beetle::Client->new;
+    for (qw(a b)) {
+        $client->register_queue($_);
+        $client->register_message($_);
+    }
+
+    my $override = Sub::Override->new(
+        'Beetle::Subscriber::listen' => sub {
+            my ( $self, $messages, $code ) = @_;
+            return 42;
+        }
+    );
+
+    my $result = $client->listen( [qw(a b)] );
+    is( $result, 42, 'should delegate listening to the subscriber instance' );
+}
+
+{
+    my $client   = Beetle::Client->new;
+    my $override = Sub::Override->new( 'Beetle::Subscriber::stop' => sub { return 42; } );
+    my $result   = $client->stop_listening;
+    is( $result, 42, 'should delegate stop_listening to the subscriber instance' );
+}
+
+{
+    my $client = Beetle::Client->new;
+    my $override = Sub::Override->new( 'Beetle::Subscriber::register_handler' => sub { return 42; } );
+    $client->register_queue('huhu');
+    my $result = $client->register_handler( huhu => sub { } );
+    is( $result, 42, 'should delegate handler registration to the subscriber instance' );
 }
 
 done_testing;
