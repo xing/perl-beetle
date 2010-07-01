@@ -199,7 +199,7 @@ sub aquire_mutex {
 
 sub attempts {
     my ($self) = @_;
-    $self->store->get( $self->msg_id => 'attempts' );
+    $self->store->get( $self->msg_id => 'attempts' ) || 0;
 }
 
 sub attempts_limit_reached {
