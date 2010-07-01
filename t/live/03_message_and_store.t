@@ -928,15 +928,22 @@ test_redis(
             is( $store->exists( $m->msg_id => 'mutex' ), 0, 'mutex is not set' );
         }
 
-# test "processing a message with a crashing processor calls the processors exception handler and returns an internal error" do
+        # test "processing a message with a crashing processor calls the processors exception
+        # handler and returns an internal error" do
         {
-            my $header = Test::Beetle->header_with_params( redundant => 1 );
-            my $m = Beetle::Message->new(
+            my $header = Test::Beetle->header_with_params();
+            my $m      = Beetle::Message->new(
                 body       => 'foo',
                 header     => $header,
                 queue      => "somequeue",
                 store      => $store,
                 exceptions => 1,
+            );
+
+            my $o1 = Sub::Override->new(
+                'Beetle::Handler::process_failure' => sub {
+                    fail('Beetle::Handler::process_failure may not be called');
+                }
             );
 
             my @callstack = ();
@@ -953,23 +960,342 @@ test_redis(
                 },
             );
 
-            is( $m->process($handler), $HANDLERCRASH, 'Return value is correct' );
+            my $result = $m->process($handler);
+
+            is( $result, $HANDLERCRASH, 'Return value is correct' );
+            is( grep( $result eq $_, @RECOVER ), 1, 'Return value is of correct type' );
+            is( grep( $result eq $_, @FAILURE ), 0, 'Return value is of correct type' );
             is_deeply( \@callstack, [qw(handler errback)], 'callstack is correct' );
         }
 
-        #   header = header_with_params({})
-        #   message = Message.new("somequeue", header, 'foo', :exceptions => 1, :store => @store)
-        #   errback = lambda{|*args|}
-        #   exception = Exception.new
-        #   action = lambda{|*args| raise exception}
-        #   handler = Handler.create(action, :errback => errback)
-        #   handler.expects(:process_exception).with(exception).once
-        #   handler.expects(:process_failure).never
-        #   result = message.process(handler)
-        #   assert_equal RC::HandlerCrash, result
-        #   assert result.recover?
-        #   assert !result.failure?
-        # end
+        # test "processing a message with a crashing processor calls the processors exception handler
+        # and failure handler if the attempts limit has been reached" do
+        {
+            my $header = Test::Beetle->header_with_params();
+            my $m      = Beetle::Message->new(
+                body     => 'foo',
+                header   => $header,
+                queue    => "somequeue",
+                store    => $store,
+                attempts => 2,
+            );
+
+            ok( $m->increment_execution_attempts, 'increment_execution_attempts call ok' );
+
+            my @callstack = ();
+
+            my $handler = Beetle::Handler->create(
+                sub {
+                    push @callstack, 'handler';
+                    die "blah";
+                },
+                {
+                    errback => sub {
+                        push @callstack, 'errback';
+                    },
+                    failback => sub {
+                        push @callstack, 'failback';
+                    },
+                },
+            );
+
+            my $result = $m->process($handler);
+
+            is( $result, $ATTEMPTSLIMITREACHED, 'Return value is correct' );
+            is( grep( $result eq $_, @RECOVER ), 0, 'Return value is of correct type' );
+            is( grep( $result eq $_, @FAILURE ), 1, 'Return value is of correct type' );
+            is_deeply( \@callstack, [qw(handler errback failback)], 'callstack is correct' );
+        }
+
+        # test "processing a message with a crashing processor calls the processors exception handler
+        # and failure handler if the exceptions limit has been reached" do
+        {
+            my $header = Test::Beetle->header_with_params();
+            my $m      = Beetle::Message->new(
+                body     => 'foo',
+                header   => $header,
+                queue    => "somequeue",
+                store    => $store,
+                attempts => 2,
+            );
+
+            my @callstack = ();
+
+            my $handler = Beetle::Handler->create(
+                sub {
+                    push @callstack, 'handler';
+                    die "blah";
+                },
+                {
+                    errback => sub {
+                        push @callstack, 'errback';
+                    },
+                    failback => sub {
+                        push @callstack, 'failback';
+                    },
+                },
+            );
+
+            my $result = $m->process($handler);
+
+            is( $result, $EXCEPTIONSLIMITREACHED, 'Return value is correct' );
+            is( grep( $result eq $_, @RECOVER ), 0, 'Return value is of correct type' );
+            is( grep( $result eq $_, @FAILURE ), 1, 'Return value is of correct type' );
+            is_deeply( \@callstack, [qw(handler errback failback)], 'callstack is correct' );
+        }
+
+        # test "completed! should store the status 'complete' in the database" do
+        {
+            my $header = Test::Beetle->header_with_params();
+            my $m      = Beetle::Message->new(
+                body   => 'foo',
+                header => $header,
+                queue  => "somequeue",
+                store  => $store,
+            );
+            is( $m->is_completed, 0, 'message is not completed' );
+            ok( $m->completed, 'completed call ok' );
+            is( $m->is_completed, 1, 'message is completed' );
+            is( $store->get( $m->msg_id => 'status' ), 'completed', 'status in db is correct' );
+        }
+
+        # test "set_delay! should store the current time plus the number of delayed seconds in the database" do
+        {
+            my $o1     = Sub::Override->new( 'Beetle::Message::now' => sub { return 1; } );
+            my $header = Test::Beetle->header_with_params();
+            my $m      = Beetle::Message->new(
+                body   => 'foo',
+                header => $header,
+                queue  => "somequeue",
+                store  => $store,
+                delay  => 1,
+            );
+            ok( $m->set_delay, 'set_delay call ok' );
+            is( $store->get( $m->msg_id => 'delay' ), 2, 'delay is set to 2 in store' );
+            my $o2 = Sub::Override->new( 'Beetle::Message::now' => sub { return 2; } );
+            is( $m->delayed, 0, 'message is not delayed' );
+            my $o3 = Sub::Override->new( 'Beetle::Message::now' => sub { return 0; } );
+            is( $m->delayed, 1, 'message is delayed' );
+        }
+
+        # test "set_delay! should use the default delay if the delay hasn't been set on the message instance" do
+        {
+            my $o1     = Sub::Override->new( 'Beetle::Message::now' => sub { return 0; } );
+            my $header = Test::Beetle->header_with_params();
+            my $m      = Beetle::Message->new(
+                body   => 'foo',
+                header => $header,
+                queue  => "somequeue",
+                store  => $store,
+            );
+            ok( $m->set_delay, 'set_delay call ok' );
+            is(
+                $store->get( $m->msg_id => 'delay' ),
+                $Beetle::Message::DEFAULT_HANDLER_EXECUTION_ATTEMPTS_DELAY,
+                'default delay set'
+            );
+            my $o2 = Sub::Override->new( 'Beetle::Message::now' => sub { return $m->delay; } );
+            is( $m->delayed, 0, 'message is not delayed' );
+            my $o3 = Sub::Override->new( 'Beetle::Message::now' => sub { return 0; } );
+            is( $m->delayed, 1, 'message is delayed' );
+        }
+
+        # test "set_timeout! should store the current time plus the number of timeout seconds in the database" do
+        {
+            my $o1     = Sub::Override->new( 'Beetle::Message::now' => sub { return 1; } );
+            my $header = Test::Beetle->header_with_params();
+            my $m      = Beetle::Message->new(
+                body    => 'foo',
+                header  => $header,
+                queue   => "somequeue",
+                store   => $store,
+                timeout => 1,
+            );
+            ok( $m->set_timeout, 'set_timeout call ok' );
+            is( $store->get( $m->msg_id => 'timeout' ), 2, 'timeout set correctly in store' );
+            my $o2 = Sub::Override->new( 'Beetle::Message::now' => sub { return 2; } );
+            is( $m->is_timed_out, 0, 'message is not timed out yet' );
+            my $o3 = Sub::Override->new( 'Beetle::Message::now' => sub { return 3; } );
+            is( $m->is_timed_out, 1, 'message is timed out now' );
+        }
+
+        # test "set_timeout! should use the default timeout if the timeout hasn't been set on the message instance" do
+        {
+            my $o1     = Sub::Override->new( 'Beetle::Message::now' => sub { return 0; } );
+            my $header = Test::Beetle->header_with_params();
+            my $m      = Beetle::Message->new(
+                body   => 'foo',
+                header => $header,
+                queue  => "somequeue",
+                store  => $store,
+            );
+            ok( $m->set_timeout, 'set_timeout call ok' );
+            is(
+                $store->get( $m->msg_id => 'timeout' ),
+                $Beetle::Message::DEFAULT_HANDLER_TIMEOUT,
+                'timeout set correctly in store'
+            );
+            my $o2 = Sub::Override->new( 'Beetle::Message::now' => sub { return $m->timeout; } );
+            is( $m->is_timed_out, 0, 'message is not timed out' );
+            my $o3 = Sub::Override->new(
+                'Beetle::Message::now' => sub { return $Beetle::Message::DEFAULT_HANDLER_TIMEOUT + 1; } );
+            is( $m->is_timed_out, 1, 'message is timed out' );
+        }
+
+        # test "incrementing execution attempts should increment by 1" do
+        {
+            my $header = Test::Beetle->header_with_params();
+            my $m      = Beetle::Message->new(
+                body   => 'foo',
+                header => $header,
+                queue  => "somequeue",
+                store  => $store,
+            );
+            is( $m->increment_execution_attempts, 1, 'incrementing execution attempts should increment by 1' );
+            is( $m->increment_execution_attempts, 2, 'incrementing execution attempts should increment by 1' );
+            is( $m->increment_execution_attempts, 3, 'incrementing execution attempts should increment by 1' );
+        }
+
+        # test "accessing execution attempts should return the number of execution attempts made so far" do
+        {
+            my $header = Test::Beetle->header_with_params();
+            my $m      = Beetle::Message->new(
+                body   => 'foo',
+                header => $header,
+                queue  => "somequeue",
+                store  => $store,
+            );
+            is( $m->attempts, 0, 'attempts is 0' );
+            ok( $m->increment_execution_attempts, 'increment_execution_attempts call ok' );
+            is( $m->attempts, 1, 'attempts is 1' );
+            ok( $m->increment_execution_attempts, 'increment_execution_attempts call ok' );
+            is( $m->attempts, 2, 'attempts is 2' );
+            ok( $m->increment_execution_attempts, 'increment_execution_attempts call ok' );
+            is( $m->attempts, 3, 'attempts is 3' );
+        }
+
+        # test "attempts limit should be set exception limit + 1 iff the configured attempts limit is
+        # equal to or smaller than the exceptions limit" do
+        {
+            my $header = Test::Beetle->header_with_params();
+            {
+                my $m = Beetle::Message->new(
+                    body       => 'foo',
+                    header     => $header,
+                    queue      => "somequeue",
+                    store      => $store,
+                    exceptions => 1,
+                );
+                is( $m->attempts_limit,   2, 'attempts_limit set correctly' );
+                is( $m->exceptions_limit, 1, 'exceptions_limit set correctly' );
+            }
+            {
+                my $m = Beetle::Message->new(
+                    body       => 'foo',
+                    header     => $header,
+                    queue      => "somequeue",
+                    store      => $store,
+                    exceptions => 2,
+                );
+                is( $m->attempts_limit,   3, 'attempts_limit set correctly' );
+                is( $m->exceptions_limit, 2, 'exceptions_limit set correctly' );
+            }
+            {
+                my $m = Beetle::Message->new(
+                    body       => 'foo',
+                    header     => $header,
+                    queue      => "somequeue",
+                    store      => $store,
+                    attempts   => 5,
+                    exceptions => 2,
+                );
+                is( $m->attempts_limit,   5, 'attempts_limit set correctly' );
+                is( $m->exceptions_limit, 2, 'exceptions_limit set correctly' );
+            }
+        }
+
+        # test "attempts limit should be reached after incrementing the attempt limit counter 'attempts limit' times" do
+        {
+            my $header = Test::Beetle->header_with_params();
+            my $m      = Beetle::Message->new(
+                body     => 'foo',
+                header   => $header,
+                queue    => "somequeue",
+                store    => $store,
+                attempts => 2,
+            );
+            is( $m->attempts_limit_reached, 0, 'attempts_limit not reached yet' );
+            ok( $m->increment_execution_attempts, 'increment_execution_attempts call ok' );
+            is( $m->attempts_limit_reached, 0, 'attempts_limit not reached yet' );
+            ok( $m->increment_execution_attempts, 'increment_execution_attempts call ok' );
+            is( $m->attempts_limit_reached, 1, 'attempts_limit not reached yet' );
+            ok( $m->increment_execution_attempts, 'increment_execution_attempts call ok' );
+            is( $m->attempts_limit_reached, 1, 'attempts_limit not reached yet' );
+        }
+
+        # test "incrementing exception counts should increment by 1" do
+        {
+            my $header = Test::Beetle->header_with_params();
+            my $m      = Beetle::Message->new(
+                body   => 'foo',
+                header => $header,
+                queue  => "somequeue",
+                store  => $store,
+            );
+            is( $m->increment_exception_count, 1, 'incrementing exception counts should increment by 1' );
+            is( $m->increment_exception_count, 2, 'incrementing exception counts should increment by 1' );
+            is( $m->increment_exception_count, 3, 'incrementing exception counts should increment by 1' );
+        }
+
+        # test "default exceptions limit should be reached after incrementing the attempt limit counter 1 time" do
+        {
+            my $header = Test::Beetle->header_with_params();
+            my $m      = Beetle::Message->new(
+                body   => 'foo',
+                header => $header,
+                queue  => "somequeue",
+                store  => $store,
+            );
+            is( $m->exceptions_limit_reached, 0, 'exceptions limit not reached yet' );
+            ok( $m->increment_exception_count, 'increment_exception_count call ok' );
+            is( $m->exceptions_limit_reached, 1, 'exceptions reached' );
+        }
+
+        # test "exceptions limit should be reached after incrementing the
+        # attempt limit counter 'exceptions limit + 1' times" do
+        {
+            my $header = Test::Beetle->header_with_params();
+            my $m      = Beetle::Message->new(
+                body       => 'foo',
+                header     => $header,
+                queue      => "somequeue",
+                store      => $store,
+                exceptions => 1,
+            );
+            is( $m->exceptions_limit_reached, 0, 'exceptions limit not reached yet' );
+            ok( $m->increment_exception_count, 'increment_exception_count call ok' );
+            is( $m->exceptions_limit_reached, 0, 'exceptions limit not reached yet' );
+            ok( $m->increment_exception_count, 'increment_exception_count call ok' );
+            is( $m->exceptions_limit_reached, 1, 'exceptions reached' );
+            ok( $m->increment_exception_count, 'increment_exception_count call ok' );
+            is( $m->exceptions_limit_reached, 1, 'exceptions reached' );
+        }
+
+        # test "failure to aquire a mutex should delete it from the database" do
+        {
+            my $header = Test::Beetle->header_with_params();
+            my $m      = Beetle::Message->new(
+                body   => 'foo',
+                header => $header,
+                queue  => "somequeue",
+                store  => $store,
+            );
+            is( $store->exists( $m->msg_id => 'mutex' ), 0, 'mutex not in store' );
+            is( $m->aquire_mutex, 1, 'mutex aquired' );
+            is( $store->exists( $m->msg_id => 'mutex' ), 1, 'mutex in store' );
+            is( $m->aquire_mutex, 0, 'mutex could not be aquired' );
+            is( $store->exists( $m->msg_id => 'mutex' ), 0, 'mutex got deleted from store' );
+        }
     }
 );
 
