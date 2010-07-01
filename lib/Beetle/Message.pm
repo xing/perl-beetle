@@ -205,7 +205,7 @@ sub attempts {
 sub attempts_limit_reached {
     my ($self) = @_;
     my $attempts = $self->attempts;
-    my $result = $attempts && $attempts >= $self->attempts_limit;
+    my $result = defined $attempts && $attempts >= $self->attempts_limit;
     return $result ? 1 : 0;
 }
 
@@ -241,7 +241,7 @@ sub delete_mutex {
 sub exceptions_limit_reached {
     my ($self) = @_;
     my $value = $self->store->get( $self->msg_id => 'exceptions' );
-    my $result = $value && $value > $self->exceptions_limit;
+    my $result = defined $value && $value > $self->exceptions_limit;
     return $result ? 1 : 0;
 }
 
@@ -268,14 +268,14 @@ sub increment_execution_attempts {
 sub is_completed {
     my ($self) = @_;
     my $value = $self->store->get( $self->msg_id => 'status' );
-    my $result = $value && $value eq 'completed';
+    my $result = defined $value && $value eq 'completed';
     return $result ? 1 : 0;
 }
 
 sub is_timed_out {
     my ($self) = @_;
     my $t = $self->store->get( $self->msg_id => 'timeout' );
-    my $result = $t && $t < $self->now;
+    my $result = defined $t && $t < $self->now;
     return $result ? 1 : 0;
 }
 
