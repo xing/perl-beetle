@@ -22,7 +22,7 @@ our $DEFAULT_TTL = 86400;
 
 # forcefully abort a running handler after this many seconds.
 # can be overriden when registering a handler.
-my $DEFAULT_HANDLER_TIMEOUT = 300;
+our $DEFAULT_HANDLER_TIMEOUT = 300;
 
 # how many times we should try to run a handler before giving up
 our $DEFAULT_HANDLER_EXECUTION_ATTEMPTS = 1;
