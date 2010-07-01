@@ -304,13 +304,6 @@ sub process {
     $handler = Beetle::Handler->create($handler);
     $self->log->debug( sprintf 'Beetle: processing message %s', $self->msg_id );
     my $result = $self->_process_internal($handler);
-    if ($result eq $HANDLERCRASH) {
-        $handler->process_exception($@);
-        my $trace = Devel::StackTrace->new;
-        $self->log->warn( sprintf "Beetle: exception '%s' during processing of message %s", $@, $self->msg_id );
-        $self->log->warn( sprintf "Beetle: backtrace: %s", $trace->as_string );
-        $result = $INTERNALERROR;
-    }
     $handler->process_failure($result) if grep $result eq $_, @FAILURE;
     return $result;
 }
@@ -460,6 +453,12 @@ sub _run_handler {
     # TODO: <plu> implement timeout here - not sure if this is a -really- good idea
     my $result = eval { $handler->call($self); };
     return $OK unless $@;
+
+    $handler->process_exception($@) if Scalar::Util::blessed $handler && $handler->can('process_exception');
+
+    my $trace = Devel::StackTrace->new;
+    $self->log->warn( sprintf "Beetle: exception '%s' during processing of message %s", $@, $self->msg_id );
+    $self->log->warn( sprintf "Beetle: backtrace: %s", $trace->as_string );
 
     $self->log->error( sprintf 'Beetle: message handler crashed on %s', $self->msg_id );
     $self->log->error("Beetle: error message: $@");

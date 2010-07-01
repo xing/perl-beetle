@@ -8,3 +8,4 @@
   * rpc
   * reply_to
   * trace
+* fix handle_exception in Beetle::Message, still not sure I got it 100% right
