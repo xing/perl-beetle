@@ -150,9 +150,10 @@ sub create_subscription_callback {
         my $body           = $amqp_message->{body}->payload;
         my $deliver        = $amqp_message->{deliver};
         eval {
+            my $server = sprintf '%s:%d', $bunny->host, $bunny->port;
             my $processor = Beetle::Handler->create( $handler, $options );
             my $message_options = merge $options,
-              { server => $self->server, store => $self->client->deduplication_store };
+              { server => $server, store => $self->client->deduplication_store };
             my $message = Beetle::Message->new(
                 config  => $self->config,
                 queue   => $amqp_queue_name,
