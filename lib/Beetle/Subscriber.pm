@@ -127,14 +127,20 @@ sub subscribe {
     my $handler         = $self->get_handler($queue_name);
     my $amqp_queue_name = $self->client->get_queue($queue_name)->{amqp_name};
 
-    my $callback =
-      $self->create_subscription_callback( $queue_name, $amqp_queue_name, $handler->{code}, $handler->{options} );
+    my $callback = $self->create_subscription_callback(
+        {
+            queue_name      => $queue_name,
+            amqp_queue_name => $amqp_queue_name,
+            handler         => $handler,
+            bunny           => $self->bunny
+        }
+    );
 
     $self->log->debug( sprintf 'Beetle: subscribing to queue %s with key # on server %s',
         $amqp_queue_name, $self->server );
 
     eval {
-        $self->bunny->subscribe( $queue_name => $callback );    # TODO: <plu> implement this.
+        $self->bunny->subscribe( $queue_name => $callback );
     };
     if ($@) {
         $self->error('Beetle: binding multiple handlers for the same queue isn\'t possible');
@@ -142,7 +148,14 @@ sub subscribe {
 }
 
 sub create_subscription_callback {
-    my ( $self, $queue_name, $amqp_queue_name, $handler, $options ) = @_;
+    my ( $self, $args ) = @_;
+
+    my $queue_name      = $args->{queue_name};
+    my $amqp_queue_name = $args->{amqp_queue_name};
+    my $handler         = $args->{handler}{code};
+    my $options         = $args->{handler}{options};
+    my $bunny           = $args->{bunny};
+
     return sub {
         my ($amqp_message) = @_;
         my $header         = $amqp_message->{header};
@@ -163,11 +176,14 @@ sub create_subscription_callback {
             my $result = $message->process($processor);
             if ( grep $_ eq $result, @RECOVER ) {
                 sleep 1;
-                $self->bunny->recover;
+                $bunny->recover;
             }
             else {
-                $self->bunny->ack( { delivery_tag => $message->deliver->method_frame->delivery_tag } )
-                  if $message->_ack;
+                if ( $message->_ack ) {
+                    $self->log->debug( sprintf 'Ack! using delivery_tag: %s',
+                        $message->deliver->method_frame->delivery_tag );
+                    $bunny->ack( { delivery_tag => $message->deliver->method_frame->delivery_tag } );
+                }
             }
 
             # TODO: complete the implementation of reply_to
