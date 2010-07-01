@@ -19,18 +19,6 @@ has 'handlers' => (
     traits => [qw(Hash)],
 );
 
-has 'mqs' => (
-    default => sub { {} },
-    handles => {
-        get_mq => 'get',
-        has_mq => 'exists',
-        set_mq => 'set',
-    },
-    is     => 'ro',
-    isa    => 'HashRef',
-    traits => [qw(Hash)],
-);
-
 sub listen {
     my ( $self, $messages, $code ) = @_;
     my $exchanges = $self->exchanges_for_messages($messages);
