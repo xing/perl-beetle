@@ -3,6 +3,7 @@ use strict;
 use warnings;
 use FindBin;
 use lib "$FindBin::Bin/../lib";
+use Coro;
 use Beetle::Client;
 use JSON::XS;
 use Data::Dumper;
@@ -13,7 +14,7 @@ my $json = JSON::XS->new;
 my $client = Beetle::Client->new(
     config => {
         servers  => 'localhost:5673 localhost:5672',
-        loglevel => 'INFO',
+        loglevel => 'DEBUG',
     }
 );
 
@@ -29,7 +30,7 @@ $client->register_binding( rails_handler        => { key => 'redundant_message',
 $client->register_binding( rails_handler        => { key => 'non_redundant_message', exchange => 'beetle' } );
 
 $client->register_handler(
-    rails_handler => sub {
+    rails_handler => unblock_sub {
         my ($message) = @_;
         printf "received %s\n", $message->body;
         my $payload  = $json->decode( $message->body );
