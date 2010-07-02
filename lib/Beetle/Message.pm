@@ -252,7 +252,7 @@ sub expired {
 }
 
 sub generate_uuid {
-    return lc(Data::UUID->new->create_str);
+    return lc( Data::UUID->new->create_str );
 }
 
 sub increment_exception_count {
@@ -295,16 +295,26 @@ sub msg_id {
 }
 
 sub now {
-    return time();    # TODO: <plu> Hmmm... timezones'n'shit?!
+    return time();
 }
 
-# TODO: <plu> make sure I got this right.
 sub process {
     my ( $self, $handler ) = @_;
+
     $handler = Beetle::Handler->create($handler);
+
     $self->log->debug( sprintf 'Beetle: processing message %s', $self->msg_id );
-    my $result = $self->_process_internal($handler);
+
+    my $result = eval { $self->_process_internal($handler) };
+    if ($@) {
+        my $trace = Devel::StackTrace->new;
+        $self->log->warn( sprintf "Beetle: exception '%s' during processing of message %s", $@, $self->msg_id );
+        $self->log->warn( sprintf "Beetle: backtrace: %s", $trace->as_string );
+        return $INTERNALERROR;
+    }
+
     $handler->process_failure($result) if grep $result eq $_, @FAILURE;
+
     return $result;
 }
 
@@ -327,6 +337,7 @@ sub publishing_options {
         format_version => $FORMAT_VERSION,
         flags          => $flags,
         expires_at     => $expires_at,
+
         # reply_to       => $args{reply_to} || '',
     };
 
@@ -389,7 +400,6 @@ sub _handler_failed {
 sub _process_internal {
     my ( $self, $handler ) = @_;
 
-    # TODO: <plu> fix return codes
     if ( $self->expired ) {
         $self->log->warn( sprintf 'Beetle: ignored expired message (%s)', $self->msg_id );
         $self->ack;
@@ -450,15 +460,11 @@ sub _process_internal {
 sub _run_handler {
     my ( $self, $handler ) = @_;
 
-    # TODO: <plu> implement timeout here - not sure if this is a -really- good idea
+    # TODO: <plu> implement timeout here
     my $result = eval { $handler->call($self); };
     return $OK unless $@;
 
     $handler->process_exception($@) if Scalar::Util::blessed $handler && $handler->can('process_exception');
-
-    my $trace = Devel::StackTrace->new;
-    $self->log->warn( sprintf "Beetle: exception '%s' during processing of message %s", $@, $self->msg_id );
-    $self->log->warn( sprintf "Beetle: backtrace: %s", $trace->as_string );
 
     $self->log->error( sprintf 'Beetle: message handler crashed on %s', $self->msg_id );
     $self->log->error("Beetle: error message: $@");

@@ -1296,6 +1296,20 @@ test_redis(
             is( $m->aquire_mutex, 0, 'mutex could not be aquired' );
             is( $store->exists( $m->msg_id => 'mutex' ), 0, 'mutex got deleted from store' );
         }
+
+        # test "processing a message catches internal exceptions risen by process_internal and returns an internal error" do
+        {
+            my $o1     = Sub::Override->new( 'Beetle::Message::_process_internal' => sub { die "blah"; } );
+            my $header = Test::Beetle->header_with_params();
+            my $m      = Beetle::Message->new(
+                body   => 'foo',
+                header => $header,
+                queue  => "somequeue",
+                store  => $store,
+            );
+            my $result = $m->process(sub {});
+            is( $result, $INTERNALERROR, 'Return value is correct' );
+        }
     }
 );
 
