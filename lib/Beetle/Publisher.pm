@@ -187,7 +187,7 @@ sub publish_with_redundancy {
     if ( scalar(@published) == 0 ) {
         $self->log->error( sprintf 'Beetle: message could not be delivered: %s', $message_name );
     }
-    elsif ( scalar(@published) == 1 ) {
+    if ( scalar(@published) == 1 ) {
         $self->log->error('Beetle: failed to send message redundantly');
     }
 
