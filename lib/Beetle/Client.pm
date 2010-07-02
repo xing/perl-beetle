@@ -178,7 +178,9 @@ sub register_binding {
     $self->add_binding( $queue_name => { exchange => $exchange, key => $key } );
     $self->register_exchange($exchange) unless $self->has_exchange($exchange);
 
-    my $queues = $self->get_exchange($exchange)->{queues} || [];
+    my $queues = $self->get_exchange($exchange)->{queues};
+    $queues ||= [];
+
     push @$queues, $queue_name unless grep $_ eq $queue_name, @$queues;
     $self->get_exchange($exchange)->{queues} = $queues;
 

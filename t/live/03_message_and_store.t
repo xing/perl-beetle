@@ -48,6 +48,7 @@ test_redis(
             is( $m->key_exists, 1, 'Key exists' );
 
             is( scalar( $store->redis->keys('*') ), 2, 'Keys are really in store (status + expires)' );
+            ok( $store->garbage_collect_keys(), 'Garbage collection without argument should use time' );
             ok( $store->garbage_collect_keys( time + 1 ), 'Garbage collection' );
             is( scalar( $store->redis->keys('*') ), undef, 'Keys have been removed from store' );
         }

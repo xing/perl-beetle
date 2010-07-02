@@ -31,9 +31,11 @@ BEGIN {
 
     my $coderef_called = 0;
     $client->subscriber->listen( [qw(foo bar)], sub { $coderef_called++; } );
+    $client->subscriber->listen( [qw(foo bar)], 'invalid' );
+    $client->subscriber->listen( [qw(foo bar)], undef );
 
     is( $coderef_called,      1, 'Coderef passed to method listen got called' );
-    is( $bunny_listen_called, 1, 'Method listen on bunny object got called' );
+    is( $bunny_listen_called, 3, 'Method listen on bunny object got called' );
 
     my $exchanges = $client->subscriber->exchanges_for_messages( [qw(foo)] );
     is_deeply( $exchanges, [], 'No messages defined' );

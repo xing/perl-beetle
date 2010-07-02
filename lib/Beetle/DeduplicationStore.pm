@@ -69,7 +69,7 @@ sub keys {
 sub redis {
     my ($self) = @_;
     return $self->_redis if $self->_has_redis;
-    $self->{_redis} ||= $self->_find_redis_master;
+    $self->{_redis} = $self->_find_redis_master;
     return $self->_redis;
 }
 
@@ -151,7 +151,7 @@ sub flushdb {
 # garbage collect keys in Redis (always assume the worst!)
 sub garbage_collect_keys {
     my ( $self, $time ) = @_;
-    $time ||= time;
+    $time ||= time();
     my @keys      = $self->redis->keys("msgid:*:expires");
     my $threshold = $time + $self->config->gc_threshold;
     foreach my $key (@keys) {
