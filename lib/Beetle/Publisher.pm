@@ -2,7 +2,6 @@ package Beetle::Publisher;
 
 use Moose;
 use Hash::Merge::Simple qw( merge );
-use Net::RabbitMQ;
 use Beetle::Message;
 use Data::Dumper;
 extends qw(Beetle::Base::PubSub);
