@@ -7,12 +7,9 @@ use FindBin qw( $Bin );
 use lib ( "$Bin/../lib", "$Bin/../../lib" );
 use Test::Beetle;
 use Test::Beetle::Redis;
-
-BEGIN {
-    use_ok('Beetle::Message');
-    use_ok('Beetle::Handler');
-    use_ok('Beetle::Constants');
-}
+use Beetle::Message;
+use Beetle::Handler;
+use Beetle::Constants;
 
 test_redis(
     sub {

@@ -18,17 +18,17 @@ sub test_beetle_live {
 
     chomp( my $rabbitmq_ctl = `which rabbitmqctl` );
     unless ( $rabbitmq_ctl && -e $rabbitmq_ctl && -x _ ) {
-        die 'rabbitmqctl not found in your PATH';
+        plan skip_all => 'rabbitmqctl not found in your PATH';
     }
 
     chomp( my $rabbitmq_server = `which rabbitmq-server` );
     unless ( $rabbitmq_server && -e $rabbitmq_server && -x _ ) {
-        die 'rabbitmq-server not found in your PATH';
+        plan skip_all => 'rabbitmq-server not found in your PATH';
     }
 
     chomp( my $redis_server = `which redis-server` );
     unless ( $redis_server && -e $redis_server && -x _ ) {
-        die 'redis-server not found in your PATH';
+        plan skip_all => 'redis-server not found in your PATH';
     }
 
     test_multi_tcp(

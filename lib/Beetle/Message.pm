@@ -341,7 +341,7 @@ sub publishing_options {
         # reply_to       => $args{reply_to} || '',
     };
 
-    return wantarray ? %args : \%args;
+    return \%args;
 }
 
 sub redundant {
@@ -367,7 +367,8 @@ sub set_timeout {
 
 sub simple {
     my ($self) = @_;
-    return !$self->redundant && $self->attempts_limit == 1 ? 1 : 0;
+    my $result = !$self->redundant && $self->attempts_limit == 1;
+    return $result ? 1 : 0;
 }
 
 sub _handler_failed {
