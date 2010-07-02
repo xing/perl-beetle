@@ -1,8 +1,11 @@
 package Beetle;
 
 use Moose;
+use namespace::clean -except => 'meta';
 
 our $VERSION = '0.01000';
+
+__PACKAGE__->meta->make_immutable;
 
 1;
 

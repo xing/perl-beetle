@@ -1,6 +1,7 @@
 package Beetle::Subscriber;
 
 use Moose;
+use namespace::clean -except => 'meta';
 use Hash::Merge::Simple qw( merge );
 use Beetle::Handler;
 use Beetle::Message;
@@ -187,5 +188,7 @@ sub bind_queue {
     $self->exchange($exchange_name);
     $self->bunny->queue_bind( $queue_name, $exchange_name, $binding_keys->{key} );
 }
+
+__PACKAGE__->meta->make_immutable;
 
 1;

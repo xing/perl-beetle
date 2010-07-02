@@ -13,6 +13,7 @@ package Beetle::DeduplicationStore;
 # It also provides a method to garbage collect keys for expired messages.
 
 use Moose;
+use namespace::clean -except => 'meta';
 use Beetle::Redis;
 use Carp qw(croak);
 extends qw(Beetle::Base);
@@ -233,5 +234,7 @@ sub _find_redis_master {
     croak "more than one redis master instances" if scalar @masters > 1;
     return $masters[0];
 }
+
+__PACKAGE__->meta->make_immutable;
 
 1;

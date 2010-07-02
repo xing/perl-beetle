@@ -21,6 +21,7 @@ package Beetle::Client;
 # the corresponding consumers.
 
 use Moose;
+use namespace::clean -except => 'meta';
 use Beetle::DeduplicationStore;
 use Beetle::Publisher;
 use Beetle::Subscriber;
@@ -252,5 +253,7 @@ sub stop_publishing {
     my ($self) = @_;
     $self->publisher->stop;
 }
+
+__PACKAGE__->meta->make_immutable;
 
 1;

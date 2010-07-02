@@ -1,6 +1,7 @@
 package Beetle::Base::PubSub;
 
 use Moose;
+use namespace::clean -except => 'meta';
 extends qw(Beetle::Base);
 use Class::MOP;
 
@@ -199,5 +200,7 @@ sub create_exchange {
     $self->bunny->exchange_declare( $name => \%rmq_options );
     return 1;
 }
+
+__PACKAGE__->meta->make_immutable;
 
 1;

@@ -1,6 +1,7 @@
 package Beetle::Base;
 
 use Moose;
+use namespace::clean -except => 'meta';
 with qw(MooseX::Log::Log4perl);
 use Beetle::Config;
 
@@ -42,5 +43,7 @@ sub _setup_logger {
         }
     );
 }
+
+__PACKAGE__->meta->make_immutable;
 
 1;

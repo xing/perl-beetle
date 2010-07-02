@@ -1,6 +1,7 @@
 package Beetle::Config;
 
 use Moose;
+use namespace::clean -except => 'meta';
 with qw(MooseX::SimpleConfig);
 
 has 'logger' => (
@@ -98,5 +99,7 @@ has 'bunny_class' => (
     isa           => 'Str',
     required      => 1,
 );
+
+__PACKAGE__->meta->make_immutable;
 
 1;

@@ -1,6 +1,7 @@
 package Beetle::Bunny;
 
 use Moose;
+use namespace::clean -except => 'meta';
 use AnyEvent;
 use Net::RabbitFoot;
 use Data::Dumper;
@@ -206,5 +207,7 @@ sub _build__mq {
     );
     return $rf;
 }
+
+__PACKAGE__->meta->make_immutable;
 
 1;

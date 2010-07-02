@@ -1,6 +1,7 @@
 package Beetle::Handler;
 
 use Moose;
+use namespace::clean -except => 'meta';
 extends qw(Beetle::Base);
 use Data::Dumper;
 use Scalar::Util;
@@ -98,5 +99,7 @@ sub failure {
     my ( $self, $result ) = @_;
     $self->log->error('Beetle: handler has finally failed');
 }
+
+__PACKAGE__->meta->make_immutable;
 
 1;

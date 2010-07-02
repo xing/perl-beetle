@@ -5,6 +5,7 @@ package Beetle::Message;
 #             this seems to be a Ruby singleton string
 
 use Moose;
+use namespace::clean -except => 'meta';
 use Data::UUID;
 use Devel::StackTrace;
 extends qw(Beetle::Base);
@@ -487,5 +488,7 @@ sub _execute_handler {
         return $self->_handler_failed($result);
     }
 }
+
+__PACKAGE__->meta->make_immutable;
 
 1;
