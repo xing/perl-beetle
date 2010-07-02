@@ -16,3 +16,4 @@
 /t/redis.conf-slave
 /Beetle-*
 /t/live/dump.rdb
+/.llrc
