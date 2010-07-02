@@ -2,7 +2,7 @@ package Beetle;
 
 use Moose;
 
-our $VERSION = '0.01_01';
+our $VERSION = '0.01000';
 
 1;
 
