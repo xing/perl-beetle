@@ -8,11 +8,14 @@ requires(
     'Coro'                  => '5.23',
     'Data::UUID'            => '1.203',
     'Devel::StackTrace'     => '1.22',
+    'Encode'                => '2.23',
     'Hash::Merge::Simple'   => '0.05',
+    'IO'                    => '1.25',
     'Moose'                 => '0.92',
     'MooseX::Log::Log4perl' => '0.40',
-    'MooseX::SimpleConfig'  => 0,
+    'MooseX::SimpleConfig'  => '0.07',
     'Net::RabbitFoot'       => '1.02',
+    'Scalar::Util'          => '1.21',
 );
 
 test_requires(
