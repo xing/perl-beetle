@@ -599,4 +599,66 @@ BEGIN {
     );
 }
 
+# test "publishing should use the message ttl passed in the options hash to encode the message body" do
+# test "publishing with redundancy should use the message ttl passed in the options hash to encode the message body" do
+{
+    my $opts = { ttl => 60 * 60 * 24, message_id => 123, };
+    my @callstack = ();
+
+    my $o1 = Sub::Override->new(
+        'Beetle::Message::publishing_options' => sub {
+            my ( $package, %args ) = @_;
+            is_deeply( \%args, $opts, 'Got correct args in publishing_options' );
+            push @callstack, 'Beetle::Message::publishing_options';
+            return \%args;
+        }
+    );
+
+    my $o2 = Sub::Override->new(
+        'Beetle::Publisher::select_next_server' => sub {
+            push @callstack, 'Beetle::Publisher::select_next_server';
+        }
+    );
+
+    my $o3 = Sub::Override->new(
+        'Beetle::Base::PubSub::exchange' => sub {
+            push @callstack, 'Beetle::Base::PubSub::exchange';
+        }
+    );
+
+    foreach my $method (qw(publish_with_failover publish_with_redundancy)) {
+        my $client = Beetle::Client->new( config => { bunny_class => 'Test::Beetle::Bunny' } );
+
+        my $result = $client->publisher->$method( 'mama-exchange', 'mama', 'data', $opts );
+
+        is( $result, 1, 'Return value of publish_with_failover is correct' );
+
+        is_deeply(
+            \@callstack,
+            [
+                qw(
+                  Beetle::Message::publishing_options
+                  Beetle::Publisher::select_next_server
+                  Beetle::Base::PubSub::exchange
+                  )
+            ],
+            'Got correct callstack'
+        );
+
+        @callstack = ();
+    }
+}
+
+# test "initially there should be no queues for the current server" do
+{
+    my $client = Beetle::Client->new( config => { bunny_class => 'Test::Beetle::Bunny' } );
+    is_deeply( $client->publisher->queues, {}, 'No queues there yet' );
+}
+
+# test "initially there should be no exchanges for the current server" do
+{
+    my $client = Beetle::Client->new( config => { bunny_class => 'Test::Beetle::Bunny' } );
+    is_deeply( $client->publisher->exchanges, {}, 'No exchanges there yet' );
+}
+
 done_testing;
