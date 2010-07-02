@@ -14,6 +14,7 @@ requires(
     'Moose'                 => '0.92',
     'MooseX::Log::Log4perl' => '0.40',
     'MooseX::SimpleConfig'  => '0.07',
+    'namespace::clean'      => '0.11',
     'Net::RabbitFoot'       => '1.02',
     'Scalar::Util'          => '1.21',
 );
