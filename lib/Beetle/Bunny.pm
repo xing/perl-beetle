@@ -66,12 +66,14 @@ has '_subscriptions' => (
     *AnyEvent::RabbitMQ::DESTROY          = sub { };
 
     # TODO: <plu> remove this once my patch got accepted
-    *AnyEvent::RabbitMQ::Channel::_header = sub { ## no critic
+    *AnyEvent::RabbitMQ::Channel::_header = sub {    ## no critic
         my ( $self, $args, $body, ) = @_;
+
+        $args->{weight} ||= 0;
 
         $self->{connection}->_push_write(
             Net::AMQP::Frame::Header->new(
-                weight => $args->{weight} || 0,
+                weight       => $args->{weight},
                 body_size    => length($body),
                 header_frame => Net::AMQP::Protocol::Basic::ContentHeader->new(
                     content_type     => 'application/octet-stream',

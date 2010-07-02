@@ -100,7 +100,9 @@ sub current_host {
 
 sub current_port {
     my ($self) = @_;
-    return ( split /:/, $self->server )[1] || 5672;
+    my ( $host, $port ) = split /:/, $self->server;
+    $port ||= 5672;
+    return $port;
 }
 
 sub each_server {
@@ -135,7 +137,9 @@ sub exchange {
 
 sub queues {
     my ($self) = @_;
-    return $self->get_queue( $self->server ) || {};
+    my $queue = $self->get_queue( $self->server );
+    $queue ||= {};
+    return $queue;
 }
 
 sub queue {
