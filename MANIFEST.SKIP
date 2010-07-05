@@ -44,3 +44,5 @@
 ^xt.*
 ^benchmark.*
 ^cover_db
+^ruby-beetle
+^\.llrc
