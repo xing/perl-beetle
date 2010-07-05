@@ -109,7 +109,6 @@ sub current_port {
 sub each_server {
     my ( $self, $code ) = @_;
 
-    # TODO: <plu> not sure I got 'yield' right here
     foreach my $server ( $self->all_servers ) {
         $self->set_current_server($server);
         $code->($self);

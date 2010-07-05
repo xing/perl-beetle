@@ -170,7 +170,6 @@ sub garbage_collect_keys {
 sub with_failover {
     my ( $self, $code ) = @_;
 
-    # TODO: <plu> fix logger + exception
     my $result;
     my $max_attempts = $self->attempts;
 
@@ -215,7 +214,6 @@ sub _find_redis_master {
         eval { $role = $redis->info->{role}; };
         if ($@) {
             $self->log->error("Redis error: $@");
-            # TODO: <plu> add proper error logging here
         }
         else {
             push @masters, $redis if $role eq 'master';

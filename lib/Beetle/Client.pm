@@ -152,7 +152,6 @@ sub register_queue {
 
     die "queue ${name} already configured" if $self->has_queue($name);
 
-    # TODO: <plu> not sure if i got this opts.merge! right here...
     $options->{exchange} ||= $name;
     $options->{key}      ||= $name;
     $options->{durable}     = 1;
@@ -183,8 +182,6 @@ sub register_binding {
 
     push @$queues, $queue_name unless grep $_ eq $queue_name, @$queues;
     $self->get_exchange($exchange)->{queues} = $queues;
-
-    # TODO: <plu> not sure if I got this right.
 }
 
 sub add_binding {
@@ -213,7 +210,7 @@ sub register_handler {
     $queues = [$queues] unless ref $queues eq 'ARRAY';
 
     foreach my $queue (@$queues) {
-        die "unknown queue: $queue" unless $self->has_queue($queue);    # TODO: <plu> add proper exception handling
+        die "unknown queue: $queue" unless $self->has_queue($queue);
     }
 
     $self->subscriber->register_handler( $queues, $handler_args, $handler );

@@ -1,9 +1,5 @@
 package Beetle::Message;
 
-# TODO: <plu> fix 'isa' of all attributes
-# TODO: <plu> not sure if we got this :colon implementation right since
-#             this seems to be a Ruby singleton string
-
 use Moose;
 use namespace::clean -except => 'meta';
 use Data::UUID;
@@ -176,8 +172,6 @@ sub ack {
     my ($self) = @_;
     $self->log->debug( sprintf 'Beetle: ack! for message %s', $self->msg_id );
 
-    # TODO: <plu> implement the ack here! No clue how/why
-    # $self->header->ack;
     $self->_ack(1);
     return if $self->simple;    # simple messages don't use the deduplication store
     if ( !$self->redundant || $self->store->incr( $self->msg_id => 'ack_count' ) == 2 ) {
