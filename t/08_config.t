@@ -15,36 +15,38 @@ BEGIN {
     my $client   = Beetle::Client->new( config => {} );
     my $got      = $client->config;
     my $expected = {
-        'bunny_class'  => 'Beetle::Bunny',
-        'gc_threshold' => 259200,
-        'logger'       => 'STDERR',
-        'loglayout'    => '[%d] [%p] (%C:%L) %m%n',
-        'loglevel'     => 'DEBUG',
-        'password'     => 'guest',
-        'redis_db'     => 4,
-        'redis_hosts'  => 'localhost:6379',
-        'servers'      => 'localhost:5672',
-        'user'         => 'guest',
-        'verbose'      => 0,
-        'vhost'        => '/',
+        'bunny_class'             => 'Beetle::Bunny',
+        'gc_threshold'            => 259200,
+        'logger'                  => 'STDERR',
+        'loglayout'               => '[%d] [%p] (%C:%L) %m%n',
+        'loglevel'                => 'DEBUG',
+        'password'                => 'guest',
+        'redis_db'                => 4,
+        'redis_hosts'             => 'localhost:6379',
+        'redis_operation_retries' => 180,
+        'servers'                 => 'localhost:5672',
+        'user'                    => 'guest',
+        'verbose'                 => 0,
+        'vhost'                   => '/',
     };
     is_deeply( $got, $expected, 'Empty config hashref uses default' );
 }
 
 {
     my $expected = {
-        'bunny_class'  => 'Test::Beetle::Bunny',
-        'gc_threshold' => 123,
-        'logger'       => '/dev/null',
-        'loglayout'    => '%m%n',
-        'loglevel'     => 'INFO',
-        'password'     => 'secret',
-        'redis_db'     => 1,
-        'redis_hosts'  => 'somehost:6379',
-        'servers'      => 'otherhost:5672',
-        'user'         => 'me',
-        'verbose'      => 1,
-        'vhost'        => '/foo',
+        'bunny_class'             => 'Test::Beetle::Bunny',
+        'gc_threshold'            => 123,
+        'logger'                  => '/dev/null',
+        'loglayout'               => '%m%n',
+        'loglevel'                => 'INFO',
+        'password'                => 'secret',
+        'redis_db'                => 1,
+        'redis_hosts'             => 'somehost:6379',
+        'redis_operation_retries' => 123,
+        'servers'                 => 'otherhost:5672',
+        'user'                    => 'me',
+        'verbose'                 => 1,
+        'vhost'                   => '/foo',
     };
     my $client = Beetle::Client->new( config => $expected );
     my $got = $client->config;
@@ -53,18 +55,19 @@ BEGIN {
 
 {
     my $expected = {
-        'bunny_class'  => 'Foo::Bunny',
-        'gc_threshold' => 456,
-        'logger'       => '/dev/zero',
-        'loglayout'    => 'FOO: %m%n',
-        'loglevel'     => 'WARN',
-        'password'     => 'secret123',
-        'redis_db'     => 2,
-        'redis_hosts'  => 'somehost:123',
-        'servers'      => 'otherhost:456',
-        'user'         => 'admin',
-        'verbose'      => 1,
-        'vhost'        => '/bar',
+        'bunny_class'             => 'Foo::Bunny',
+        'gc_threshold'            => 456,
+        'logger'                  => '/dev/zero',
+        'loglayout'               => 'FOO: %m%n',
+        'loglevel'                => 'WARN',
+        'password'                => 'secret123',
+        'redis_db'                => 2,
+        'redis_hosts'             => 'somehost:123',
+        'redis_operation_retries' => 456,
+        'servers'                 => 'otherhost:456',
+        'user'                    => 'admin',
+        'verbose'                 => 1,
+        'vhost'                   => '/bar',
     };
     my $client = Beetle::Client->new( configfile => "$Bin/etc/config.pl" );
     my $got = $client->config;

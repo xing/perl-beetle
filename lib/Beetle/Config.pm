@@ -52,6 +52,14 @@ has 'redis_db' => (
     required      => 1,
 );
 
+has 'redis_operation_retries' => (
+    default       => 180,
+    documentation => 'how often we should retry a redis operation before giving up',
+    is            => 'rw',
+    isa           => 'Int',
+    required      => 1,
+);
+
 has 'servers' => (
     default       => 'localhost:5672',
     documentation => 'list of amqp servers to use (default: localhost:5672)',
