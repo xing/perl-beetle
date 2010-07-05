@@ -1,6 +1,7 @@
 use strict;
 use warnings;
 use Test::Exception;
+use Test::MockObject;
 use Test::More;
 use Sub::Override;
 
@@ -160,6 +161,75 @@ BEGIN {
             { 'Beetle::Base::PubSub::set_current_server' => 'two:2222' },
             { 'Beetle::Base::PubSub::create_exchange'    => 'duck' },
             { 'Beetle::Base::PubSub::create_exchange'    => 'mickey' },
+        ],
+        'Callstack is correct'
+    );
+}
+
+# test "initially we should have no handlers" do
+{
+    my $client = Beetle::Client->new( config => { bunny_class => 'Test::Beetle::Bunny', } );
+    is_deeply( $client->subscriber->handlers, {}, 'initially we should have no handlers' );
+}
+
+# test "registering a handler for a queue should store it in the configuration with symbolized option keys" do
+{
+    my $client = Beetle::Client->new( config => { bunny_class => 'Test::Beetle::Bunny', } );
+    my $opts = { ack => 1 };
+    $client->subscriber->register_handler( 'some_queue', $opts, sub { return 42; } );
+    my $handler = $client->subscriber->get_handler('some_queue');
+    is_deeply( $handler->{options}, $opts, 'Options set correctly' );
+    is( $handler->{code}->(), 42, 'CodeRef set correctly' );
+}
+
+# test "exceptions raised from message processing should be ignored" do
+{
+    my $client = Beetle::Client->new( config => { bunny_class => 'Test::Beetle::Bunny', } );
+    $client->register_queue('somequeue');
+    my $callback = $client->subscriber->create_subscription_callback(
+        {
+            queue_name      => 'my message',
+            amqp_queue_name => 'somequeue',
+            handler         => {
+                code => sub {
+                    die "murks";
+                },
+                options => {},
+            },
+            options => { exceptions => 1 },
+            bunny   => $client->subscriber->bunny,
+        }
+    );
+
+    my $o1 = Sub::Override->new( 'Beetle::Message::process' => sub { die "blah" } );
+    my $header = Test::Beetle->header_with_params();
+    $header->{body} = Test::MockObject->new->mock( 'payload' => sub { return 'body' } );
+
+    lives_ok { $callback->( $header, 'foo' ) } 'exceptions raised from message processing should be ignored';
+}
+
+# test "subscribe should create subscriptions on all queues for all servers" do
+{
+    my $client = Beetle::Client->new( config => { bunny_class => 'Test::Beetle::Bunny', } );
+    $client->subscriber->{servers} = [qw(localhost:7777 localhost:6666)];
+    $client->register_message($_) for qw(a b);
+    $client->register_queue($_)   for qw(a b);
+    $client->register_handler( [qw(a b)] => sub { } );
+    my @callstack = ();
+    my $o1        = Sub::Override->new(
+        'Beetle::Subscriber::subscribe' => sub {
+            my ( $self, $queue ) = @_;
+            push @callstack, { $self->server => $queue };
+        }
+    );
+    $client->subscriber->subscribe_queues( [qw(a b)] );
+    is_deeply(
+        \@callstack,
+        [
+            { 'localhost:7777' => 'a' },
+            { 'localhost:7777' => 'b' },
+            { 'localhost:6666' => 'a' },
+            { 'localhost:6666' => 'b' }
         ],
         'Callstack is correct'
     );
