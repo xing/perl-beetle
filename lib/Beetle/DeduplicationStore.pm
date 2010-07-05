@@ -226,16 +226,19 @@ sub redis_master_from_master_file {
 }
 
 sub redis_master_file_changed {
-    my ($self) = @_;
-    my $result = $self->last_time_master_file_changed != io( $self->hosts )->mtime;
+    my ($self)  = @_;
+    my ($mtime) = ( stat( $self->hosts ) )[9];
+    my $result = $self->last_time_master_file_changed != $mtime ? 1 : 0;
+    $self->{last_time_master_file_changed} = $mtime if $result;
     return $result;
 }
 
 sub set_current_redis_master_from_master_file {
     my ($self) = @_;
-    my $file = io( $self->hosts );
-    $self->{last_time_master_file_changed} = $file->mtime;
-    my $server = $file->getline;
+    my $file = $self->hosts;
+    my $server;
+    { local $/ = undef; local *FILE; open FILE, "<$file"; $server = <FILE>; close FILE }
+    chomp $server;
     $self->{current_master} = $server ? $self->_new_redis_instance($server) : undef;
 }
 
