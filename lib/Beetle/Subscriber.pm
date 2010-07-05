@@ -38,6 +38,7 @@ sub stop {
 
 sub register_handler {
     my ( $self, $queues, $options, $handler ) = @_;
+    $queues = [$queues] unless ref $queues eq 'ARRAY';
     foreach my $queue (@$queues) {
         $self->set_handler(
             $queue => {
