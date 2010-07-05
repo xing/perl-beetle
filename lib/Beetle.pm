@@ -18,7 +18,7 @@ Beetle - High availability AMQP messaging with redundant queues
 =head1 DESCRIPTION
 
 This is the Perl implementation of the Ruby Beetle project.
-More information can be found on the L<http://xing.github.com/beetle>.
+More information can be found on L<http://xing.github.com/beetle/>.
 
 Beetle grew out of a project to improve an existing ActiveMQ based messaging
 infrastructure. It offers the following features:
