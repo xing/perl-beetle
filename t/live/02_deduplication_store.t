@@ -55,6 +55,20 @@ test_redis(
             is_deeply( \@result, [qw(1 2)], 'Multi bulk get command works' );
         }
 
+        {
+            is( $store->redis->del('hahahaha'),    0, 'Doesnt throw an error' );
+            is( $store->redis->exists('hahahaha'), 0, 'Key does not exist' );
+        }
+
+        {
+            is( $store->redis->msetnx( a => 1, b => 2 ), 1, 'The values have been set' );
+            is( $store->redis->get('a'), 1, 'The value of key a is correct' );
+            is( $store->redis->get('b'), 2, 'The value of key b is correct' );
+            is( $store->redis->msetnx( a => 3, b => 4 ), 0, 'The values did not get overridden' );
+            is( $store->redis->get('a'), 1, 'The value of key a is still correct' );
+            is( $store->redis->get('b'), 2, 'The value of key b is still correct' );
+        }
+
         ok( $store->redis->quit, 'Quit works' );
     }
 );
