@@ -30,28 +30,35 @@ has 'db' => (
     isa     => 'Int',
 );
 
-has 'redis_instances' => (
-    builder => '_build_redis_instances',
-    is      => 'ro',
-    isa     => 'ArrayRef',
-    lazy    => 1,
-);
-
-has '_redis' => (
-    clearer   => '_clear_redis',
+has 'current_master' => (
     is        => 'ro',
     isa       => 'Any',
-    predicate => '_has_redis',
+    predicate => 'has_current_master',
 );
 
-has 'attempts' => (
-    default => 120,
+has 'last_time_master_file_changed' => (
+    default => 0,
     is      => 'ro',
     isa     => 'Int',
 );
 
+has 'lookup_method' => (
+    is  => 'ro',
+    isa => 'Str',
+);
+
 # list of key suffixes to use for storing values in Redis.
 my @KEY_SUFFIXES = qw(status ack_count timeout delay attempts exceptions mutex expires);
+
+sub BUILD {
+    my ($self) = @_;
+    if ( -e $self->hosts ) {
+        $self->{lookup_method} = 'redis_master_from_master_file';
+    }
+    else {
+        $self->{lookup_method} = 'redis_master_from_server_string';
+    }
+}
 
 # build a Redis key out of a message id and a given suffix
 sub key {
@@ -63,14 +70,6 @@ sub key {
 sub keys {
     my ( $package, $msg_id ) = @_;
     return ( map { $package->key( $msg_id, $_ ) } @KEY_SUFFIXES );
-}
-
-# get the Redis instance
-sub redis {
-    my ($self) = @_;
-    return $self->_redis if $self->_has_redis;
-    $self->{_redis} = $self->_find_redis_master;
-    return $self->_redis;
 }
 
 # extract message id from a given Redis key
@@ -167,11 +166,28 @@ sub garbage_collect_keys {
 # performs redis operations by yielding a passed in block, waiting for a new master to
 # show up on the network if the operation throws an exception. if a new master doesn't
 # appear after 120 seconds, we raise an exception.
+# def with_failover #:nodoc:
+#   tries = 0
+#   begin
+#     yield
+#   rescue Exception => e
+#     Beetle::reraise_expectation_errors!
+#     logger.error "Beetle: redis connection error '#{e}' for server #{redis.server rescue ''}"
+#     if (tries+=1) < Beetle.config.redis_operation_retries
+#       sleep 1
+#       logger.info "Beetle: retrying redis operation"
+#       retry
+#     else
+#       raise NoRedisMaster.new(e.to_s)
+#     end
+#   end
+# end
+
 sub with_failover {
     my ( $self, $code ) = @_;
 
     my $result;
-    my $max_attempts = $self->attempts;
+    my $max_attempts = $self->config->redis_operation_retries;
 
     foreach my $attempt ( 1 .. $max_attempts ) {
         $result = eval { $code->(); };
@@ -183,45 +199,52 @@ sub with_failover {
         else {
             die "NoRedisMaster";
         }
-        $self->_clear_redis;
         sleep 1;
     }
 
     return $result;
 }
 
-sub _build_redis_instances {
+sub redis {
     my ($self) = @_;
-
-    my @instances = ();
-
-    foreach my $server ( split /[ ,]+/, $self->hosts ) {
-        my $instance = Beetle::Redis->new(
-            server => $server,
-            db     => $self->db,
-        );
-        push @instances, $instance;
-    }
-
-    return \@instances;
+    my $method = $self->lookup_method;
+    return $self->$method;
 }
 
-sub _find_redis_master {
+sub redis_master_from_server_string {
     my ($self) = @_;
-    my @masters = ();
-    foreach my $redis ( @{ $self->redis_instances } ) {
-        my $role = '';
-        eval { $role = $redis->info->{role}; };
-        if ($@) {
-            $self->log->error("Redis error: $@");
-        }
-        else {
-            push @masters, $redis if $role eq 'master';
-        }
+    unless ( $self->has_current_master ) {
+        $self->{current_master} = $self->_new_redis_instance( $self->hosts );
     }
-    croak "unable to determine a new master redis instance" unless scalar @masters;
-    croak "more than one redis master instances" if scalar @masters > 1;
-    return $masters[0];
+    return $self->current_master;
+}
+
+sub redis_master_from_master_file {
+    my ($self) = @_;
+    $self->set_current_redis_master_from_master_file if $self->redis_master_file_changed;
+    return $self->current_master;
+}
+
+sub redis_master_file_changed {
+    my ($self) = @_;
+    my $result = $self->last_time_master_file_changed != io( $self->hosts )->mtime;
+    return $result;
+}
+
+sub set_current_redis_master_from_master_file {
+    my ($self) = @_;
+    my $file = io( $self->hosts );
+    $self->{last_time_master_file_changed} = $file->mtime;
+    my $server = $file->getline;
+    $self->{current_master} = $server ? $self->_new_redis_instance($server) : undef;
+}
+
+sub _new_redis_instance {
+    my ( $self, $server ) = @_;
+    return Beetle::Redis->new(
+        server => $server,
+        db     => $self->db,
+    );
 }
 
 __PACKAGE__->meta->make_immutable;
