@@ -69,6 +69,10 @@ test_redis(
             is( $store->redis->get('b'), 2, 'The value of key b is still correct' );
         }
 
+        {
+            is( $store->redis->info->{role}, 'master', 'Role is correct' );
+        }
+
         ok( $store->redis->quit, 'Quit works' );
     }
 );
