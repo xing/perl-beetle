@@ -19,6 +19,26 @@ DESCRIPTION
     Sorry, currently there're no docs yet, please take a look into
     "examples/" and/or the tests.
 
+TEST COVERAGE
+        ----------------------------------- ------ ------ ------ ------ ------ ------
+        File                                  stmt   bran   cond    sub   time  total
+        ----------------------------------- ------ ------ ------ ------ ------ ------
+        blib/lib/Beetle.pm                   100.0    n/a    n/a  100.0    1.0  100.0
+        lib/Beetle/Base.pm                   100.0    n/a    n/a  100.0    0.8  100.0
+        lib/Beetle/Base/PubSub.pm            100.0  100.0  100.0  100.0    2.2  100.0
+        lib/Beetle/Bunny.pm                  100.0  100.0   91.7  100.0    3.1   99.0
+        lib/Beetle/Client.pm                 100.0  100.0   79.4  100.0   35.3   95.9
+        lib/Beetle/Config.pm                 100.0    n/a    n/a  100.0    0.5  100.0
+        lib/Beetle/Constants.pm              100.0    n/a    n/a  100.0    0.0  100.0
+        lib/Beetle/DeduplicationStore.pm     100.0   95.0   66.7  100.0   10.4   98.9
+        lib/Beetle/Handler.pm                100.0  100.0  100.0  100.0    2.7  100.0
+        lib/Beetle/Message.pm                100.0  100.0  100.0  100.0   17.1  100.0
+        lib/Beetle/Publisher.pm               99.2   93.3  100.0  100.0   14.1   98.3
+        lib/Beetle/Redis.pm                   97.5   88.2   50.0   92.3    1.8   90.1
+        lib/Beetle/Subscriber.pm             100.0   94.4  100.0  100.0   10.9   99.3
+        Total                                 99.7   96.4   85.3   99.5  100.0   98.1
+        ----------------------------------- ------ ------ ------ ------ ------ ------
+
 AUTHOR
     Johannes Plunien <plu@cpan.org>
 
