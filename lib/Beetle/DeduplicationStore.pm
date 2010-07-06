@@ -52,7 +52,8 @@ my @KEY_SUFFIXES = qw(status ack_count timeout delay attempts exceptions mutex e
 
 sub BUILD {
     my ($self) = @_;
-    if ( -e $self->hosts ) {
+    my $hosts = $self->hosts;
+    if ( -e $hosts ) {
         $self->{lookup_method} = 'redis_master_from_master_file';
     }
     else {
@@ -206,9 +207,10 @@ sub redis_master_from_master_file {
 }
 
 sub redis_master_file_changed {
-    my ($self)  = @_;
-    my ($mtime) = ( stat( $self->hosts ) )[9];
-    my $result = $self->last_time_master_file_changed != $mtime ? 1 : 0;
+    my ($self)      = @_;
+    my ($mtime)     = ( stat( $self->hosts ) )[9];
+    my $last_change = $self->last_time_master_file_changed;
+    my $result = $last_change != $mtime ? 1 : 0;
     $self->{last_time_master_file_changed} = $mtime if $result;
     return $result;
 }
@@ -219,7 +221,12 @@ sub set_current_redis_master_from_master_file {
     my $server;
     { local $/ = undef; local *FILE; open FILE, "<$file"; $server = <FILE>; close FILE }
     chomp $server;
-    $self->{current_master} = $server ? $self->_new_redis_instance($server) : undef;
+    if ($server) {
+        $self->{current_master} = $self->_new_redis_instance($server);
+    }
+    else {
+        $self->{current_master} = undef;
+    }
 }
 
 sub _new_redis_instance {
