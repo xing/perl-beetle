@@ -163,26 +163,6 @@ sub garbage_collect_keys {
     return 1;
 }
 
-# performs redis operations by yielding a passed in block, waiting for a new master to
-# show up on the network if the operation throws an exception. if a new master doesn't
-# appear after 120 seconds, we raise an exception.
-# def with_failover #:nodoc:
-#   tries = 0
-#   begin
-#     yield
-#   rescue Exception => e
-#     Beetle::reraise_expectation_errors!
-#     logger.error "Beetle: redis connection error '#{e}' for server #{redis.server rescue ''}"
-#     if (tries+=1) < Beetle.config.redis_operation_retries
-#       sleep 1
-#       logger.info "Beetle: retrying redis operation"
-#       retry
-#     else
-#       raise NoRedisMaster.new(e.to_s)
-#     end
-#   end
-# end
-
 sub with_failover {
     my ( $self, $code ) = @_;
 
