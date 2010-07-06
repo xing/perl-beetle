@@ -7,6 +7,7 @@ use FindBin qw( $Bin );
 use lib ( "$Bin/../lib", "$Bin/../../lib" );
 use Test::Beetle;
 use Test::Beetle::Redis;
+use Test::Beetle::Handler::Invalid;
 use Beetle::Message;
 use Beetle::Handler;
 use Beetle::Constants;
@@ -48,7 +49,7 @@ test_redis(
             is( $m->key_exists, 1, 'Key exists' );
 
             is( scalar( $store->redis->keys('*') ), 2, 'Keys are really in store (status + expires)' );
-            ok( $store->garbage_collect_keys(), 'Garbage collection without argument should use time' );
+            ok( $store->garbage_collect_keys(),           'Garbage collection without argument should use time' );
             ok( $store->garbage_collect_keys( time + 1 ), 'Garbage collection' );
             is( scalar( $store->redis->keys('*') ), undef, 'Keys have been removed from store' );
         }
@@ -1295,7 +1296,7 @@ test_redis(
             is( $store->exists( $m->msg_id => 'mutex' ), 0, 'mutex got deleted from store' );
         }
 
-        # test "processing a message catches internal exceptions risen by process_internal and returns an internal error" do
+    # test "processing a message catches internal exceptions risen by process_internal and returns an internal error" do
         {
             my $o1     = Sub::Override->new( 'Beetle::Message::_process_internal' => sub { die "blah"; } );
             my $header = Test::Beetle->header_with_params();
@@ -1305,8 +1306,20 @@ test_redis(
                 queue  => "somequeue",
                 store  => $store,
             );
-            my $result = $m->process(sub {});
+            my $result = $m->process( sub { } );
             is( $result, $INTERNALERROR, 'Return value is correct' );
+        }
+
+        {
+            my $header = Test::Beetle->header_with_params();
+            my $m      = Beetle::Message->new(
+                body   => 'foo',
+                header => $header,
+                queue  => "somequeue",
+                store  => $store,
+            );
+            my $handler = Test::Beetle::Handler::Invalid->new;
+            is( $m->_run_handler($handler), $HANDLERCRASH, 'Handler crashed correctly' );
         }
     }
 );

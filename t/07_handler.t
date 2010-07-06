@@ -7,6 +7,7 @@ use Sub::Override;
 use FindBin qw( $Bin );
 use lib ( "$Bin/lib", "$Bin/../lib" );
 use Test::Beetle::Handler::FooBar;
+use Test::Beetle::Handler::Invalid;
 use Test::Beetle::Handler::SubFooBar;
 use Test::Beetle;
 
@@ -149,6 +150,18 @@ BEGIN {
 
 {
     throws_ok { Beetle::Handler->create('Test::Beetle::Handler::Invalid') }
+    qr/Invalid handler/,
+      'invalid usage of create call';
+}
+
+{
+    throws_ok { Beetle::Handler->create( Test::Beetle::Handler::Invalid->new ) }
+    qr/Invalid handler/,
+      'invalid usage of create call';
+}
+
+{
+    throws_ok { Beetle::Handler->create(undef) }
     qr/Invalid handler/,
       'invalid usage of create call';
 }

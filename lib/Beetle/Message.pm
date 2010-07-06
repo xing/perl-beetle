@@ -200,7 +200,7 @@ sub attempts {
 sub attempts_limit_reached {
     my ($self) = @_;
     my $attempts = $self->attempts;
-    my $result = defined $attempts && $attempts >= $self->attempts_limit;
+    my $result = $attempts >= $self->attempts_limit;
     return $result ? 1 : 0;
 }
 

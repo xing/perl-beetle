@@ -156,7 +156,8 @@ sub garbage_collect_keys {
     my $threshold = $time + $self->config->gc_threshold;
     foreach my $key (@keys) {
         my $expires_at = $self->redis->get($key);
-        if ( $expires_at && $expires_at < $threshold ) {
+        next unless defined $expires_at;
+        if ( $expires_at < $threshold ) {
             my $msg_id = $self->msg_id($key);
             $self->redis->del($_) for $self->keys($msg_id);
         }
