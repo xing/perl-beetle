@@ -81,7 +81,10 @@ sub AUTOLOAD {
         return 1;
     }
 
-    my $result = <$sock> || die "can't read socket: $!";
+    my $result = <$sock> || do {
+        $self->__connect(1);
+        die "can't read socket: $!";
+    };
     Encode::_utf8_on($result);    ## no critic
     # warn "<< $result" if $self->{debug};
     my $type = substr( $result, 0, 1 );
