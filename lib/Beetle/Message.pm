@@ -7,6 +7,7 @@ use Devel::StackTrace;
 extends qw(Beetle::Base);
 use Beetle::Handler;
 use Beetle::Constants;
+use Data::Dumper;
 
 # current message format version
 our $FORMAT_VERSION = 1;
@@ -212,13 +213,20 @@ sub completed {
 sub decode {
     my ($self) = @_;
 
-    my $header       = $self->header;
-    my $amqp_headers = $header->{headers};
+    eval {
+        my $header       = $self->header;
+        my $amqp_headers = $header->{headers} || die 'missing amqp headers';
 
-    $self->{uuid}           = $header->{message_id};
-    $self->{format_version} = $amqp_headers->{format_version};
-    $self->{flags}          = $amqp_headers->{flags};
-    $self->{expires_at}     = $amqp_headers->{expires_at};
+        $self->{uuid}           = $header->{message_id};
+        $self->{format_version} = $amqp_headers->{format_version};
+        $self->{flags}          = $amqp_headers->{flags};
+        $self->{expires_at}     = $amqp_headers->{expires_at};
+    };
+
+    if ($@) {
+        $self->log->error('Could not decode message. '. Dumper $self);
+        $self->{exception} = $@;
+    }
 }
 
 sub delayed {
@@ -396,7 +404,11 @@ sub _handler_failed {
 sub _process_internal {
     my ( $self, $handler ) = @_;
 
-    if ( $self->expired ) {
+    if ($self->exception) {
+        return $DECODINGERROR;
+    }
+
+    elsif ( $self->expired ) {
         $self->log->warn( sprintf 'Beetle: ignored expired message (%s)', $self->msg_id );
         $self->ack;
         return $ANCIENT;

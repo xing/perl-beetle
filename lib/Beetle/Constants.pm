@@ -8,6 +8,7 @@ our @EXPORT = qw(
   $OK
   $ANCIENT
   $ATTEMPTSLIMITREACHED
+  $DECODINGERROR
   $EXCEPTIONSLIMITREACHED
   $DELAYED
   $HANDLERCRASH
@@ -21,6 +22,7 @@ our @EXPORT = qw(
 our $OK                     = 'RC::OK';
 our $ANCIENT                = 'RC::Ancient';
 our $ATTEMPTSLIMITREACHED   = 'RC::AttemptsLimitReached';
+our $DECODINGERROR          = 'RC::DecodingError';
 our $EXCEPTIONSLIMITREACHED = 'RC::ExceptionsLimitReached';
 our $DELAYED                = 'RC::Delayed';
 our $HANDLERCRASH           = 'RC::HandlerCrash';
@@ -28,7 +30,7 @@ our $HANDLERNOTYETTIMEDOUT  = 'RC::HandlerNotYetTimedOut';
 our $MUTEXLOCKED            = 'RC::MutexLocked';
 our $INTERNALERROR          = 'RC::InternalError';
 
-our @FAILURE = ( $ATTEMPTSLIMITREACHED, $EXCEPTIONSLIMITREACHED );
+our @FAILURE = ( $ATTEMPTSLIMITREACHED, $DECODINGERROR, $EXCEPTIONSLIMITREACHED );
 our @RECOVER = ( $DELAYED, $HANDLERCRASH, $HANDLERNOTYETTIMEDOUT, $MUTEXLOCKED, $INTERNALERROR );
 
 1;

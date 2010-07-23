@@ -1321,6 +1321,22 @@ test_redis(
             my $handler = Test::Beetle::Handler::Invalid->new;
             is( $m->_run_handler($handler), $HANDLERCRASH, 'Handler crashed correctly' );
         }
+
+        # test "a message with an exception set should not be processed at all" do
+        # test "an exception during decoding should be stored in the exception attribute" do
+        {
+            my $m = Beetle::Message->new(
+                body   => 'foo',
+                header => {},
+                queue  => "somequeue",
+                store  => $store,
+            );
+
+            my $result = $m->_process_internal($empty_handler);
+
+            like( $m->exception, qr/missing amqp headers/, 'Missing AMQP headers exception found' );
+            is( $result, $DECODINGERROR, 'Return value is correct' );
+        }
     }
 );
 
