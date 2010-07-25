@@ -7,6 +7,16 @@ use Data::Dumper;
 use Scalar::Util;
 use Class::MOP;
 
+=head1 NAME
+
+Beetle::Handler - Base class for message handlers
+
+=head1 DESCRIPTION
+
+TODO: <plu> add docs
+
+=cut
+
 has 'message' => (
     is  => 'rw',
     isa => 'Any',
@@ -101,5 +111,15 @@ sub failure {
 }
 
 __PACKAGE__->meta->make_immutable;
+
+=head1 AUTHOR
+
+See L<Beetle>.
+
+=head1 COPYRIGHT AND LICENSE
+
+See L<Beetle>.
+
+=cut
 
 1;

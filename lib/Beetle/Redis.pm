@@ -10,6 +10,16 @@ use Encode;
 
 our $VERSION = '1.2001';
 
+=head1 NAME
+
+Beetle::Redis - Redis protocol implementation
+
+=head1 DESCRIPTION
+
+TODO: <plu> add docs
+
+=cut
+
 # This is a copy of Redis-1.2001 with one minor change:
 # The connect is not made in the constructor but in the AUTOLOAD method.
 # After connecting a database is selected.
@@ -166,5 +176,15 @@ sub __read_multi_bulk {
     # warn "## list = ", Dumper(@list) if $self->{debug};
     return @list;
 }
+
+=head1 AUTHOR
+
+See L<Beetle>.
+
+=head1 COPYRIGHT AND LICENSE
+
+See L<Beetle>.
+
+=cut
 
 1;

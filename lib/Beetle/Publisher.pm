@@ -7,6 +7,16 @@ use Beetle::Message;
 use Data::Dumper;
 extends qw(Beetle::Base::PubSub);
 
+=head1 NAME
+
+Beetle::Publisher - Publish messages
+
+=head1 DESCRIPTION
+
+TODO: <plu> add docs
+
+=cut
+
 my $RPC_DEFAULT_TIMEOUT = 10;
 our $RECYCLE_DEAD_SERVERS_DELAY = 10;
 
@@ -289,5 +299,15 @@ sub bind_queue {
 }
 
 __PACKAGE__->meta->make_immutable;
+
+=head1 AUTHOR
+
+See L<Beetle>.
+
+=head1 COPYRIGHT AND LICENSE
+
+See L<Beetle>.
+
+=cut
 
 1;

@@ -7,6 +7,19 @@ use Net::RabbitFoot;
 use Data::Dumper;
 extends qw(Beetle::Base);
 
+=head1 NAME
+
+Beetle::Bunny - RabbitMQ adaptor
+
+=head1 DESCRIPTION
+
+This is the adaptor to L<Net::RabbitFoot>. Its interface is similar to the
+Ruby AMQP client called C<< bunny >>: http://github.com/celldee/bunny
+So the Beetle code using this adaptor can be closer to the Ruby Beetle
+implementation.
+
+=cut
+
 has 'host' => (
     is       => 'rw',
     isa      => 'Str',
@@ -209,5 +222,15 @@ sub _build__mq {
 }
 
 __PACKAGE__->meta->make_immutable;
+
+=head1 AUTHOR
+
+See L<Beetle>.
+
+=head1 COPYRIGHT AND LICENSE
+
+See L<Beetle>.
+
+=cut
 
 1;

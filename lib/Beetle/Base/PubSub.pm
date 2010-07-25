@@ -5,7 +5,15 @@ use namespace::clean -except => 'meta';
 extends qw(Beetle::Base);
 use Class::MOP;
 
-# Base class for publisher/subscriber
+=head1 NAME
+
+Beetle::Base::PubSub - Base class for publisher/subscriber
+
+=head1 DESCRIPTION
+
+TODO: <plu> add docs
+
+=cut
 
 my @QUEUE_CREATION_KEYS = qw(passive durable exclusive auto_delete no_wait);
 my @QUEUE_BINDING_KEYS  = qw(key no_wait);
@@ -201,5 +209,15 @@ sub create_exchange {
 }
 
 __PACKAGE__->meta->make_immutable;
+
+=head1 AUTHOR
+
+See L<Beetle>.
+
+=head1 COPYRIGHT AND LICENSE
+
+See L<Beetle>.
+
+=cut
 
 1;

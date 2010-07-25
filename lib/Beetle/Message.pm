@@ -9,6 +9,16 @@ use Beetle::Handler;
 use Beetle::Constants;
 use Data::Dumper;
 
+=head1 NAME
+
+Beetle::Message - Message implementation
+
+=head1 DESCRIPTION
+
+TODO: <plu> add docs
+
+=cut
+
 # current message format version
 our $FORMAT_VERSION = 1;
 
@@ -496,5 +506,15 @@ sub _execute_handler {
 }
 
 __PACKAGE__->meta->make_immutable;
+
+=head1 AUTHOR
+
+See L<Beetle>.
+
+=head1 COPYRIGHT AND LICENSE
+
+See L<Beetle>.
+
+=cut
 
 1;

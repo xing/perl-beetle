@@ -5,6 +5,16 @@ use namespace::clean -except => 'meta';
 with qw(MooseX::Log::Log4perl);
 use Beetle::Config;
 
+=head1 NAME
+
+Beetle::Config - Beetle base class
+
+=head1 DESCRIPTION
+
+TODO: <plu> add docs
+
+=cut
+
 has 'config' => (
     default => sub { Beetle::Config->new },
     is      => 'ro',
@@ -45,5 +55,15 @@ sub _setup_logger {
 }
 
 __PACKAGE__->meta->make_immutable;
+
+=head1 AUTHOR
+
+See L<Beetle>.
+
+=head1 COPYRIGHT AND LICENSE
+
+See L<Beetle>.
+
+=cut
 
 1;

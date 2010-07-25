@@ -1,25 +1,5 @@
 package Beetle::Client;
 
-# This class provides the interface through which messaging is configured for both
-# message producers and consumers. It keeps references to an instance of a
-# Beetle::Subscriber, a Beetle::Publisher (both of which are instantiated on demand),
-# and a reference to an instance of Beetle::DeduplicationStore.
-#
-# Configuration of exchanges, queues, messages, and message handlers is done by calls to
-# corresponding register_ methods. Note that these methods just build up the
-# configuration, they don't interact with the AMQP servers.
-#
-# On the publisher side, publishing a message will ensure that the exchange it will be
-# sent to, and each of the queues bound to the exchange, will be created on demand. On
-# the subscriber side, exchanges, queues, bindings and queue subscriptions will be
-# created when the application calls the listen method. An application can decide to
-# subscribe to only a subset of the configured queues by passing a list of queue names
-# to the listen method.
-#
-# The net effect of this strategy is that producers and consumers can be started in any
-# order, so that no message is lost if message producers are accidentally started before
-# the corresponding consumers.
-
 use Moose;
 use namespace::clean -except => 'meta';
 use Beetle::DeduplicationStore;
@@ -29,6 +9,48 @@ use Sys::Hostname;
 use Net::AMQP::Protocol;
 use Net::RabbitFoot;
 extends qw(Beetle::Base);
+
+=head1 NAME
+
+Beetle::Client - Interface to subscriber and publisher
+
+=head1 SYNOPSIS
+
+    use Beetle::Client;
+
+    my $client = Beetle::Client->new;
+
+    $client->register_queue('test');
+    $client->purge('test');
+    $client->register_message( test => { redundant => 0 } );
+
+    for ( 1 .. 5 ) {
+        $client->publish( test => "Hello $_ world!" );
+    }
+
+=head1 DESCRIPTION
+
+This class provides the interface through which messaging is configured for both
+message producers and consumers. It keeps references to an instance of a
+Beetle::Subscriber, a Beetle::Publisher (both of which are instantiated on demand),
+and a reference to an instance of Beetle::DeduplicationStore.
+
+Configuration of exchanges, queues, messages, and message handlers is done by calls to
+corresponding register_ methods. Note that these methods just build up the
+configuration, they don't interact with the AMQP servers.
+
+On the publisher side, publishing a message will ensure that the exchange it will be
+sent to, and each of the queues bound to the exchange, will be created on demand. On
+the subscriber side, exchanges, queues, bindings and queue subscriptions will be
+created when the application calls the listen method. An application can decide to
+subscribe to only a subset of the configured queues by passing a list of queue names
+to the listen method.
+
+The net effect of this strategy is that producers and consumers can be started in any
+order, so that no message is lost if message producers are accidentally started before
+the corresponding consumers.
+
+=cut
 
 has 'servers' => (
     documentation => 'the AMQP servers available for publishing',
@@ -134,6 +156,131 @@ sub BUILD {
     }
 }
 
+=head1 METHODS
+
+=head2 new
+
+There are two possible params which can be passed to the constructor:
+
+=over 4
+
+=item * configfile: Scalar
+
+=item * config: HashRef
+
+=back
+
+    my $client = Beetle::Client->new( configfile => '/etc/beetle.yml' );
+
+This will use L<MooseX::SimpleConfig> to load the config file and set
+valid attributes of L<Beetle::Config>.
+
+You can also set the attributes of L<Beetle::Config> directly using
+a HashRef:
+
+    my $client = Beetle::Client->new(
+        config => {
+            servers  => 'localhost:5673 localhost:5672',
+            loglevel => 'INFO',
+        }
+    );
+
+It's not possible to set both parameters! The config hash superseeds
+the configfile parameter.
+
+=head2 listen
+
+After setting everything up for the subscriber side you need to call this
+method to listen for messages on the RabbitMQ servers. If you do not pass
+any parameter to this method it will listen for -all- message that you have
+configured using L</register_message>. Maybe you have configured some
+message(s) you only want to use for publishing messages but not for
+subscribing. In that case you need to tell this method to listen only to
+certain messages.
+
+    my $client = Beetle::Client->new;
+    $client->register_queue('test1');
+    $client->register_message( test1 => { redundant => 0 } );
+    $client->register_message( test2 => { redundant => 0 } );
+    $client->register_message( test3 => { redundant => 0 } );
+    $client->publish( test2 => "Hello 2." );
+    $client->publish( test3 => "Hello 3." );
+    $client->register_handler(
+        test1 => sub {
+            # ...
+        }
+    );
+    $client->listen( [qw(test1)] );
+
+So the first optional parameter is an ArrayRef of message names you want
+to listen for. There's a second optional parameter which may be a CodeRef.
+This CodeRef is executed before the event loop starts to listen for AMQP
+messages:
+
+    $client->listen( [qw(test1)], sub { warn "Starting to listen now..." } );
+
+=cut
+
+sub listen {
+    my ( $self, $messages, $block ) = @_;
+    $messages ||= [ $self->message_names ];
+    foreach my $message (@$messages) {
+        die "unknown message ${message}" unless $self->has_message($message);
+    }
+
+    $self->subscriber->listen( $messages, $block );
+}
+
+=head2 publish
+
+=cut
+
+sub publish {
+    my ( $self, $message_name, $data, $options ) = @_;
+    $options ||= {};
+
+    die "unknown message ${message_name}" unless $self->has_message($message_name);
+
+    $self->publisher->publish( $message_name, $data, $options );
+}
+
+=head2 purge
+
+=cut
+
+sub purge {
+    my ( $self, $queue_name ) = @_;
+
+    die "unknown queue ${queue_name}" unless $self->has_queue($queue_name);
+
+    $self->publisher->purge($queue_name);
+}
+
+=head2 register_binding
+
+=cut
+
+sub register_binding {
+    my ( $self, $queue_name, $options ) = @_;
+    $options ||= {};
+
+    my $exchange = $options->{exchange} || $queue_name;
+    my $key      = $options->{key}      || $queue_name;
+
+    $self->add_binding( $queue_name => { exchange => $exchange, key => $key } );
+    $self->register_exchange($exchange) unless $self->has_exchange($exchange);
+
+    my $queues = $self->get_exchange($exchange)->{queues};
+    $queues ||= [];
+
+    push @$queues, $queue_name unless grep $_ eq $queue_name, @$queues;
+    $self->get_exchange($exchange)->{queues} = $queues;
+}
+
+=head2 register_exchange
+
+=cut
+
 sub register_exchange {
     my ( $self, $name, $options ) = @_;
     $options ||= {};
@@ -145,6 +292,42 @@ sub register_exchange {
 
     $self->set_exchange( $name => $options );
 }
+
+=head2 register_handler
+
+=cut
+
+sub register_handler {
+    my ( $self, $queues, $handler, $handler_args ) = @_;
+    $handler_args ||= {};
+    $queues = [$queues] unless ref $queues eq 'ARRAY';
+
+    foreach my $queue (@$queues) {
+        die "unknown queue: $queue" unless $self->has_queue($queue);
+    }
+
+    $self->subscriber->register_handler( $queues, $handler_args, $handler );
+}
+
+=head2 register_message
+
+=cut
+
+sub register_message {
+    my ( $self, $message_name, $options ) = @_;
+    $options ||= {};
+
+    die "message ${message_name} already configured" if $self->has_message($message_name);
+    $options->{exchange} ||= $message_name;
+    $options->{key}      ||= $message_name;
+    $options->{persistent} = 1;
+
+    $self->set_message( $message_name => $options );
+}
+
+=head2 register_queue
+
+=cut
 
 sub register_queue {
     my ( $self, $name, $options ) = @_;
@@ -167,21 +350,22 @@ sub register_queue {
     $self->register_binding( $name => { exchange => $exchange, key => $key } );
 }
 
-sub register_binding {
-    my ( $self, $queue_name, $options ) = @_;
-    $options ||= {};
+=head2 stop_listening
 
-    my $exchange = $options->{exchange} || $queue_name;
-    my $key      = $options->{key}      || $queue_name;
+=cut
 
-    $self->add_binding( $queue_name => { exchange => $exchange, key => $key } );
-    $self->register_exchange($exchange) unless $self->has_exchange($exchange);
+sub stop_listening {
+    my ($self) = @_;
+    $self->subscriber->stop;
+}
 
-    my $queues = $self->get_exchange($exchange)->{queues};
-    $queues ||= [];
+=head2 stop_publishing
 
-    push @$queues, $queue_name unless grep $_ eq $queue_name, @$queues;
-    $self->get_exchange($exchange)->{queues} = $queues;
+=cut
+
+sub stop_publishing {
+    my ($self) = @_;
+    $self->publisher->stop;
 }
 
 sub add_binding {
@@ -192,67 +376,16 @@ sub add_binding {
     $self->set_binding( $queue_name => $binding );
 }
 
-sub register_message {
-    my ( $self, $message_name, $options ) = @_;
-    $options ||= {};
-
-    die "message ${message_name} already configured" if $self->has_message($message_name);
-    $options->{exchange} ||= $message_name;
-    $options->{key}      ||= $message_name;
-    $options->{persistent} = 1;
-
-    $self->set_message( $message_name => $options );
-}
-
-sub register_handler {
-    my ( $self, $queues, $handler, $handler_args ) = @_;
-    $handler_args ||= {};
-    $queues = [$queues] unless ref $queues eq 'ARRAY';
-
-    foreach my $queue (@$queues) {
-        die "unknown queue: $queue" unless $self->has_queue($queue);
-    }
-
-    $self->subscriber->register_handler( $queues, $handler_args, $handler );
-}
-
-sub publish {
-    my ( $self, $message_name, $data, $options ) = @_;
-    $options ||= {};
-
-    die "unknown message ${message_name}" unless $self->has_message($message_name);
-
-    $self->publisher->publish( $message_name, $data, $options );
-}
-
-sub purge {
-    my ( $self, $queue_name ) = @_;
-
-    die "unknown queue ${queue_name}" unless $self->has_queue($queue_name);
-
-    $self->publisher->purge($queue_name);
-}
-
-sub listen {
-    my ( $self, $messages, $block ) = @_;
-    $messages ||= [ $self->message_names ];
-    foreach my $message (@$messages) {
-        die "unknown message ${message}" unless $self->has_message($message);
-    }
-
-    $self->subscriber->listen( $messages, $block );
-}
-
-sub stop_listening {
-    my ($self) = @_;
-    $self->subscriber->stop;
-}
-
-sub stop_publishing {
-    my ($self) = @_;
-    $self->publisher->stop;
-}
-
 __PACKAGE__->meta->make_immutable;
+
+=head1 AUTHOR
+
+See L<Beetle>.
+
+=head1 COPYRIGHT AND LICENSE
+
+See L<Beetle>.
+
+=cut
 
 1;

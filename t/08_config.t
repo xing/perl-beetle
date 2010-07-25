@@ -19,7 +19,7 @@ BEGIN {
         'gc_threshold'            => 259200,
         'logger'                  => 'STDERR',
         'loglayout'               => '[%d] [%p] (%C:%L) %m%n',
-        'loglevel'                => 'DEBUG',
+        'loglevel'                => 'INFO',
         'password'                => 'guest',
         'redis_db'                => 4,
         'redis_hosts'             => 'localhost:6379',

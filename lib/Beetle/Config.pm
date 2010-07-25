@@ -4,6 +4,22 @@ use Moose;
 use namespace::clean -except => 'meta';
 with qw(MooseX::SimpleConfig);
 
+=head1 NAME
+
+Beetle::Config - Beetle config attributes
+
+=head1 DESCRIPTION
+
+TODO: <plu> add docs
+
+=head1 ATTRIBUTES
+
+=head2 logger
+
+default logfile (default: STDERR)
+
+=cut
+
 has 'logger' => (
     default       => 'STDERR',
     documentation => 'default logfile (default: STDERR)',
@@ -11,6 +27,12 @@ has 'logger' => (
     isa           => 'Str',
     required      => 1,
 );
+
+=head2 loglayout
+
+Log4perl log layout (default: [%d] [%p] (%C:%L) %m%n)
+
+=cut
 
 has 'loglayout' => (
     default       => '[%d] [%p] (%C:%L) %m%n',
@@ -20,13 +42,25 @@ has 'loglayout' => (
     required      => 1,
 );
 
+=head2 loglevel
+
+Log4perl log level (default: INFO)
+
+=cut
+
 has 'loglevel' => (
-    default       => 'DEBUG',
+    default       => 'INFO',
     documentation => 'Log4perl log level',
     is            => 'rw',
     isa           => 'Str',
     required      => 1,
 );
+
+=head2 gc_threshold
+
+number of seconds after which keys are removed form the deduplication store (default: 3 days)
+
+=cut
 
 has 'gc_threshold' => (
     default       => 86400 * 3,
@@ -36,6 +70,12 @@ has 'gc_threshold' => (
     required      => 1,
 );
 
+=head2 redis_hosts
+
+the machines where the deduplication store lives (default: localhost:6379)
+
+=cut
+
 has 'redis_hosts' => (
     default       => 'localhost:6379',
     documentation => 'the machines where the deduplication store lives (default: localhost:6379)',
@@ -43,6 +83,12 @@ has 'redis_hosts' => (
     isa           => 'Str',
     required      => 1,
 );
+
+=head2 redis_db
+
+redis database number to use for the message deduplication store (default: 4)
+
+=cut
 
 has 'redis_db' => (
     default       => 4,
@@ -52,13 +98,25 @@ has 'redis_db' => (
     required      => 1,
 );
 
+=head2 redis_operation_retries
+
+how often we should retry a redis operation before giving up (default: 180)
+
+=cut
+
 has 'redis_operation_retries' => (
     default       => 180,
-    documentation => 'how often we should retry a redis operation before giving up',
+    documentation => 'how often we should retry a redis operation before giving up (default: 180)',
     is            => 'rw',
     isa           => 'Int',
     required      => 1,
 );
+
+=head2 servers
+
+list of amqp servers to use (default: localhost:5672)
+
+=cut
 
 has 'servers' => (
     default       => 'localhost:5672',
@@ -68,6 +126,12 @@ has 'servers' => (
     required      => 1,
 );
 
+=head2 vhost
+
+the virtual host to use on the AMQP servers (default: /)
+
+=cut
+
 has 'vhost' => (
     default       => '/',
     documentation => 'the virtual host to use on the AMQP servers (default: /)',
@@ -75,6 +139,12 @@ has 'vhost' => (
     isa           => 'Str',
     required      => 1,
 );
+
+=head2 user
+
+the AMQP user to use when connecting to the AMQP servers (default: guest)
+
+=cut
 
 has 'user' => (
     default       => 'guest',
@@ -84,6 +154,12 @@ has 'user' => (
     required      => 1,
 );
 
+=head2 password
+
+the password to use when connectiong to the AMQP servers (default: guest)
+
+=cut
+
 has 'password' => (
     default       => 'guest',
     documentation => 'the password to use when connectiong to the AMQP servers (default: guest)',
@@ -92,6 +168,12 @@ has 'password' => (
     required      => 1,
 );
 
+=head2 verbose
+
+enable verbose logging, especially the AMQP frames (default: 0)
+
+=cut
+
 has 'verbose' => (
     default       => 0,
     documentation => 'enable verbose logging, especially the AMQP frames (default: 0)',
@@ -99,6 +181,12 @@ has 'verbose' => (
     isa           => 'Bool',
     required      => 1,
 );
+
+=head2 bunny_class
+
+defaults to Beetle::Bunny
+
+=cut
 
 has 'bunny_class' => (
     default       => 'Beetle::Bunny',
@@ -109,5 +197,15 @@ has 'bunny_class' => (
 );
 
 __PACKAGE__->meta->make_immutable;
+
+=head1 AUTHOR
+
+See L<Beetle>.
+
+=head1 COPYRIGHT AND LICENSE
+
+See L<Beetle>.
+
+=cut
 
 1;

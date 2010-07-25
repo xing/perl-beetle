@@ -1,22 +1,41 @@
 package Beetle::DeduplicationStore;
 
-# The deduplication store is used internally by Beetle::Client to store information on
-# the status of message processing. This includes:
-# * how often a message has already been seen by some consumer
-# * whether a message has been processed successfully
-# * how many attempts have been made to execute a message handler for a given message
-# * how long we should wait before trying to execute the message handler after a failure
-# * how many exceptions have been raised during previous execution attempts
-# * how long we should wait before trying to perform the next execution attempt
-# * whether some other process is already trying to execute the message handler
-#
-# It also provides a method to garbage collect keys for expired messages.
-
 use Moose;
 use namespace::clean -except => 'meta';
 use Beetle::Redis;
 use Carp qw(croak);
 extends qw(Beetle::Base);
+
+=head1 NAME
+
+Beetle::DeduplicationStore - Deduplicate messages using Redis
+
+=head1 DESCRIPTION
+
+The deduplication store is used internally by Beetle::Client to store information on
+the status of message processing. This includes:
+
+=over 4
+
+=item * how often a message has already been seen by some consumer
+
+=item * whether a message has been processed successfully
+
+=item * how many attempts have been made to execute a message handler for a given message
+
+=item * how long we should wait before trying to execute the message handler after a failure
+
+=item * how many exceptions have been raised during previous execution attempts
+
+=item * how long we should wait before trying to perform the next execution attempt
+
+=item * whether some other process is already trying to execute the message handler
+
+=back
+
+It also provides a method to garbage collect keys for expired messages.
+
+=cut
 
 has 'hosts' => (
     default => 'localhost:6379',
@@ -239,5 +258,15 @@ sub _new_redis_instance {
 }
 
 __PACKAGE__->meta->make_immutable;
+
+=head1 AUTHOR
+
+See L<Beetle>.
+
+=head1 COPYRIGHT AND LICENSE
+
+See L<Beetle>.
+
+=cut
 
 1;

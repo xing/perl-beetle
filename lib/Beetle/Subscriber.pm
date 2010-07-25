@@ -8,6 +8,16 @@ use Beetle::Message;
 use Beetle::Constants;
 extends qw(Beetle::Base::PubSub);
 
+=head1 NAME
+
+Beetle::Subscriber - Subscribe for messages
+
+=head1 DESCRIPTION
+
+TODO: <plu> add docs
+
+=cut
+
 has 'handlers' => (
     default => sub { {} },
     handles => {
@@ -191,5 +201,15 @@ sub bind_queue {
 }
 
 __PACKAGE__->meta->make_immutable;
+
+=head1 AUTHOR
+
+See L<Beetle>.
+
+=head1 COPYRIGHT AND LICENSE
+
+See L<Beetle>.
+
+=cut
 
 1;
