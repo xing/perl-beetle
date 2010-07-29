@@ -3,6 +3,7 @@ package Beetle::Bunny;
 use Moose;
 use namespace::clean -except => 'meta';
 use AnyEvent;
+use Coro;
 use Net::RabbitFoot;
 use Data::Dumper;
 extends qw(Beetle::Base);
@@ -59,6 +60,23 @@ has '_channel' => (
     },
     isa  => 'Any',
     lazy => 1,
+);
+
+has '_command_history' => (
+    default => sub { return []; },
+    handles => {
+        add_command_history => 'push',
+        get_command_history => 'elements',
+    },
+    is     => 'ro',
+    isa    => 'ArrayRef',
+    traits => [qw(Array)],
+);
+
+has '_replay' => (
+    default => 0,
+    is      => 'rw',
+    isa     => 'Bool',
 );
 
 has '_subscriptions' => (
@@ -122,7 +140,9 @@ sub ack {
 }
 
 sub exchange_declare {
-    my ( $self, $exchange, $options ) = @_;
+    my $self = shift;
+    my ( $exchange, $options ) = @_;
+    $self->add_command_history( { exchange_declare => \@_ } ) unless $self->_replay;
     $options ||= {};
     $self->log->debug( sprintf 'Declaring exchange with options: %s', Dumper $options);
     $self->_declare_exchange(
@@ -169,7 +189,9 @@ sub recover {
 }
 
 sub queue_declare {
-    my ( $self, $queue, $options ) = @_;
+    my $self = shift;
+    my ( $queue, $options ) = @_;
+    $self->add_command_history( { queue_declare => \@_ } ) unless $self->_replay;
     $self->log->debug( sprintf 'Declaring queue with options: %s', Dumper $options);
     $self->_declare_queue(
         no_ack => 0,
@@ -179,7 +201,9 @@ sub queue_declare {
 }
 
 sub queue_bind {
-    my ( $self, $queue, $exchange, $routing_key ) = @_;
+    my $self = shift;
+    my ( $queue, $exchange, $routing_key ) = @_;
+    $self->add_command_history( { queue_bind => \@_ } ) unless $self->_replay;
     $self->log->debug( sprintf 'Binding to queue %s on exchange %s using routing key %s',
         $queue, $exchange, $routing_key );
     $self->_bind_queue(
@@ -192,11 +216,14 @@ sub queue_bind {
 
 sub stop {
     my ($self) = @_;
-    $self->anyevent_condvar->send;
+    eval { $self->anyevent_condvar->send };
+    exit(1) if $@;
 }
 
 sub subscribe {
-    my ( $self, $queue, $callback ) = @_;
+    my $self = shift;
+    my ( $queue, $callback, $replay ) = @_;
+    $self->add_command_history( { subscribe => \@_ } ) unless $self->_replay;
     my $has_subscription = $self->has_subscription($queue);
     die "Already subscribed to queue $queue" if $has_subscription;
     $self->set_subscription( $queue => 1 );
@@ -208,16 +235,48 @@ sub subscribe {
     );
 }
 
+sub _reconnect {
+    my ($self) = @_;
+    $self->log->error( sprintf 'Lost connection to %s:%s, trying to reconnect', $self->host, $self->port );
+    $self->{_mq}            = $self->_build__mq;
+    $self->{_channel}       = $self->_open_channel;
+    $self->{_subscriptions} = {};
+    $self->_replay_command_history;
+}
+
+sub _replay_command_history {
+    my ($self) = @_;
+    foreach my $command ( $self->get_command_history ) {
+        my ( $method, $args ) = %$command;
+        $self->_replay(1);
+        $self->$method(@$args);
+        $self->_replay(0);
+    }
+}
+
 sub _build__mq {
     my ($self) = @_;
-    my $rf = Net::RabbitFoot->new( verbose => $self->config->verbose );
-    $rf->connect(
-        host  => $self->host,
-        port  => $self->port,
-        user  => $self->config->user,
-        pass  => $self->config->password,
-        vhost => $self->config->vhost,
-    );
+    my $rf;
+    do {
+        eval {
+            $rf = Net::RabbitFoot->new( verbose => $self->config->verbose );
+            $rf->connect(
+                on_close => unblock_sub {
+                    $self->_reconnect;
+                },
+                host  => $self->host,
+                port  => $self->port,
+                user  => $self->config->user,
+                pass  => $self->config->password,
+                vhost => $self->config->vhost,
+            );
+            if ($@) {
+                $self->log->error($@) if $@;
+                sleep(1);
+            }
+        };
+    } while $@;
+    $self->log->debug( sprintf 'Successfully connected to %s:%s', $self->host, $self->port );
     return $rf;
 }
 
