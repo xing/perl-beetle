@@ -13,46 +13,46 @@ BEGIN {
 }
 
 {
-    my $client = Beetle::Client->new;
+    my $client = Beetle::Client->new( config => { bunny_class => 'Test::Beetle::Bunny' });
     my $base = Beetle::Base::PubSub->new( client => $client );
     is( $base->{exchanges}, undef, 'initially we should have no exchanges' );
 }
 
 {
-    my $client = Beetle::Client->new;
+    my $client = Beetle::Client->new( config => { bunny_class => 'Test::Beetle::Bunny' });
     my $base = Beetle::Base::PubSub->new( client => $client );
     is( $base->{queues}, undef, 'initially we should have no queues' );
 }
 
 {
-    my $client = Beetle::Client->new;
+    my $client = Beetle::Client->new( config => { bunny_class => 'Test::Beetle::Bunny' });
     my $base = Beetle::Base::PubSub->new( client => $client );
     throws_ok { $base->error('message') } qr/message/, 'the error method should raise a beetle error';
 }
 
 {
-    my $client = Beetle::Client->new;
+    my $client = Beetle::Client->new( config => { bunny_class => 'Test::Beetle::Bunny' });
     my $base = Beetle::Base::PubSub->new( client => $client );
     isnt( $base->get_server(0), undef, 'first server is defined' );
     is( $base->get_server(0), $base->server, 'server should be initialized' );
 }
 
 {
-    my $client = Beetle::Client->new;
+    my $client = Beetle::Client->new( config => { bunny_class => 'Test::Beetle::Bunny' });
     my $base = Beetle::Base::PubSub->new( client => $client );
     $base->{server} = 'localhost:123';
     is( $base->current_host, 'localhost', 'current_host should return the hostname of the current server' );
 }
 
 {
-    my $client = Beetle::Client->new;
+    my $client = Beetle::Client->new( config => { bunny_class => 'Test::Beetle::Bunny' });
     my $base = Beetle::Base::PubSub->new( client => $client );
     $base->{server} = 'localhost:123';
     is( $base->current_port, '123', 'current_port should return the port of the current server as an integer' );
 }
 
 {
-    my $client = Beetle::Client->new;
+    my $client = Beetle::Client->new( config => { bunny_class => 'Test::Beetle::Bunny' });
     my $base = Beetle::Base::PubSub->new( client => $client );
     $base->{server} = 'localhost';
     is( $base->current_port, '5672',
@@ -60,14 +60,14 @@ BEGIN {
 }
 
 {
-    my $client = Beetle::Client->new;
+    my $client = Beetle::Client->new( config => { bunny_class => 'Test::Beetle::Bunny' });
     my $base   = Beetle::Base::PubSub->new( client => $client );
     my $result = $base->set_current_server('xxx:123');
     is( $result, 'xxx:123', 'set_current_server shoud set the current server' );
 }
 
 {
-    my $client = Beetle::Client->new;
+    my $client = Beetle::Client->new( config => { bunny_class => 'Test::Beetle::Bunny' });
     my $base   = Beetle::Base::PubSub->new( client => $client );
     my $result = $base->current_port;
     is( $result, '5672', 'current port is 5672' );

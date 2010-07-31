@@ -13,7 +13,7 @@ BEGIN {
 }
 
 {
-    my $client = Beetle::Client->new;
+    my $client = Beetle::Client->new( config => { bunny_class => 'Test::Beetle::Bunny' });
     is_deeply( $client->servers, ['localhost:5672'], 'should have a default server' );
     is_deeply( $client->exchanges, {}, 'should have no exchanges' );
     is_deeply( $client->queues,    {}, 'should have no queues' );
@@ -22,7 +22,7 @@ BEGIN {
 }
 
 {
-    my $client = Beetle::Client->new;
+    my $client = Beetle::Client->new( config => { bunny_class => 'Test::Beetle::Bunny' });
     my $options = { durable => 0, type => 'fanout' };
     $client->register_exchange( some_exchange => $options );
     is_deeply(
@@ -38,14 +38,14 @@ BEGIN {
 }
 
 {
-    my $client = Beetle::Client->new;
+    my $client = Beetle::Client->new( config => { bunny_class => 'Test::Beetle::Bunny' });
     $client->register_queue( some_queue => { durable => 0, exchange => 'some_exchange' } );
     is( $client->has_exchange('some_exchange'),
         1, "registering a queue should automatically register the corresponding exchange if it doesn't exist yet" );
 }
 
 {
-    my $client = Beetle::Client->new;
+    my $client = Beetle::Client->new( config => { bunny_class => 'Test::Beetle::Bunny' });
     $client->register_queue( some_queue => { key => 'some_key', exchange => 'some_exchange' } );
     my $bindings = $client->get_binding('some_queue');
     is_deeply(
@@ -56,7 +56,7 @@ BEGIN {
 }
 
 {
-    my $client = Beetle::Client->new;
+    my $client = Beetle::Client->new( config => { bunny_class => 'Test::Beetle::Bunny' });
     $client->register_queue( some_queue => { key => 'some_key', exchange => 'some_exchange' } );
     $client->register_binding( some_queue => { key => 'other_key', exchange => 'other_exchange' } );
     my $bindings = $client->get_binding('some_queue');
@@ -67,7 +67,7 @@ BEGIN {
 }
 
 {
-    my $client = Beetle::Client->new;
+    my $client = Beetle::Client->new( config => { bunny_class => 'Test::Beetle::Bunny' });
     $client->register_queue( some_queue => { durable => 0, exchange => 'some_exchange' } );
     my $queue = $client->get_queue('some_queue');
     is_deeply(
@@ -79,7 +79,7 @@ BEGIN {
 }
 
 {
-    my $client = Beetle::Client->new;
+    my $client = Beetle::Client->new( config => { bunny_class => 'Test::Beetle::Bunny' });
     $client->register_queue( some_queue => { durable => 1, exchange => 'some_exchange' } );
     my $exchange = $client->get_exchange('some_exchange');
     is_deeply( $exchange->{queues}, [qw(some_queue)],
@@ -87,7 +87,7 @@ BEGIN {
 }
 
 {
-    my $client = Beetle::Client->new;
+    my $client = Beetle::Client->new( config => { bunny_class => 'Test::Beetle::Bunny' });
     $client->register_queue( queue1 => { exchange => 'some_exchange' } );
     $client->register_queue( queue2 => { exchange => 'some_exchange' } );
     my $exchange = $client->get_exchange('some_exchange');
@@ -96,7 +96,7 @@ BEGIN {
 }
 
 {
-    my $client = Beetle::Client->new;
+    my $client = Beetle::Client->new( config => { bunny_class => 'Test::Beetle::Bunny' });
     $client->register_queue( queue1 => { durable => 1, exchange => 'some_exchange' } );
     throws_ok { $client->register_queue( queue1 => { durable => 1, exchange => 'some_exchange' } ); }
     qr/queue queue1 already configured/,
@@ -104,7 +104,7 @@ BEGIN {
 }
 
 {
-    my $client = Beetle::Client->new;
+    my $client = Beetle::Client->new( config => { bunny_class => 'Test::Beetle::Bunny' });
     my $options = { persistent => 1, queue => 'some_queue', exchange => 'some_exchange' };
     $client->register_queue( some_queue => { exchange => 'some_exchange' } );
     $client->register_message( some_message => $options );
@@ -115,7 +115,7 @@ BEGIN {
 }
 
 {
-    my $client = Beetle::Client->new;
+    my $client = Beetle::Client->new( config => { bunny_class => 'Test::Beetle::Bunny' });
     my $options = { persistent => 1, queue => 'some_queue' };
     $client->register_queue( some_queue => { exchange => 'some_exchange' } );
     $client->register_message( some_message => $options );
@@ -125,13 +125,13 @@ BEGIN {
 }
 
 {
-    my $client = Beetle::Client->new;
+    my $client = Beetle::Client->new( config => { bunny_class => 'Test::Beetle::Bunny' });
     $client->register_queue( some_queue => { exchange => 'some_exchange' } );
     $client->register_handler( [qw(some_queue)], sub { } );
 }
 
 {
-    my $client = Beetle::Client->new;
+    my $client = Beetle::Client->new( config => { bunny_class => 'Test::Beetle::Bunny' });
     throws_ok {
         $client->register_handler( [qw(some_queue)], sub { } );
     }
@@ -139,7 +139,7 @@ BEGIN {
 }
 
 {
-    my $client = Beetle::Client->new;
+    my $client = Beetle::Client->new( config => { bunny_class => 'Test::Beetle::Bunny' });
     throws_ok {
         $client->register_handler( [qw(some_queue)], sub { } );
     }
@@ -147,7 +147,7 @@ BEGIN {
 }
 
 {
-    my $client = Beetle::Client->new;
+    my $client = Beetle::Client->new( config => { bunny_class => 'Test::Beetle::Bunny' });
     throws_ok {
         $client->purge('some_queue');
     }
@@ -155,7 +155,7 @@ BEGIN {
 }
 
 {
-    my $client = Beetle::Client->new;
+    my $client = Beetle::Client->new( config => { bunny_class => 'Test::Beetle::Bunny' });
     throws_ok {
         $client->publish( some_message => 'blah', {} );
     }
@@ -163,7 +163,7 @@ BEGIN {
 }
 
 {
-    my $client = Beetle::Client->new;
+    my $client = Beetle::Client->new( config => { bunny_class => 'Test::Beetle::Bunny' });
     throws_ok {
         $client->listen( [qw(some_message)] );
     }
@@ -171,19 +171,19 @@ BEGIN {
 }
 
 {
-    my $client = Beetle::Client->new;
+    my $client = Beetle::Client->new( config => { bunny_class => 'Test::Beetle::Bunny' });
     lives_ok { $client->register_binding( 'some_queue' => {} ); } 'first call to register_binding';
     lives_ok { $client->register_binding( 'some_queue' => {} ); } 'second call to register_binding';
 }
 
 {
-    my $client = Beetle::Client->new;
+    my $client = Beetle::Client->new( config => { bunny_class => 'Test::Beetle::Bunny' });
     is( $client->{publisher},  undef, 'instantiating a client should not instantiate the publisher' );
     is( $client->{subscriber}, undef, 'instantiating a client should not instantiate the subscriber' );
 }
 
 {
-    my $client = Beetle::Client->new;
+    my $client = Beetle::Client->new( config => { bunny_class => 'Test::Beetle::Bunny' });
     $client->register_queue('superman');
     $client->register_message('superman');
     $client->register_handler( 'superman' => sub { } );
@@ -191,14 +191,14 @@ BEGIN {
 }
 
 {
-    my $client = Beetle::Client->new;
+    my $client = Beetle::Client->new( config => { bunny_class => 'Test::Beetle::Bunny' });
     $client->register_message('foobar');
     $client->publish( 'foobar' => 'payload' );
     isa_ok( $client->{publisher}, 'Beetle::Publisher', 'should instantiate a publisher when used for publishing' );
 }
 
 {
-    my $client = Beetle::Client->new;
+    my $client = Beetle::Client->new( config => { bunny_class => 'Test::Beetle::Bunny' });
     $client->register_message('deadletter');
     my @args     = ( 'deadletter' => 'x', { a => 1 } );
     my @result   = ();
@@ -222,7 +222,7 @@ BEGIN {
 }
 
 {
-    my $client = Beetle::Client->new;
+    my $client = Beetle::Client->new( config => { bunny_class => 'Test::Beetle::Bunny' });
     my @result = ();
 
     my $override = Sub::Override->new(
@@ -240,7 +240,7 @@ BEGIN {
 }
 
 {
-    my $client = Beetle::Client->new;
+    my $client = Beetle::Client->new( config => { bunny_class => 'Test::Beetle::Bunny' });
     for (qw(a b)) {
         $client->register_queue($_);
         $client->register_message($_);
@@ -265,7 +265,7 @@ BEGIN {
 }
 
 {
-    my $client = Beetle::Client->new;
+    my $client = Beetle::Client->new( config => { bunny_class => 'Test::Beetle::Bunny' });
     my $override = Sub::Override->new( 'Beetle::Subscriber::register_handler' => sub { return 42; } );
     $client->register_queue('huhu');
     my $result = $client->register_handler( huhu => sub { } );

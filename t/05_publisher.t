@@ -25,13 +25,13 @@ BEGIN {
 }
 
 {
-    my $client = Beetle::Client->new;
+    my $client = Beetle::Client->new( config => { bunny_class => 'Test::Beetle::Bunny' });
     my $pub = Beetle::Publisher->new( client => $client );
     is_deeply( $pub->{bunnies}, {}, 'initially there should be no bunnies' );
 }
 
 {
-    my $client = Beetle::Client->new;
+    my $client = Beetle::Client->new( config => { bunny_class => 'Test::Beetle::Bunny' });
     my $pub = Beetle::Publisher->new( client => $client );
     is_deeply( $pub->{dead_servers}, {}, 'initially there should be no dead servers' );
 }
