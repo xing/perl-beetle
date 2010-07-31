@@ -5,11 +5,15 @@ use Moose;
 use Beetle::Message;
 
 BEGIN {
-
-    # Disable logger in tests
     use Beetle::Config;
     no warnings 'redefine';
-    *Beetle::Config::logger = sub { '/dev/null' };
+    if ( $ENV{BEETLE_DEBUG_TEST} ) {
+        *Beetle::Config::logger   = sub { 'STDERR' };
+        *Beetle::Config::loglevel = sub { 'DEBUG' };
+    }
+    else {
+        *Beetle::Config::logger = sub { '/dev/null' };
+    }
 }
 
 sub header_with_params {
