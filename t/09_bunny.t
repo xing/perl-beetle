@@ -7,6 +7,7 @@ use Sub::Override;
 use FindBin qw( $Bin );
 use lib ( "$Bin/lib", "$Bin/../lib" );
 use Test::Beetle;
+use Test::MockObject;
 
 BEGIN {
     use_ok('Beetle::Bunny');
@@ -105,6 +106,66 @@ AnyEvent::RabbitMQ::DESTROY();
 
     $bunny->purge( 'q1' => { ex => 'tra' } );
     is_deeply( $options, { queue => 'q1', ex => 'tra' }, 'options got set correctly' );
+}
+
+{
+    my @callstack = ();
+    my $options;
+    my $o1 = Sub::Override->new(
+        'Beetle::Bunny::_build__mq' => sub {
+            return Test::MockObject->new->mock(
+                'open_channel' => sub {
+                    my $o = Test::MockObject->new;
+                    $o->mock( declare_exchange => sub { push @callstack, 'declare_exchange'; } );
+                    $o->mock( declare_queue    => sub { push @callstack, 'declare_queue'; } );
+                    $o->mock( bind_queue       => sub { push @callstack, 'bind_queue'; } );
+                    $o->mock( consume          => sub { push @callstack, 'consume'; } );
+                    return $o;
+                }
+            );
+        }
+    );
+    my $bunny = Beetle::Bunny->new( port => 5672, host => 'localhost' );
+
+    my $coderef = sub { };
+
+    $bunny->exchange_declare('exchange1');
+    $bunny->queue_declare('queue1');
+    $bunny->queue_bind( 'queue1', 'exchange1', 'key1' );
+    $bunny->subscribe( 'queue1', $coderef );
+
+    is_deeply(
+        $bunny->_command_history,
+        [
+            { 'exchange_declare' => ['exchange1'] },
+            { 'queue_declare'    => ['queue1'] },
+            { 'queue_bind'       => [ 'queue1', 'exchange1', 'key1' ] },
+            { 'subscribe' => [ 'queue1', $coderef ] }
+        ],
+        'Command history set correctly'
+    );
+
+    is_deeply(
+        \@callstack,
+        [qw(declare_exchange declare_queue bind_queue consume)],
+        'Callstack before reconnect call is correct'
+    );
+
+    ok( $bunny->_reconnect, 'Reconnect...' );
+    ok( $bunny->_reconnect, 'Reconnect...' );
+
+    is_deeply(
+        \@callstack,
+        [
+            qw(
+              declare_exchange declare_queue bind_queue consume
+              declare_exchange declare_queue bind_queue consume
+              declare_exchange declare_queue bind_queue consume
+              )
+        ],
+        'Callstack after reconnect call is correct'
+    );
+
 }
 
 done_testing;

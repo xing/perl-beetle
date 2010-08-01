@@ -222,7 +222,7 @@ sub stop {
 
 sub subscribe {
     my $self = shift;
-    my ( $queue, $callback, $replay ) = @_;
+    my ( $queue, $callback ) = @_;
     $self->add_command_history( { subscribe => \@_ } ) unless $self->_replay;
     my $has_subscription = $self->has_subscription($queue);
     die "Already subscribed to queue $queue" if $has_subscription;
@@ -242,6 +242,7 @@ sub _reconnect {
     $self->{_channel}       = $self->_open_channel;
     $self->{_subscriptions} = {};
     $self->_replay_command_history;
+    return 1;
 }
 
 sub _replay_command_history {
