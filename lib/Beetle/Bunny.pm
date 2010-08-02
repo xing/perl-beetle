@@ -258,6 +258,7 @@ sub _replay_command_history {
 sub _build__mq {
     my ($self) = @_;
     my $rf;
+    my $attempts = 0;
     do {
         eval {
             $rf = Net::RabbitFoot->new( verbose => $self->config->verbose );
@@ -271,11 +272,11 @@ sub _build__mq {
                 pass  => $self->config->password,
                 vhost => $self->config->vhost,
             );
-            if ($@) {
-                $self->log->error($@) if $@;
-                sleep(1);
-            }
         };
+        if ($@) {
+            $self->log->error($@) if $attempts++ % 60 == 0;
+            sleep(1);
+        }
     } while $@;
     $self->log->debug( sprintf 'Successfully connected to %s:%s', $self->host, $self->port );
     return $rf;
