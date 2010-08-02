@@ -237,9 +237,10 @@ sub listen {
 
 sub publish {
     my ( $self, $message_name, $data, $options ) = @_;
-    $options ||= {};
 
     die "unknown message ${message_name}" unless $self->has_message($message_name);
+
+    $options ||= $self->get_message($message_name);
 
     $self->publisher->publish( $message_name, $data, $options );
 }
@@ -318,8 +319,8 @@ sub register_message {
     $options ||= {};
 
     die "message ${message_name} already configured" if $self->has_message($message_name);
-    $options->{exchange} ||= $message_name;
-    $options->{key}      ||= $message_name;
+    $options->{exchange}    ||= $message_name;
+    $options->{key}         ||= $message_name;
     $options->{persistent} = 1;
 
     $self->set_message( $message_name => $options );

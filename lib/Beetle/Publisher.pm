@@ -124,7 +124,7 @@ sub publish_with_failover {
                 message_id    => $options->{message_id},
                 priority      => 0
             };
-            $self->bunny->publish( $exchange_name, $message_name, $data, $header );
+            $self->bunny->publish( $exchange_name, $options->{key}, $data, $header );
         };
         unless ($@) {
             $published = 1;
@@ -184,7 +184,7 @@ sub publish_with_redundancy {
             priority      => 0
         };
 
-        eval { $self->bunny->publish( $exchange_name, $message_name, $data, $header ); };
+        eval { $self->bunny->publish( $exchange_name, $options->{key}, $data, $header ); };
         unless ($@) {
             push @published, $server;
             $self->log->debug( sprintf 'Beetle: message sent (%d)!', scalar(@published) );
