@@ -247,6 +247,16 @@ sub publish {
 
 =head2 purge
 
+There is one param which can be passed to this method:
+
+=over 4
+
+=item * $queue_name (mandatory)
+
+=back
+
+This purges the queue on the RabbitMQ servers. Be careful!
+
 =cut
 
 sub purge {
@@ -259,6 +269,28 @@ sub purge {
 
 =head2 register_binding
 
+There are two params which can be passed to this method:
+
+=over 4
+
+=item * $queue_name (mandatory)
+
+=item * $options (optional)
+
+=back
+
+To receive messages you need to register a binding. The first parameter
+is the queue name. In the C<< $options >> HashRef you can define which
+exchange and which routhing key this queue should be bound to:
+
+    {
+        exchange => 'some_exchange',
+        key      => 'some_routing_key',
+    }
+
+If you do not provide this options HashRef the exchange and the (routing) key
+will default to the queue name.
+
 =cut
 
 sub register_binding {
@@ -268,7 +300,7 @@ sub register_binding {
     my $exchange = $options->{exchange} || $queue_name;
     my $key      = $options->{key}      || $queue_name;
 
-    $self->add_binding( $queue_name => { exchange => $exchange, key => $key } );
+    $self->_add_binding( $queue_name => { exchange => $exchange, key => $key } );
     $self->register_exchange($exchange) unless $self->has_exchange($exchange);
 
     my $queues = $self->get_exchange($exchange)->{queues};
@@ -279,6 +311,29 @@ sub register_binding {
 }
 
 =head2 register_exchange
+
+There are two params which can be passed to this method:
+
+=over 4
+
+=item * $exchange_name (mandatory)
+
+=item * $options (optional)
+
+=back
+
+The C<< $exchange_name >> is a string containing the exchange name. The second
+parameter C<< $options >> can be a HashRef containing some options for the
+exchange. We override following keys in the C<< $options >> HashRef everytime
+to those fixed values:
+
+    {
+        durable => 1,
+        type    => 'topic',
+    }
+
+If you register the same exchange name twice, L<Beetle::Client> will throw an
+error!
 
 =cut
 
@@ -312,6 +367,53 @@ sub register_handler {
 
 =head2 register_message
 
+There are two params which can be passed to this method:
+
+=over 4
+
+=item * $message_name (mandatory)
+
+=item * $options (optional)
+
+=back
+
+The C<< $message_name >> is a string containing the message name. The second
+parameter C<< $options >> can be a HashRef containing options for this queue:
+
+    {
+        exchange => 'some_exchange',
+        key      => 'some_routing_key',
+    }
+
+If you do not provide this options HashRef the exchange and the (routing) key
+will default to the queue name. You need to register all messages you want
+to publish later using the L<Beetle::Client/publish> method. So registered
+messages are some kind of alias to publishing options. We override the
+following keys in the C<< $options >> HashRef:
+
+    {
+        persistent => 1,
+    }
+
+    my $client = Beetle::Client->new;
+    $client->register_message(
+        exception => {
+            exchange => 'logmessages',
+            key      => 'logmessages.exceptions',
+        }
+    );
+    $client->register_message(
+        warning => {
+            exchange => 'logmessages',
+            key      => 'logmessages.warnings',
+        }
+    );
+    $client->publish( warning   => 'the light is off' );
+    $client->publish( exception => 'the light bulb is broken' );
+
+If you register the same message name twice, L<Beetle::Client> will throw an
+error!
+
 =cut
 
 sub register_message {
@@ -319,14 +421,47 @@ sub register_message {
     $options ||= {};
 
     die "message ${message_name} already configured" if $self->has_message($message_name);
-    $options->{exchange}    ||= $message_name;
-    $options->{key}         ||= $message_name;
+
+    $options->{exchange} ||= $message_name;
+    $options->{key}      ||= $message_name;
     $options->{persistent} = 1;
 
     $self->set_message( $message_name => $options );
 }
 
 =head2 register_queue
+
+There are two params which can be passed to this method:
+
+=over 4
+
+=item * $queue_name (mandatory)
+
+=item * $options (optional)
+
+=back
+
+The C<< $queue_name >> is a string containing the queue name. The second
+parameter C<< $options >> can be a HashRef containing options for this queue:
+
+    {
+        exchange => 'some_exchange',
+        key      => 'some_routing_key',
+    }
+
+If you do not provide this options HashRef the exchange and the (routing) key
+will default to the queue name.
+
+    my $client = Beetle::Client->new;
+    $client->register_queue(
+        exceptions => {
+            exchange => 'logmessages',
+            key      => 'logmessages.exceptions',
+        }
+    );
+
+If you register the same queue name twice, L<Beetle::Client> will throw an
+error!
 
 =cut
 
@@ -353,6 +488,8 @@ sub register_queue {
 
 =head2 stop_listening
 
+This will stop the listener by calling L<Beetle::Subscriber/stop>.
+
 =cut
 
 sub stop_listening {
@@ -362,6 +499,8 @@ sub stop_listening {
 
 =head2 stop_publishing
 
+This will stop the publisher by calling L<Beetle::Publisher/stop>.
+
 =cut
 
 sub stop_publishing {
@@ -369,7 +508,7 @@ sub stop_publishing {
     $self->publisher->stop;
 }
 
-sub add_binding {
+sub _add_binding {
     my ( $self, $queue_name, $item ) = @_;
     $self->set_binding( $queue_name => [] ) unless $self->has_binding($queue_name);
     my $binding = $self->get_binding($queue_name);

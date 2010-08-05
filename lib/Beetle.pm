@@ -38,6 +38,9 @@ The main documentation can be found in L<Beetle::Client> which is the public
 interface to the L<Beetle::Subscriber> and the L<Beetle::Publisher>. There
 are also some examples in the distribution in C<< examples/ >>.
 
+For the communication with RabbitMQ L<Net::RabbitFoot> is used. For Redis there's
+some custom version of L<Redis> living in L<Beetle::Redis>.
+
 =head1 AUTHOR
 
 Johannes Plunien E<lt>plu@cpan.orgE<gt>
