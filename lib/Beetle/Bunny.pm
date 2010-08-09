@@ -264,6 +264,11 @@ sub _build__mq {
             $rf = Net::RabbitFoot->new( verbose => $self->config->verbose );
             $rf->connect(
                 on_close => unblock_sub {
+                    my ($message) = @_;
+                    if ($message eq 'Broken pipe') {
+                        warn "ERROR: Unhandled RabbitMQ exception: $message\n";
+                        exit(1);
+                    }
                     $self->_reconnect;
                 },
                 host  => $self->host,
