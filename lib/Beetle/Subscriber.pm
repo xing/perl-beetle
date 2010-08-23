@@ -184,6 +184,12 @@ sub create_subscription_callback {
                     $self->log->debug( sprintf 'Ack! using delivery_tag: %s',
                         $message->deliver->method_frame->delivery_tag );
                     $bunny->ack( { delivery_tag => $message->deliver->method_frame->delivery_tag } );
+                    unless ( $message->simple ) {
+                        if ( !$message->redundant || $message->store->incr( $message->msg_id => 'ack_count' ) == 2 ) {
+                            $self->log->debug(sprintf 'Deleting keys for message %s', $message->msg_id);
+                            $message->store->del_keys( $message->msg_id );
+                        }
+                    }
                 }
             }
 

@@ -21,6 +21,9 @@ DESCRIPTION
     public interface to the Beetle::Subscriber and the Beetle::Publisher.
     There are also some examples in the distribution in "examples/".
 
+    For the communication with RabbitMQ Net::RabbitFoot is used. For Redis
+    there's some custom version of Redis living in Beetle::Redis.
+
 AUTHOR
     Johannes Plunien <plu@cpan.org>
 

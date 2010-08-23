@@ -182,13 +182,7 @@ sub BUILD {
 sub ack {
     my ($self) = @_;
     $self->log->debug( sprintf 'Beetle: ack! for message %s', $self->msg_id );
-
     $self->_ack(1);
-    return if $self->simple;    # simple messages don't use the deduplication store
-    if ( !$self->redundant || $self->store->incr( $self->msg_id => 'ack_count' ) == 2 ) {
-        $self->store->del_keys( $self->msg_id );
-    }
-    return;
 }
 
 sub aquire_mutex {
