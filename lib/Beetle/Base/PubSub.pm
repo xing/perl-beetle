@@ -135,6 +135,7 @@ sub exchange {
     my $exchanges = $self->exchanges;
 
     unless ( defined $exchanges->{$name} ) {
+        $self->client->register_exchange($name) unless $self->client->has_exchange($name);
         $exchanges->{$name} = $self->create_exchange( $name => $self->client->get_exchange($name) );
         $self->set_exchange( $self->server => $exchanges );
         return 0;

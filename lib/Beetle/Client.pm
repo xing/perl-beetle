@@ -300,8 +300,8 @@ sub register_binding {
     my $exchange = $options->{exchange} || $queue_name;
     my $key      = $options->{key}      || $queue_name;
 
-    $self->_add_binding( $queue_name => { exchange => $exchange, key => $key } );
     $self->register_exchange($exchange) unless $self->has_exchange($exchange);
+    $self->_add_binding( $queue_name => { exchange => $exchange, key => $key } );
 
     my $queues = $self->get_exchange($exchange)->{queues};
     $queues ||= [];

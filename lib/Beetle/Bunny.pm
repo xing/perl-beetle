@@ -144,7 +144,7 @@ sub exchange_declare {
     my ( $exchange, $options ) = @_;
     $self->add_command_history( { exchange_declare => \@_ } ) unless $self->_replay;
     $options ||= {};
-    $self->log->debug( sprintf 'Declaring exchange with options: %s', Dumper $options);
+    $self->log->debug( sprintf 'Declaring exchange %s with options: %s', $exchange, Dumper $options);
     $self->_declare_exchange(
         exchange => $exchange,
         no_ack   => 0,
