@@ -1,6 +1,7 @@
 package Beetle::Base;
 
 use Moose;
+use Log::Log4perl qw(:easy);
 use namespace::clean -except => 'meta';
 with qw(MooseX::Log::Log4perl);
 use Beetle::Config;
@@ -14,6 +15,8 @@ Beetle::Config - Beetle base class
 TODO: <plu> add docs
 
 =cut
+
+my $log_setup_done = 0;
 
 has 'config' => (
     default => sub { Beetle::Config->new },
@@ -45,6 +48,8 @@ around 'BUILDARGS' => sub {
 sub _setup_logger {
     my ($self) = @_;
 
+    return if $log_setup_done;
+
     Log::Log4perl->easy_init(
         {
             file   => $self->config->logger,
@@ -52,6 +57,8 @@ sub _setup_logger {
             level  => $self->config->loglevel,
         }
     );
+
+    $log_setup_done = 1;
 }
 
 __PACKAGE__->meta->make_immutable;
