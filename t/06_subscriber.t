@@ -26,7 +26,7 @@ BEGIN {
     my $client = Beetle::Client->new(
         config => {
             servers     => 'xx:3333 xx:3333 xx:5555 xx:6666',
-            bunny_class => 'Test::Beetle::Bunny',
+            mq_class => 'Test::Beetle::Bunny',
         }
     );
 
@@ -63,7 +63,7 @@ BEGIN {
 
 # test "binding queues should iterate over all servers" do
 {
-    my $client = Beetle::Client->new( config => { bunny_class => 'Test::Beetle::Bunny', } );
+    my $client = Beetle::Client->new( config => { mq_class => 'Test::Beetle::Bunny', } );
     my $subscriber = $client->subscriber;
     $client->register_queue('x');
     $client->register_queue('y');
@@ -105,18 +105,18 @@ BEGIN {
 
 # test "initially there should be no exchanges for the current server" do
 {
-    my $client = Beetle::Client->new( config => { bunny_class => 'Test::Beetle::Bunny', } );
+    my $client = Beetle::Client->new( config => { mq_class => 'Test::Beetle::Bunny', } );
     is_deeply( $client->subscriber->exchanges, {}, 'No exchanges defined' );
 }
 
 # test "accessing a given exchange should create it using the config. further access should return the created exchange" do
 {
-    my $client = Beetle::Client->new( config => { bunny_class => 'Test::Beetle::Bunny', } );
+    my $client = Beetle::Client->new( config => { mq_class => 'Test::Beetle::Bunny', } );
     $client->register_exchange( some_exchange => { type => 'topic', durable => 1 } );
 
     my $create_exchange_called = 0;
 
-    my $o1 = Sub::Override->new( 'Beetle::Base::PubSub::create_exchange' => sub { $create_exchange_called++ } );
+    my $o1 = Sub::Override->new( 'Beetle::Subscriber::create_exchange' => sub { $create_exchange_called++ } );
 
     is( $client->subscriber->exchange('some_exchange'), 0, 'exchange didnt exist yet' );
     is( $client->subscriber->exchange('some_exchange'), 1, 'exchange exists' );
@@ -126,7 +126,7 @@ BEGIN {
 
 # test "should create exchanges for all exchanges passed to create_exchanges, for all servers" do
 {
-    my $client = Beetle::Client->new( config => { bunny_class => 'Test::Beetle::Bunny', } );
+    my $client = Beetle::Client->new( config => { mq_class => 'Test::Beetle::Bunny', } );
     my $subscriber = $client->subscriber;
     $client->register_queue( 'donald' => { exchange => 'duck' } );
     $client->register_queue('mickey');
@@ -144,9 +144,9 @@ BEGIN {
     );
 
     my $o2 = Sub::Override->new(
-        'Beetle::Base::PubSub::create_exchange' => sub {
+        'Beetle::Subscriber::create_exchange' => sub {
             my ( $self, $queue ) = @_;
-            push @callstack, { 'Beetle::Base::PubSub::create_exchange' => $queue };
+            push @callstack, { 'Beetle::Subscriber::create_exchange' => $queue };
         }
     );
 
@@ -156,11 +156,11 @@ BEGIN {
         \@callstack,
         [
             { 'Beetle::Base::PubSub::set_current_server' => 'one:1111' },
-            { 'Beetle::Base::PubSub::create_exchange'    => 'duck' },
-            { 'Beetle::Base::PubSub::create_exchange'    => 'mickey' },
+            { 'Beetle::Subscriber::create_exchange'    => 'duck' },
+            { 'Beetle::Subscriber::create_exchange'    => 'mickey' },
             { 'Beetle::Base::PubSub::set_current_server' => 'two:2222' },
-            { 'Beetle::Base::PubSub::create_exchange'    => 'duck' },
-            { 'Beetle::Base::PubSub::create_exchange'    => 'mickey' },
+            { 'Beetle::Subscriber::create_exchange'    => 'duck' },
+            { 'Beetle::Subscriber::create_exchange'    => 'mickey' },
         ],
         'Callstack is correct'
     );
@@ -168,13 +168,13 @@ BEGIN {
 
 # test "initially we should have no handlers" do
 {
-    my $client = Beetle::Client->new( config => { bunny_class => 'Test::Beetle::Bunny', } );
+    my $client = Beetle::Client->new( config => { mq_class => 'Test::Beetle::Bunny', } );
     is_deeply( $client->subscriber->handlers, {}, 'initially we should have no handlers' );
 }
 
 # test "registering a handler for a queue should store it in the configuration with symbolized option keys" do
 {
-    my $client = Beetle::Client->new( config => { bunny_class => 'Test::Beetle::Bunny', } );
+    my $client = Beetle::Client->new( config => { mq_class => 'Test::Beetle::Bunny', } );
     my $opts = { ack => 1 };
     $client->subscriber->register_handler( 'some_queue', $opts, sub { return 42; } );
     my $handler = $client->subscriber->get_handler('some_queue');
@@ -184,7 +184,7 @@ BEGIN {
 
 # test "exceptions raised from message processing should be ignored" do
 {
-    my $client = Beetle::Client->new( config => { bunny_class => 'Test::Beetle::Bunny', } );
+    my $client = Beetle::Client->new( config => { mq_class => 'Test::Beetle::Bunny', } );
     $client->register_queue('somequeue');
     my $callback = $client->subscriber->create_subscription_callback(
         {
@@ -197,7 +197,7 @@ BEGIN {
                 options => {},
             },
             options => { exceptions => 1 },
-            bunny   => $client->subscriber->bunny,
+            mq      => $client->subscriber->mq,
         }
     );
 
@@ -210,7 +210,7 @@ BEGIN {
 
 # test "subscribe should create subscriptions on all queues for all servers" do
 {
-    my $client = Beetle::Client->new( config => { bunny_class => 'Test::Beetle::Bunny', } );
+    my $client = Beetle::Client->new( config => { mq_class => 'Test::Beetle::Bunny', } );
     $client->subscriber->{servers} = [qw(localhost:7777 localhost:6666)];
     $client->register_message($_) for qw(a b);
     $client->register_queue($_)   for qw(a b);

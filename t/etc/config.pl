@@ -4,6 +4,7 @@
     'logger'                  => '/dev/zero',
     'loglayout'               => 'FOO: %m%n',
     'loglevel'                => 'WARN',
+    'mq_class'                => 'Foo::AMQP',
     'password'                => 'secret123',
     'redis_db'                => 2,
     'redis_hosts'             => 'somehost:123',

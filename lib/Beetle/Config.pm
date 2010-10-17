@@ -196,6 +196,20 @@ has 'bunny_class' => (
     required      => 1,
 );
 
+=head2 mq_class
+
+defaults to Beetle::AMQP
+
+=cut
+
+has 'mq_class' => (
+    default       => 'Beetle::AMQP',
+    documentation => 'defaults to Beetle::AMQP',
+    is            => 'rw',
+    isa           => 'Str',
+    required      => 1,
+);
+
 __PACKAGE__->meta->make_immutable;
 
 =head1 AUTHOR

@@ -63,18 +63,44 @@ has 'server_index' => (
     traits => ['Counter'],
 );
 
-# def publish(message_name, data, opts={}) #:nodoc:
-#   opts = @client.messages[message_name].merge(opts.symbolize_keys)
-#   exchange_name = opts.delete(:exchange)
-#   opts.delete(:queue)
-#   recycle_dead_servers unless @dead_servers.empty?
-#   if opts[:redundant]
-#     publish_with_redundancy(exchange_name, message_name, data, opts)
-#   else
-#     publish_with_failover(exchange_name, message_name, data, opts)
-#   end
-# end
-#
+has 'bunnies' => (
+    default => sub { {} },
+    handles => {
+        get_bunny => 'get',
+        has_bunny => 'exists',
+        set_bunny => 'set',
+    },
+    is     => 'ro',
+    isa    => 'HashRef',
+    traits => [qw(Hash)],
+);
+
+sub bunny {
+    my ($self) = @_;
+    my $has_bunny = $self->has_bunny( $self->server );
+    $self->set_bunny( $self->server => $self->new_bunny ) unless $has_bunny;
+    return $self->get_bunny( $self->server );
+}
+
+sub create_exchange {
+    my ( $self, $name, $options ) = @_;
+    my %rmq_options = %{ $options || {} };
+    delete $rmq_options{queues};
+    $self->bunny->exchange_declare( $name => \%rmq_options );
+    return 1;
+}
+
+sub new_bunny {
+    my ($self) = @_;
+    my $class = $self->config->bunny_class;
+    Class::MOP::load_class($class);
+    return $class->new(
+        config => $self->config,
+        host   => $self->current_host,
+        port   => $self->current_port,
+    );
+}
+
 sub publish {
     my ( $self, $message_name, $data, $options ) = @_;
     $options ||= {};
@@ -98,8 +124,6 @@ sub publish {
 sub publish_with_failover {
     my ( $self, $exchange_name, $message_name, $data, $options ) = @_;
 
-    $self->log->debug( sprintf 'Beetle: sending %s', $message_name );
-
     my $tries     = $self->count_servers;
     my $published = 0;
 
@@ -107,7 +131,6 @@ sub publish_with_failover {
 
     for ( 1 .. $tries ) {
         $self->select_next_server;
-        $self->bind_queues_for_exchange($exchange_name);
 
         $self->log->debug(
             sprintf 'Beetle: trying to send message %s:%s to %s',
@@ -116,6 +139,7 @@ sub publish_with_failover {
         );
 
         eval {
+            $self->bind_queues_for_exchange($exchange_name);
             my $exchange = $self->exchange($exchange_name);
             my $header   = {
                 content_type  => 'application/octet-stream',
@@ -158,7 +182,6 @@ sub publish_with_redundancy {
     $options = Beetle::Message->publishing_options(%$options);
 
     while (1) {
-        my $server        = $self->server;
         my $count_servers = $self->count_servers;
 
         last if scalar(@published) == 2;
@@ -166,14 +189,12 @@ sub publish_with_redundancy {
         last if scalar(@published) == $count_servers;
 
         $self->select_next_server;
-        next if grep $_ eq $server, @published;
-
-        $self->bind_queues_for_exchange($exchange_name);
+        next if grep $_ eq $self->server, @published;
 
         $self->log->debug(
             sprintf 'Beetle: trying to send message %s:%s to %s',
             $message_name, $options->{message_id},
-            $server
+            $self->server
         );
 
         my $header = {
@@ -184,10 +205,13 @@ sub publish_with_redundancy {
             priority      => 0
         };
 
-        eval { $self->bunny->publish( $exchange_name, $options->{key}, $data, $header ); };
+        eval {
+            $self->bind_queues_for_exchange($exchange_name);
+            $self->bunny->publish( $exchange_name, $options->{key}, $data, $header );
+        };
         unless ($@) {
-            push @published, $server;
-            $self->log->debug( sprintf 'Beetle: message sent (%d)!', scalar(@published) );
+            push @published, $self->server;
+            $self->log->debug( sprintf 'Beetle: message sent on server %s (%d)!', $self->server, scalar(@published) );
             next;
         }
 
@@ -210,16 +234,18 @@ sub purge {
     $self->each_server(
         sub {
             my $self = shift;
-            $self->bunny->purge( $self->queue($queue_name) );
+            eval {
+                $self->bunny->purge( $self->queue($queue_name) );
+            };
         }
     );
 }
 
 sub stop_bunny {
     my ($self) = @_;
-
-    # TODO: <plu> proper exception handling missing
-    eval { $self->bunny->stop };
+    delete $self->{bunnies}{ $self->server };
+    $self->{_exchanges}{ $self->server } = {};
+    $self->{_queues}{ $self->server }    = {};
 }
 
 sub stop {
@@ -227,12 +253,7 @@ sub stop {
     $self->each_server(
         sub {
             my $self = shift;
-
             $self->stop_bunny;
-
-            $self->{bunnies}{ $self->server }    = undef;
-            $self->{_exchanges}{ $self->server } = {};
-            $self->{_queues}{ $self->server }    = {};
         }
     );
 }
@@ -249,14 +270,23 @@ sub recycle_dead_servers {
             $self->remove_dead_server($server);
         }
     }
+    if (@recycle == 0 && $self->count_servers == 0) {
+        my %dead_servers = $self->all_dead_servers;
+        foreach my $server (sort { $dead_servers{$a} <=> $dead_servers{$b} } keys %dead_servers) {
+            push @recycle, $server;
+            $self->remove_dead_server($server);
+            last;
+        }
+    }
     $self->add_server(@recycle);
 }
 
 sub mark_server_dead {
     my ($self) = @_;
 
-    # TODO: <plu> no clue how to get the error message here
-    $self->log->info( sprintf 'Beetle: server %s down: %s', $self->server, 'TODO' );
+    # my $exception = $self->bunny->connect_exception || '';
+    my $exception = 'UNKNOWN';
+    $self->log->info( sprintf 'Beetle: server %s down: %s', $self->server, $exception );
 
     $self->set_dead_server( $self->server => time );
 

@@ -310,7 +310,7 @@ sub process {
 
     $handler = Beetle::Handler->create($handler);
 
-    $self->log->debug( sprintf 'Beetle: processing message %s', $self->msg_id );
+    $self->log->debug( sprintf 'Beetle: processing message %s on %s', $self->msg_id, $self->server || '' );
 
     my $result = eval { $self->_process_internal($handler) };
     if ($@) {

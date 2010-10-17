@@ -17,7 +17,7 @@ BEGIN {
 
 # test "acccessing a bunny for a server which doesn't have one should create it and associate it with the server" do
 {
-    my $override = Sub::Override->new( 'Beetle::Base::PubSub::new_bunny' => sub { return 42; } );
+    my $override = Sub::Override->new( 'Beetle::Publisher::new_bunny' => sub { return 42; } );
     my $client   = Beetle::Client->new;
     my $pub      = Beetle::Publisher->new( client => $client );
     is( $pub->bunny,                     42, 'Method new_bunny works as expected' );
@@ -58,8 +58,8 @@ BEGIN {
     # This should not do anything (yet)
     $publisher->recycle_dead_servers;
 
-    is( $publisher->count_servers,      0, 'No more servers left' );
-    is( $publisher->count_dead_servers, 3, 'All servers are in the dead servers list' );
+    is( $publisher->count_servers,      1, 'One server back' );
+    is( $publisher->count_dead_servers, 2, 'All but one servers are in the dead servers list' );
 
     sleep( $Beetle::Publisher::RECYCLE_DEAD_SERVERS_DELAY + 1 );
 
@@ -398,14 +398,6 @@ BEGIN {
 
 # test "stop! should shut down bunny and clean internal data structures" do
 {
-    my $bunny_closed = 0;
-
-    my $override = Sub::Override->new(
-        'Test::Beetle::Bunny::stop' => sub {
-            $bunny_closed++;
-        }
-    );
-
     my $client = Beetle::Client->new(
         config => {
             servers     => 'localhost:3333',
@@ -425,7 +417,6 @@ BEGIN {
 
     $publisher->stop;
 
-    is( $bunny_closed, 1, 'The bunny got closed properly' );
     is_deeply( $publisher->exchanges, {}, 'Exchanges got cleaned up' );
     is_deeply( $publisher->queues,    {}, 'Queues got cleaned up' );
 }
@@ -571,12 +562,6 @@ BEGIN {
         }
     );
 
-    my $o2 = Sub::Override->new(
-        'Beetle::Base::PubSub::bunny' => sub {
-            push @callstack, 'bunny';
-        }
-    );
-
     my $client = Beetle::Client->new( config => { bunny_class => 'Test::Beetle::Bunny' } );
     $client->publisher->{servers} = [qw(localhost:3333 localhost:4444)];
     $client->stop_publishing;
@@ -588,12 +573,10 @@ BEGIN {
                 'args'   => ['localhost:3333'],
                 'method' => 'set_current_server'
             },
-            'bunny',
             {
                 'args'   => ['localhost:4444'],
                 'method' => 'set_current_server'
             },
-            'bunny'
         ],
         'Callstack is correct'
     );

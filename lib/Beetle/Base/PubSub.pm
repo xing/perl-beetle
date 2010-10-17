@@ -77,18 +77,6 @@ has 'servers' => (
     traits => [qw(Array)],
 );
 
-has 'bunnies' => (
-    default => sub { {} },
-    handles => {
-        get_bunny => 'get',
-        has_bunny => 'exists',
-        set_bunny => 'set',
-    },
-    is     => 'ro',
-    isa    => 'HashRef',
-    traits => [qw(Hash)],
-);
-
 sub BUILD {
     my ($self) = @_;
     my $servers = $self->client->servers;
@@ -181,32 +169,6 @@ sub queue {
     $self->set_queue( $self->server => { $name => 1 } );
 
     return $name;
-}
-
-sub bunny {
-    my ($self) = @_;
-    my $has_bunny = $self->has_bunny( $self->server );
-    $self->set_bunny( $self->server => $self->new_bunny ) unless $has_bunny;
-    return $self->get_bunny( $self->server );
-}
-
-sub new_bunny {
-    my ($self) = @_;
-    my $class = $self->config->bunny_class;
-    Class::MOP::load_class($class);
-    return $class->new(
-        config => $self->config,
-        host   => $self->current_host,
-        port   => $self->current_port,
-    );
-}
-
-sub create_exchange {
-    my ( $self, $name, $options ) = @_;
-    my %rmq_options = %{ $options || {} };
-    delete $rmq_options{queues};
-    $self->bunny->exchange_declare( $name => \%rmq_options );
-    return 1;
 }
 
 __PACKAGE__->meta->make_immutable;

@@ -30,6 +30,18 @@ has 'handlers' => (
     traits => [qw(Hash)],
 );
 
+has 'mqs' => (
+    default => sub { {} },
+    handles => {
+        get_mq => 'get',
+        has_mq => 'exists',
+        set_mq => 'set',
+    },
+    is     => 'ro',
+    isa    => 'HashRef',
+    traits => [qw(Hash)],
+);
+
 sub listen {
     my ( $self, $messages, $code ) = @_;
     my $exchanges = $self->exchanges_for_messages($messages);
@@ -38,12 +50,12 @@ sub listen {
     $self->bind_queues($queues);
     $self->subscribe_queues($queues);
     $code->() if defined $code && ref $code eq 'CODE';
-    $self->bunny->listen;
+    $self->mq->listen;
 }
 
 sub stop {
     my ($self) = @_;
-    $self->bunny->stop;
+    $self->mq->stop;
 }
 
 sub register_handler {
@@ -95,6 +107,14 @@ sub create_exchanges {
     );
 }
 
+sub create_exchange {
+    my ( $self, $name, $options ) = @_;
+    my %rmq_options = %{ $options || {} };
+    delete $rmq_options{queues};
+    $self->mq->exchange_declare( $name => \%rmq_options );
+    return 1;
+}
+
 sub bind_queues {
     my ( $self, $queues ) = @_;
     $self->each_server(
@@ -104,6 +124,24 @@ sub bind_queues {
                 $self->queue($queue);
             }
         }
+    );
+}
+
+sub mq {
+    my ($self) = @_;
+    my $has_mq = $self->has_mq( $self->server );
+    $self->set_mq( $self->server => $self->new_mq ) unless $has_mq;
+    return $self->get_mq( $self->server );
+}
+
+sub new_mq {
+    my ($self) = @_;
+    my $class = $self->config->mq_class;
+    Class::MOP::load_class($class);
+    return $class->new(
+        config => $self->config,
+        host   => $self->current_host,
+        port   => $self->current_port,
     );
 }
 
@@ -132,7 +170,7 @@ sub subscribe {
             queue_name      => $queue_name,
             amqp_queue_name => $amqp_queue_name,
             handler         => $handler,
-            bunny           => $self->bunny
+            mq              => $self->mq
         }
     );
 
@@ -140,7 +178,7 @@ sub subscribe {
         $amqp_queue_name, $self->server );
 
     eval {
-        $self->bunny->subscribe( $queue_name => $callback );
+        $self->mq->subscribe( $queue_name => $callback );
     };
     if ($@) {
         $self->error('Beetle: binding multiple handlers for the same queue isn\'t possible');
@@ -154,7 +192,7 @@ sub create_subscription_callback {
     my $amqp_queue_name = $args->{amqp_queue_name};
     my $handler         = $args->{handler}{code};
     my $options         = $args->{handler}{options};
-    my $bunny           = $args->{bunny};
+    my $mq              = $args->{mq};
 
     return sub {
         my ($amqp_message) = @_;
@@ -162,7 +200,7 @@ sub create_subscription_callback {
         my $body           = $amqp_message->{body}->payload;
         my $deliver        = $amqp_message->{deliver};
         eval {
-            my $server = sprintf '%s:%d', $bunny->host, $bunny->port;
+            my $server = sprintf '%s:%d', $mq->host, $mq->port;
             my $processor = Beetle::Handler->create( $handler, $options );
             my $message_options = merge $options,
               { server => $server, store => $self->client->deduplication_store };
@@ -177,13 +215,13 @@ sub create_subscription_callback {
             my $result = $message->process($processor);
             if ( grep $_ eq $result, @RECOVER ) {
                 sleep 1;
-                $bunny->recover;
+                $mq->recover;
             }
             else {
                 if ( $message->_ack ) {
                     $self->log->debug( sprintf 'Ack! using delivery_tag: %s',
                         $message->deliver->method_frame->delivery_tag );
-                    $bunny->ack( { delivery_tag => $message->deliver->method_frame->delivery_tag } );
+                    $mq->ack( { delivery_tag => $message->deliver->method_frame->delivery_tag } );
                     unless ( $message->simple ) {
                         if ( !$message->redundant || $message->store->incr( $message->msg_id => 'ack_count' ) == 2 ) {
                             $self->log->debug(sprintf 'Deleting keys for message %s', $message->msg_id);
@@ -201,9 +239,9 @@ sub create_subscription_callback {
 
 sub bind_queue {
     my ( $self, $queue_name, $creation_keys, $exchange_name, $binding_keys ) = @_;
-    $self->bunny->queue_declare( $queue_name => $creation_keys );
+    $self->mq->queue_declare( $queue_name => $creation_keys );
     $self->exchange($exchange_name);
-    $self->bunny->queue_bind( $queue_name, $exchange_name, $binding_keys->{key} );
+    $self->mq->queue_bind( $queue_name, $exchange_name, $binding_keys->{key} );
 }
 
 __PACKAGE__->meta->make_immutable;

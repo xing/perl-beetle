@@ -78,25 +78,6 @@ BEGIN {
     my $client = Beetle::Client->new( config => $config );
     my $base = Beetle::Base::PubSub->new( client => $client, config => $config );
 
-    is( $base->has_bunny($base->server), 0, 'Has no bunny yet' );
-    my $bunny = $base->bunny;
-    isa_ok( $bunny, 'Test::Beetle::Bunny', 'Created a new bunny' );
-    is( $bunny, $base->bunny, 'Getting the same bunny again' );
-
-    is( $base->exchange('foochange123'), 0, 'exchange wasnt set yet' );
-    is( $base->exchange('foochange123'), 1, 'exchange wasnt set yet' );
-    is( $base->exchange('foochange456'), 0, 'exchange set already' );
-    is( $base->exchange('foochange456'), 1, 'exchange set already' );
-
-    is_deeply(
-        $base->exchanges,
-        {
-            'foochange123' => 1,
-            'foochange456' => 1
-        },
-        'all exchanges stored correctly'
-    );
-
     throws_ok { $base->queue('doesnotexist') } qr/You are trying to bind a queue doesnotexist which is not configured/,
       'Non existing queue throws error message';
 }
