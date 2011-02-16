@@ -34,7 +34,7 @@ test_beetle_live(
             testperl => sub {
                 my ($message) = @_;
                 push @messages, $message;
-                $client->subscriber->bunny->recover( { requeue => 0 } );
+                $client->subscriber->mq->recover( { requeue => 0 } );
             },
         );
 
@@ -43,12 +43,9 @@ test_beetle_live(
         my $timer = AnyEvent->timer(
             after => 1,
             cb    => sub {
-                is( 1, 1 );
-
-                # TODO: <plu> those are broken for some reason
-                # is( scalar(@messages),                                2, 'Message got processed twice' );
-                # is( $messages[0]->deliver->method_frame->redelivered, 0, 'Message #0 is not redelivered' );
-                # is( $messages[1]->deliver->method_frame->redelivered, 1, 'Message #1 is redelivered' );
+                is( scalar(@messages),                                2, 'Message got processed twice' );
+                is( $messages[0]->deliver->method_frame->redelivered, 0, 'Message #0 is not redelivered' );
+                is( $messages[1]->deliver->method_frame->redelivered, 1, 'Message #1 is redelivered' );
 
                 $client->stop_listening;
             },
