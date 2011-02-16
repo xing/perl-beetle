@@ -29,9 +29,9 @@ test_beetle_live(
             $client->register_message("testperl$_");
         }
 
-        $client->subscriber->bunny->subscribe( testperl1 => sub { } );
+        $client->subscriber->mq->subscribe( testperl1 => sub { } );
         throws_ok {
-            $client->subscriber->bunny->subscribe( testperl1 => sub { } );
+            $client->subscriber->mq->subscribe( testperl1 => sub { } );
         }
         qr/Already subscribed to queue testperl/, 'Subscribing the 2nd time throws an error in the bunny';
 
