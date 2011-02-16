@@ -4,7 +4,6 @@ use Moose;
 use namespace::clean -except => 'meta';
 use AnyEvent;
 use Coro;
-use Net::RabbitFoot;
 extends qw(Beetle::Base::RabbitMQ);
 
 =head1 NAME

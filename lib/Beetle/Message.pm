@@ -44,6 +44,9 @@ my $DEFAULT_EXCEPTION_LIMIT = 0;
 # AMQP options for message publishing
 my @PUBLISHING_KEYS = qw(key mandatory immediate persistent reply_to);
 
+# Data::UUID instance (otherwise painfully slow)
+my $DATA_UUID = Data::UUID->new;
+
 has 'server' => (
     documentation => 'server from which the message was received',
     is            => 'rw',
@@ -81,7 +84,7 @@ has 'body' => (
 has 'uuid' => (
     documentation => 'the uuid of the message',
     is            => 'ro',
-    isa           => 'Data::UUID',
+    isa           => 'Str',
 );
 
 has 'data' => (
@@ -259,7 +262,7 @@ sub expired {
 }
 
 sub generate_uuid {
-    return lc( Data::UUID->new->create_str );
+    return lc( $DATA_UUID->create_str );
 }
 
 sub increment_exception_count {

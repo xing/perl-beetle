@@ -2,8 +2,6 @@ package Beetle::Bunny;
 
 use Moose;
 use namespace::clean -except => 'meta';
-use AnyEvent;
-use Net::RabbitFoot;
 use Data::Dumper;
 extends qw(Beetle::Base::RabbitMQ);
 
