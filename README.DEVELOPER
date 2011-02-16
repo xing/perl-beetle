@@ -1,0 +1,5 @@
+You need following modules to start developing:
+
+* Module::Install
+* Module::Install::ReadmeFromPod
+* Module::Install::AuthorTests
