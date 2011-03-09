@@ -49,7 +49,7 @@ has 'rf' => (
 );
 
 has '_channel' => (
-    default => sub { shift->_open_channel },
+    default => sub { shift->open_channel },
     handles => {
         _ack              => 'ack',
         _close            => 'close',
@@ -75,13 +75,17 @@ sub exchange_declare {
     my ( $exchange, $options ) = @_;
     $self->add_command_history( { exchange_declare => \@_ } );
     $options ||= {};
-    $self->log->debug( sprintf '[%s:%d] Declaring exchange %s with options: %s',
-        $self->host, $self->port, $exchange, Dumper $options);
+    $self->log->debug( sprintf '[%s:%d] Declaring exchange %s with options: %s', $self->host, $self->port, $exchange, Dumper $options);
     $self->_declare_exchange(
         exchange => $exchange,
         no_ack   => 0,
         %$options
     );
+}
+
+sub open_channel {
+    my ($self) = @_;
+    $self->_open_channel;
 }
 
 sub queue_bind {

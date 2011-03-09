@@ -92,7 +92,7 @@ sub connect {
                             sub {
                                 my $self = shift;
                                 $self->{_subscriptions} = {};
-                                $self->{_channel}       = $self->_open_channel;
+                                $self->{_channel}       = $self->open_channel;
                                 $self->_replay_command_history;
                             }
                         );
@@ -124,6 +124,19 @@ sub listen {
 
     # Run the event loop forever
     $c->recv;
+}
+
+sub open_channel {
+    my ($self) = @_;
+    $self->_open_channel(
+        on_close => unblock_sub {
+            my ($frame) = @_;
+            my $text    = $frame->method_frame->{reply_text};
+            my $code    = $frame->method_frame->{reply_code};
+            $self->log->error( sprintf '[%s:%d] %s: %s', $self->host, $self->port, $code, $text );
+            $self->rf->{_ar}{_handle}->push_shutdown;
+        }
+    );
 }
 
 sub recover {
