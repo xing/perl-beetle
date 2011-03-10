@@ -61,6 +61,7 @@ has '_connect_attempts' => (
 after 'BUILD' => sub {
     my ($self) = @_;
     $self->connect;
+    $self->_qos( prefetch_count => 1 );
 };
 
 sub add_command_history {
