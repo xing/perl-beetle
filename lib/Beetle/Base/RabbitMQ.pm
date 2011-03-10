@@ -135,49 +135,6 @@ sub _connect {
     return 1;
 }
 
-BEGIN {
-    no warnings 'redefine';
-
-    # TODO: <plu> talk to author of AnyEvent::RabbitMQ how to fix this properly
-    *AnyEvent::RabbitMQ::Channel::DESTROY = sub { };
-    *AnyEvent::RabbitMQ::DESTROY          = sub { };
-
-    # TODO: <plu> remove this once my patch got accepted
-    *AnyEvent::RabbitMQ::Channel::_header = sub {    ## no critic
-        my ( $self, $args, $body, ) = @_;
-
-        $args->{weight} ||= 0;
-
-        $self->{connection}->_push_write(
-            Net::AMQP::Frame::Header->new(
-                weight       => $args->{weight},
-                body_size    => length($body),
-                header_frame => Net::AMQP::Protocol::Basic::ContentHeader->new(
-                    content_type     => 'application/octet-stream',
-                    content_encoding => '',
-                    headers          => {},
-                    delivery_mode    => 1,
-                    priority         => 0,
-                    correlation_id   => '',
-
-                    # reply_to         => '',
-                    expiration => '',
-                    message_id => '',
-                    timestamp  => time,
-                    type       => '',
-                    user_id    => '',
-                    app_id     => '',
-                    cluster_id => '',
-                    %$args,
-                ),
-            ),
-            $self->{id},
-        );
-
-        return $self;
-    };
-}
-
 =head1 AUTHOR
 
 See L<Beetle>.
