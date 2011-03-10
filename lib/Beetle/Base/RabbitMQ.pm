@@ -119,6 +119,7 @@ sub queue_declare {
 
 sub stop {
     my ($self) = @_;
+    $self->rf->ar->close;
     $self->anyevent_condvar->send;
 }
 
