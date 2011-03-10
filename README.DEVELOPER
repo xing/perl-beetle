@@ -3,3 +3,12 @@ You need following modules to start developing:
 * Module::Install
 * Module::Install::ReadmeFromPod
 * Module::Install::AuthorTests
+
+By default all live test which require rabbitmq-server to be running are
+skipped. If you want to run those tests you need to set the environment
+variable BEETLE_LIVE_TEST to true. Then you're expected to have a redis-server
+instance running on port 6379 and two rabbitmq-server instances running
+on port 5672 and 5673. You can also export BEETLE_START_SERVICES so those
+services are automatically started/terminated on each test run for you.
+I highly recommend to -not- use this anymore. Instead start the services
+manually.
