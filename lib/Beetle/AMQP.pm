@@ -135,7 +135,7 @@ sub open_channel {
             my $text    = $frame->method_frame->{reply_text};
             my $code    = $frame->method_frame->{reply_code};
             $self->log->error( sprintf '[%s:%d] %s: %s', $self->host, $self->port, $code, $text );
-            $self->rf->{_ar}{_handle}->push_shutdown;
+            $self->rf->ar->close;
         }
     );
 }
