@@ -213,9 +213,9 @@ sub create_subscription_callback {
                 %$message_options,
             );
             my $result = $message->process($processor);
-            if ( grep $_ eq $result, @RECOVER ) {
+            if ( grep $_ eq $result, @REJECT ) {
                 sleep 1;
-                $mq->recover;
+                $mq->reject;
             }
             else {
                 if ( $message->_ack ) {

@@ -966,7 +966,7 @@ test_redis(
             my $result = $m->process($handler);
 
             is( $result, $HANDLERCRASH, 'Return value is correct' );
-            is( grep( $result eq $_, @RECOVER ), 1, 'Return value is of correct type' );
+            is( grep( $result eq $_, @REJECT ), 1, 'Return value is of correct type' );
             is( grep( $result eq $_, @FAILURE ), 0, 'Return value is of correct type' );
             is_deeply( \@callstack, [qw(handler errback)], 'callstack is correct' );
         }
@@ -1005,7 +1005,7 @@ test_redis(
             my $result = $m->process($handler);
 
             is( $result, $ATTEMPTSLIMITREACHED, 'Return value is correct' );
-            is( grep( $result eq $_, @RECOVER ), 0, 'Return value is of correct type' );
+            is( grep( $result eq $_, @REJECT ), 0, 'Return value is of correct type' );
             is( grep( $result eq $_, @FAILURE ), 1, 'Return value is of correct type' );
             is_deeply( \@callstack, [qw(handler errback failback)], 'callstack is correct' );
         }
@@ -1042,7 +1042,7 @@ test_redis(
             my $result = $m->process($handler);
 
             is( $result, $EXCEPTIONSLIMITREACHED, 'Return value is correct' );
-            is( grep( $result eq $_, @RECOVER ), 0, 'Return value is of correct type' );
+            is( grep( $result eq $_, @REJECT ), 0, 'Return value is of correct type' );
             is( grep( $result eq $_, @FAILURE ), 1, 'Return value is of correct type' );
             is_deeply( \@callstack, [qw(handler errback failback)], 'callstack is correct' );
         }

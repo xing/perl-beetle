@@ -145,6 +145,12 @@ sub recover {
     $self->_recover( requeue => 1, %$options );
 }
 
+sub reject {
+    my ( $self, $options ) = @_;
+    $options ||= {};
+    $self->_reject( requeue => 1, %$options );
+}
+
 sub subscribe {
     my $self = shift;
     my ( $queue, $callback ) = @_;

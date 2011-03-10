@@ -55,7 +55,7 @@ sub queue_bind {
     # my ( $self, $queue, $exchange, $routing_key ) = @_;
 }
 
-sub recover {
+sub reject {
 
     # my ( $self, $options ) = @_;
 }

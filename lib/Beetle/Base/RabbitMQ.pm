@@ -61,6 +61,7 @@ has '_channel' => (
         _publish          => 'publish',
         _purge_queue      => 'purge_queue',
         _recover          => 'recover',
+        _reject           => 'reject',
     },
     isa  => 'Any',
     lazy => 1,
