@@ -95,8 +95,7 @@ sub queue_bind {
     $self->_connect or die;
     my ( $queue, $exchange, $routing_key ) = @_;
     $self->add_command_history( { queue_bind => \@_ } );
-    $self->log->debug( sprintf '[%s:%d] Binding to queue %s on exchange %s using routing key %s',
-        $self->host, $self->port, $queue, $exchange, $routing_key );
+    $self->log->debug( sprintf '[%s:%d] Binding to queue %s on exchange %s using routing key %s', $self->host, $self->port, $queue, $exchange, $routing_key );
     $self->_bind_queue(
         exchange    => $exchange,
         queue       => $queue,
@@ -135,6 +134,14 @@ sub _init_rf {
 
 sub _connect {
     return 1;
+}
+
+BEGIN {
+    no warnings 'redefine';
+
+    # TODO: <plu> talk to author of AnyEvent::RabbitMQ how to fix this properly
+    *AnyEvent::RabbitMQ::Channel::DESTROY = sub { };
+    *AnyEvent::RabbitMQ::DESTROY          = sub { };
 }
 
 =head1 AUTHOR
