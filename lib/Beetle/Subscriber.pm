@@ -215,7 +215,7 @@ sub create_subscription_callback {
             my $result = $message->process($processor);
             if ( grep $_ eq $result, @REJECT ) {
                 sleep 1;
-                $mq->reject;
+                $mq->reject({ delivery_tag => $message->deliver->method_frame->delivery_tag });
             }
             else {
                 if ( $message->_ack ) {
