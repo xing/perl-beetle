@@ -8,6 +8,8 @@ use Beetle::Subscriber;
 use Sys::Hostname;
 use Net::AMQP::Protocol;
 use Net::RabbitFoot;
+use AnyEvent::RabbitMQ;
+
 extends qw(Beetle::Base);
 
 =head1 NAME
@@ -152,7 +154,7 @@ sub BUILD {
     # Init AMQP spec
     # TODO: <plu> is there no fucking valid way to check if this is done already or not?!
     unless ($Net::AMQP::Protocol::VERSION_MAJOR) {
-        Net::AMQP::Protocol->load_xml_spec( Net::RabbitFoot::default_amqp_spec() );
+        AnyEvent::RabbitMQ->load_xml_spec();
     }
 }
 
