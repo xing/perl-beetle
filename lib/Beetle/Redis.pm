@@ -20,9 +20,10 @@ TODO: <plu> add docs
 
 =cut
 
-# This is a copy of Redis-1.2001 with one minor change:
+# This is a copy of Redis-1.2001 with some minor changes:
 # The connect is not made in the constructor but in the AUTOLOAD method.
 # After connecting a database is selected.
+# The msetnx was added as bulk command.
 
 sub new {
     my $class = shift;
@@ -63,14 +64,14 @@ sub AUTOLOAD {
 
     use bytes;
 
-    $self->__connect;
-
-    my $sock = $self->{sock} || die "no server connected";
-
     my $command = $AUTOLOAD;
     $command =~ s/.*://;
 
     # warn "## $command ", Dumper(@_) if $self->{debug};
+
+    $self->__connect;
+
+    my $sock = $self->{sock} || die "no server connected";
 
     my $send;
 
@@ -92,7 +93,7 @@ sub AUTOLOAD {
     }
 
     my $result = <$sock> || do {
-        $self->__connect(1);
+        delete $self->{sock};
         die "can't read socket: $!";
     };
     Encode::_utf8_on($result);    ## no critic
@@ -135,14 +136,14 @@ sub AUTOLOAD {
 }
 
 sub __connect {
-    my ( $self, $force ) = @_;
-    if ( !$self->{sock} || $force ) {
+    my ( $self ) = @_;
+    if ( !$self->{sock} ) {
         $self->{sock} = IO::Socket::INET->new(
             PeerAddr => $self->{server} || $ENV{REDIS_SERVER} || '127.0.0.1:6379',
             Proto => 'tcp',
         ) || die $!;
 
-        # $self->select( $self->{db} || 0 ); # TODO: <plu> make this working
+        $self->select( $self->{db} || 0 );
     }
 }
 
