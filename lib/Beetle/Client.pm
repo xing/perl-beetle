@@ -154,7 +154,14 @@ sub BUILD {
     # Init AMQP spec
     # TODO: <plu> is there no fucking valid way to check if this is done already or not?!
     unless ($Net::AMQP::Protocol::VERSION_MAJOR) {
-        AnyEvent::RabbitMQ->load_xml_spec();
+
+        # Stay backwards compatible to our patched RabbitFoot package
+        if (Net::RabbitFoot->can('default_amqp_spec')) {
+            Net::AMQP::Protocol->load_xml_spec( Net::RabbitFoot::default_amqp_spec() );
+        }
+        else {
+            AnyEvent::RabbitMQ->load_xml_spec();
+        }
     }
 }
 
