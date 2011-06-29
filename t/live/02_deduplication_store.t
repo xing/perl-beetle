@@ -73,6 +73,15 @@ test_redis(
             is( $store->redis->info->{role}, 'master', 'Role is correct' );
         }
 
+        {
+            my ( $id, $sfx, $val ) = qw(message_id_4 suffix value);
+            ok( $store->set( $id, $sfx, $val ), 'Set key' );
+            ok( $store->redis->select(0), 'Select db 0' );
+            is( $store->get( $id, $sfx ), undef, 'Key does not exist in db 0' );
+            ok( $store->redis->select(4), 'Select db 4' );
+            is( $store->get( $id, $sfx ), $val, 'Key does exist in db 4' );
+        }
+
         ok( $store->redis->quit, 'Quit works' );
     }
 );
