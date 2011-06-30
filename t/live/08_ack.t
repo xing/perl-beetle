@@ -30,18 +30,23 @@ test_beetle_live(
         my $text     = 'some message';
         my @messages = ();
 
+        # this handler will die when processing the first message so that a
+        # reject instead of an ack is triggered
         $client->register_handler(
             testperl => sub {
                 my ($message) = @_;
                 push @messages, $message;
-                $client->subscriber->mq->recover( { requeue => 0 } );
+                die "forced failure on first message" if @messages == 1;
             },
+            { exceptions => 1, delay => 0 },
         );
 
         $client->publish( testperl => $text );
 
+        # we have to wait two seconds as the client will wait 1 sec after the
+        # exception
         my $timer = AnyEvent->timer(
-            after => 1,
+            after => 2,
             cb    => sub {
                 is( scalar(@messages),                                2, 'Message got processed twice' );
                 is( $messages[0]->deliver->method_frame->redelivered, 0, 'Message #0 is not redelivered' );
