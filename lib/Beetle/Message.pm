@@ -8,6 +8,7 @@ extends qw(Beetle::Base);
 use Beetle::Handler;
 use Beetle::Constants;
 use Data::Dumper;
+use Sys::SigAction ();
 
 =head1 NAME
 
@@ -475,14 +476,23 @@ sub _process_internal {
 sub _run_handler {
     my ( $self, $handler ) = @_;
 
-    # TODO: <plu> implement timeout here
-    my $result = eval { $handler->call($self); };
-    return $OK unless $@;
+    my $exception;
 
-    $handler->process_exception($@) if Scalar::Util::blessed $handler && $handler->can('process_exception');
+    my $timed_out = Sys::SigAction::timeout_call($self->timeout, sub {
+        eval { $handler->call($self); };
+        $exception = $@;
+    });
+
+    if ($timed_out) {
+        $exception = sprintf('Reached timeout after %s seconds', $self->timeout)
+    }
+
+    return $OK unless $exception;
+
+    $handler->process_exception($exception) if Scalar::Util::blessed $handler && $handler->can('process_exception');
 
     $self->log->error( sprintf 'Beetle: message handler crashed on %s', $self->msg_id );
-    $self->log->error("Beetle: error message: $@");
+    $self->log->error("Beetle: error message: $exception");
 
     return $HANDLERCRASH;
 }

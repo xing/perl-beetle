@@ -17,6 +17,7 @@ requires(
     'namespace::clean'      => '0.11',
     'Net::RabbitFoot'       => '1.02',
     'Scalar::Util'          => '1.21',
+    'Sys::SigAction'        => '0.11',
 );
 
 test_requires(
