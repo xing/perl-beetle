@@ -26,8 +26,10 @@ This is the base class for both RabbitMQ adaptors:
 =cut
 
 has 'anyevent_condvar' => (
-    is  => 'rw',
-    isa => 'Any',
+    is      => 'rw',
+    isa     => 'AnyEvent::CondVar',
+    default => sub { AnyEvent->condvar },
+    lazy    => 1,
 );
 
 has 'host' => (

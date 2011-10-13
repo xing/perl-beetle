@@ -120,11 +120,8 @@ sub connect {
 sub listen {
     my ($self) = @_;
 
-    my $c = AnyEvent->condvar;
-    $self->anyevent_condvar($c);
-
     # Run the event loop forever
-    $c->recv;
+    $self->anyevent_condvar->recv;
 }
 
 sub open_channel {
@@ -155,6 +152,7 @@ sub reject {
 sub subscribe {
     my $self = shift;
     my ( $queue, $callback ) = @_;
+
     $self->add_command_history( { subscribe => \@_ } );
     my $has_subscription = $self->has_subscription($queue);
     die "Already subscribed to queue $queue" if $has_subscription;
