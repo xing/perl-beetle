@@ -6,6 +6,7 @@ use Hash::Merge::Simple qw( merge );
 use Beetle::Handler;
 use Beetle::Message;
 use Beetle::Constants;
+use Coro qw(unblock_sub);
 extends qw(Beetle::Base::PubSub);
 
 =head1 NAME
@@ -36,6 +37,17 @@ has 'mqs' => (
         get_mq => 'get',
         has_mq => 'exists',
         set_mq => 'set',
+    },
+    is     => 'ro',
+    isa    => 'HashRef',
+    traits => [qw(Hash)],
+);
+
+has 'subscription_callbacks' => (
+    default => sub { {} },
+    handles => {
+        get_subscription_callback => 'get',
+        set_subscription_callback => 'set',
     },
     is     => 'ro',
     isa    => 'HashRef',
@@ -157,6 +169,30 @@ sub subscribe_queues {
     );
 }
 
+sub pause_listening {
+    my ( $self, $queues ) = @_;
+    $self->each_server(
+        unblock_sub {
+            my $self = shift;
+            foreach my $queue (@$queues) {
+                $self->pause($queue);
+            }
+        }
+    );
+}
+
+sub resume_listening {
+    my ( $self, $queues ) = @_;
+    $self->each_server(
+        unblock_sub {
+            my $self = shift;
+            foreach my $queue (@$queues) {
+                $self->resume($queue);
+            }
+        }
+    );
+}
+
 sub subscribe {
     my ( $self, $queue_name ) = @_;
 
@@ -179,9 +215,32 @@ sub subscribe {
 
     eval {
         $self->mq->subscribe( $queue_name => $callback );
+        $self->set_subscription_callback( $queue_name => $callback );
     };
     if ($@) {
         $self->error('Beetle: binding multiple handlers for the same queue isn\'t possible');
+    }
+}
+
+sub pause {
+    my ( $self, $queue_name ) = @_;
+
+    $self->log->debug( sprintf 'Beetle: pausing subscription on queue %s', $queue_name );
+    $self->mq->unsubscribe( $queue_name );
+}
+
+sub resume {
+    my ( $self, $queue_name ) = @_;
+
+    if (my $callback = $self->get_subscription_callback( $queue_name )) {
+
+        $self->log->debug( sprintf 'Beetle: resuming subscription on queue %s', $queue_name );
+        eval {
+            $self->mq->subscribe( $queue_name => $callback );
+        };
+        if ($@) {
+            $self->error('Beetle: binding multiple handlers for the same queue isn\'t possible');
+        }
     }
 }
 

@@ -22,8 +22,10 @@ implementation.
 has '_subscriptions' => (
     default => sub { return {}; },
     handles => {
-        set_subscription => 'set',
-        has_subscription => 'exists'
+        set_subscription    => 'set',
+        has_subscription    => 'exists',
+        get_subscription    => 'get',
+        delete_subscription => 'delete',
     },
     is     => 'ro',
     isa    => 'HashRef',
@@ -38,8 +40,9 @@ has '_reconnect_timer' => (
 has '_command_history' => (
     default => sub { return []; },
     handles => {
-        _add_command_history => 'push',
-        get_command_history  => 'elements',
+        _add_command_history        => 'push',
+        get_command_history         => 'elements',
+        delete_from_command_history => 'delete',
     },
     is     => 'ro',
     isa    => 'ArrayRef',
@@ -156,13 +159,40 @@ sub subscribe {
     $self->add_command_history( { subscribe => \@_ } );
     my $has_subscription = $self->has_subscription($queue);
     die "Already subscribed to queue $queue" if $has_subscription;
-    $self->set_subscription( $queue => 1 );
     $self->log->debug( sprintf '[%s:%d] Subscribing to queue %s', $self->host, $self->port, $queue );
-    $self->_consume(
+    my $frame = $self->_consume(
         on_consume => $callback,
         queue      => $queue,
         no_ack     => 0,
     );
+    my $consumer_tag = $frame->method_frame->consumer_tag;
+    $self->set_subscription( $queue => $consumer_tag );
+}
+
+sub unsubscribe {
+    my ( $self, $queue ) = @_;
+
+    my $consumer_tag = $self->get_subscription($queue);
+
+    # not subscribed
+    return
+        unless $consumer_tag;
+
+    $self->log->debug( sprintf '[%s:%d] Unsubscribing from queue %s (consumer tag %s)', $self->host, $self->port, $queue, $consumer_tag );
+
+    # remove last subscribe command for this queue from the command history
+    my @history = reverse $self->get_command_history();
+    for (0..$#history) {
+        if (my $subscribe_cmd = $history[$_]->{subscribe}) {
+            if ($subscribe_cmd->[0] eq $queue) {
+                $self->delete_from_command_history($#history - $_);
+                last;
+            }
+        }
+    }
+
+    $self->_cancel(consumer_tag => $consumer_tag);
+    $self->delete_subscription( $queue );
 }
 
 sub _replay_command_history {

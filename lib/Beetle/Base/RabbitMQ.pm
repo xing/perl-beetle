@@ -57,6 +57,7 @@ has '_channel' => (
         _close            => 'close',
         _bind_queue       => 'bind_queue',
         _consume          => 'consume',
+        _cancel           => 'cancel',
         _get              => 'get',
         _declare_exchange => 'declare_exchange',
         _declare_queue    => 'declare_queue',

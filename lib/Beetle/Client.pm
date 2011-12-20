@@ -506,6 +506,40 @@ sub stop_listening {
     $self->subscriber->stop;
 }
 
+=head2 pause_listening
+
+This will pause the listener by calling L<Beetle::Subscriber/pause_listening>.
+
+=over 4
+
+=item * $queues (mandatory)
+
+=back
+
+=cut
+
+sub pause_listening {
+    my ($self, $queues) = @_;
+    $self->subscriber->pause_listening($queues);
+}
+
+=head2 resume_listening
+
+This will resume the listener by calling L<Beetle::Subscriber/resume_listening>.
+
+=over 4
+
+=item * $queues (mandatory)
+
+=back
+
+=cut
+
+sub resume_listening {
+    my ($self, $queues) = @_;
+    $self->subscriber->resume_listening($queues);
+}
+
 =head2 stop_publishing
 
 This will stop the publisher by calling L<Beetle::Publisher/stop>.
