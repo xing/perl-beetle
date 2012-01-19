@@ -170,27 +170,33 @@ sub subscribe_queues {
 }
 
 sub pause_listening {
-    my ( $self, $queues ) = @_;
-    $self->each_server(
-        unblock_sub {
-            my $self = shift;
-            foreach my $queue (@$queues) {
-                $self->pause($queue);
+    my $s = unblock_sub {
+        my ( $self, $queues ) = @_;
+        $self->each_server(
+            sub {
+                my $self = shift;
+                foreach my $queue (@$queues) {
+                    $self->pause($queue);
+                }
             }
-        }
-    );
+        );
+    };
+    $s->(@_);
 }
 
 sub resume_listening {
-    my ( $self, $queues ) = @_;
-    $self->each_server(
-        unblock_sub {
-            my $self = shift;
-            foreach my $queue (@$queues) {
-                $self->resume($queue);
+    my $s = unblock_sub {
+        my ( $self, $queues ) = @_;
+        $self->each_server(
+            sub {
+                my $self = shift;
+                foreach my $queue (@$queues) {
+                    $self->resume($queue);
+                }
             }
-        }
-    );
+        );
+    };
+    $s->(@_);
 }
 
 sub subscribe {

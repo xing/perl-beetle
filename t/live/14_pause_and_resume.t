@@ -13,7 +13,7 @@ test_beetle_live(
     sub {
         my $ports = shift;
 
-        my $rabbit = sprintf 'localhost:%d', $ports->{rabbit1};
+        my $rabbit = sprintf 'localhost:%d localhost:%d', $ports->{rabbit1}, $ports->{rabbit2};
         my $redis  = sprintf 'localhost:%d', $ports->{redis1};
 
         my (@timers, $paused);
@@ -28,7 +28,7 @@ test_beetle_live(
 
         for my $queue (qw(testperl testperl_pause)) {
             $client->register_queue($queue);
-            $client->register_message($queue);
+            $client->register_message($queue => { redundant => 1 });
             $client->purge($queue);
         }
 
@@ -42,6 +42,8 @@ test_beetle_live(
                     AnyEvent->timer(after => 1, cb => sub {
                         $client->pause_listening(['testperl_pause']);
                         $paused = 1;
+                    }),
+                    AnyEvent->timer(after => 2, cb => sub {
                         $client->publish( testperl => 2 );
                         $client->publish( testperl_pause => 2 );
                         ok($paused, 'paused subscription; published more messages');
@@ -66,7 +68,10 @@ test_beetle_live(
             }
             elsif ($msg->{body} == 2) {
                 ok( !$paused, 'got second msg only after resuming subscription' );
-                $client->stop_listening();
+                push @timers,
+                    AnyEvent->timer(after => 1, cb => sub {
+                        $client->stop_listening();
+                    });
             }
         });
 
