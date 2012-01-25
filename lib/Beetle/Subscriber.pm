@@ -43,15 +43,10 @@ has 'mqs' => (
     traits => [qw(Hash)],
 );
 
-has 'subscription_callbacks' => (
+has 'subscription_callback' => (
     default => sub { {} },
-    handles => {
-        get_subscription_callback => 'get',
-        set_subscription_callback => 'set',
-    },
     is     => 'ro',
     isa    => 'HashRef',
-    traits => [qw(Hash)],
 );
 
 sub listen {
@@ -224,7 +219,7 @@ sub subscribe {
         $self->set_subscription_callback( $queue_name => $callback );
     };
     if ($@) {
-        $self->error('Beetle: binding multiple handlers for the same queue isn\'t possible');
+        $self->error("Beetle: binding multiple handlers for the same queue isn't possible: $@");
     }
 }
 
@@ -245,7 +240,7 @@ sub resume {
             $self->mq->subscribe( $queue_name => $callback );
         };
         if ($@) {
-            $self->error('Beetle: binding multiple handlers for the same queue isn\'t possible');
+            $self->error("Beetle: error resuming subscription on queue $queue_name: $@");
         }
     }
 }
@@ -300,6 +295,20 @@ sub create_subscription_callback {
             return $result;
         };
     };
+}
+
+sub get_subscription_callback {
+    my ($self, $queue) = @_;
+
+    my $server = $self->server;
+    return $self->subscription_callback->{$server}->{$queue};
+}
+
+sub set_subscription_callback {
+    my ($self, $queue, $callback) = @_;
+
+    my $server = $self->server;
+    $self->subscription_callback->{$server}->{$queue} = $callback;
 }
 
 sub bind_queue {
