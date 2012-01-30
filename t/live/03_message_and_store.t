@@ -51,7 +51,7 @@ test_redis(
             is( scalar( $store->redis->keys('*') ), 2, 'Keys are really in store (status + expires)' );
             ok( $store->garbage_collect_keys(),           'Garbage collection without argument should use time' );
             ok( $store->garbage_collect_keys( time + 1 ), 'Garbage collection' );
-            is( scalar( $store->redis->keys('*') ), undef, 'Keys have been removed from store' );
+            ok( !scalar( $store->redis->keys('*') ), 'Keys have been removed from store' ); # redis 1.6.2 returns undef, redis 2.4.6 returns 0
         }
 
         # test "should not garbage collect not yet expired keys" do
@@ -72,7 +72,7 @@ test_redis(
             ok( $store->garbage_collect_keys( time + 1 ), 'Garbage collection' );
             is( scalar( $store->redis->keys('*') ), 2, 'Keys are still store' );
             ok( $store->garbage_collect_keys( time + 61 ), 'Garbage collection' );
-            is( scalar( $store->redis->keys('*') ), undef, 'Keys have been removed from store' );
+            ok( !scalar( $store->redis->keys('*') ), 'Keys have been removed from store' );
         }
 
         # test "successful processing of a non redundant message should delete all keys from the database" do

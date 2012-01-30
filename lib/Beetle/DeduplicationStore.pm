@@ -2,7 +2,7 @@ package Beetle::DeduplicationStore;
 
 use Moose;
 use namespace::clean -except => 'meta';
-use Beetle::Redis;
+use Redis;
 use Carp qw(croak);
 extends qw(Beetle::Base);
 
@@ -50,9 +50,10 @@ has 'db' => (
 );
 
 has 'current_master' => (
-    is        => 'ro',
+    is        => 'rw',
     isa       => 'Any',
     predicate => 'has_current_master',
+    clearer   => 'clear_current_master',
 );
 
 has 'last_time_master_file_changed' => (
@@ -194,6 +195,8 @@ sub with_failover {
         $result = eval { $code->(); };
         last unless $@;
         $self->log->error("Beetle: redis connection error $@");
+        # simply throw the current master away on connection errors
+        $self->clear_current_master;
         if ( $attempt < $max_attempts ) {
             $self->log->info("Beetle: retrying redis operation");
         }
@@ -215,14 +218,16 @@ sub redis {
 sub redis_master_from_server_string {
     my ($self) = @_;
     unless ( $self->has_current_master ) {
-        $self->{current_master} = $self->_new_redis_instance( $self->hosts );
+        $self->current_master($self->_new_redis_instance( $self->hosts ));
     }
     return $self->current_master;
 }
 
 sub redis_master_from_master_file {
     my ($self) = @_;
-    $self->set_current_redis_master_from_master_file if $self->redis_master_file_changed;
+    if ($self->redis_master_file_changed || !$self->has_current_master) {
+        $self->set_current_redis_master_from_master_file;
+    }
     return $self->current_master;
 }
 
@@ -242,19 +247,18 @@ sub set_current_redis_master_from_master_file {
     { local $/ = undef; local *FILE; open FILE, "<$file"; $server = <FILE>; close FILE }
     chomp $server;
     if ($server) {
-        $self->{current_master} = $self->_new_redis_instance($server);
+        $self->current_master($self->_new_redis_instance($server));
     }
     else {
-        $self->{current_master} = undef;
+        $self->clear_current_master();
     }
 }
 
 sub _new_redis_instance {
     my ( $self, $server ) = @_;
-    return Beetle::Redis->new(
-        server => $server,
-        db     => $self->db,
-    );
+    my $redis = Redis->new(server => $server);
+    $redis->select($self->db);
+    return $redis;
 }
 
 __PACKAGE__->meta->make_immutable;

@@ -38,11 +38,6 @@ test_redis(
         }
 
         {
-            ok( $store->redis->set( 'foo' => undef ), 'Setting undef works' );
-            is( $store->redis->get('foo'), undef, 'Getting undef works' );
-        }
-
-        {
             throws_ok { $store->redis->blah }
             qr/\[blah\] ERR unknown command 'BLAH'/,
               'invalid redis command';

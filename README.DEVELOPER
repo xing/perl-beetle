@@ -22,9 +22,7 @@ sudo ./t/script/start_rabbit r2 5673
 # yet another new window: ^A c
 redis-server
 
-On Mac OS the easiest way to install redis-server and rabbitmq-server is
-to use MacPorts. It's important that you use rabbitmq-server 2.2.0, not
-newer. And for redis 1.x. There is a Redis library on CPAN which supports
-protocol version 2. This library -could- be used probably, if you change
-the connect code there like I did in the local copy of the 1.x lib in this
-repository.
+On Mac OS the easiest way to install redis-server and rabbitmq-server is to use
+MacPorts. It's important that you use rabbitmq-server 2.2.0, not newer. As of
+redis this module has been tested with redis server 1.6.2 and redis server
+2.4.6.

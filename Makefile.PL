@@ -18,6 +18,7 @@ requires(
     'Net::RabbitFoot'       => '1.02',
     'Scalar::Util'          => '1.21',
     'Sys::SigAction'        => '0.11',
+    'Redis'                 => '1.926',
 );
 
 test_requires(

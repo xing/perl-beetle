@@ -12,7 +12,6 @@ BEGIN {
     use_ok('Beetle::Handler');
     use_ok('Beetle::Message');
     use_ok('Beetle::Publisher');
-    use_ok('Beetle::Redis');
     use_ok('Beetle::Subscriber');
 }
 
