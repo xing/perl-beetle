@@ -106,7 +106,7 @@ sub publish {
     $options ||= {};
 
     my $message = $self->client->get_message($message_name);
-    $options = merge $options, $message;
+    $options = merge $message, $options;
 
     my $exchange_name = delete $options->{exchange};
     delete $options->{queue};
