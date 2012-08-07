@@ -644,4 +644,16 @@ BEGIN {
     is_deeply( $client->publisher->exchanges, {}, 'No exchanges there yet' );
 }
 
+# test "options for publish take precedence over message definition" do
+{
+    my $client = Beetle::Client->new( config => { bunny_class => 'Test::Beetle::Bunny' } );
+    $client->register_message( msg => { exchange => 'some-exchange', key => 'default-key' } );
+    my $override = Sub::Override->new('Beetle::Publisher::publish_with_failover' => sub {
+            my ( $self, $exchange_name, $message_name, $data, $options ) = @_;
+            is ( $options->{key}, "overridden-key", "Publish options take precedence over message definition");
+        }
+    );
+    $client->publish('msg', { some => 'data' }, { key => 'overridden-key'});
+}
+
 done_testing;
