@@ -235,4 +235,39 @@ BEGIN {
     );
 }
 
+# handler method 'processing_completed' should be called under all circumstances
+{
+    my $client = Beetle::Client->new( config => { mq_class => 'Test::Beetle::Bunny', } );
+    $client->register_queue('somequeue');
+    my $completed = 0;
+    my $callback = $client->subscriber->create_subscription_callback(
+        {
+            queue_name      => 'my message',
+            amqp_queue_name => 'somequeue',
+            handler         => {
+                code => sub {},
+                options => {
+                    completed_callback => sub {
+                        $completed++;
+                    },
+                },
+            },
+            options => { exceptions => 1 },
+            mq      => $client->subscriber->mq,
+        }
+    );
+
+    my $msg = {
+        header => Test::Beetle->header_with_params(),
+        body   =>Test::MockObject->new->mock( 'payload' => sub { return '{"foo":"bar"}' } ),
+    };
+
+    $callback->( $msg, 'foo' );
+    is $completed, 1, 'Completed callback called for successful message processing';
+
+    my $o1 = Sub::Override->new( 'Beetle::Message::process' => sub { die "blah" } );
+    $callback->( $msg, 'foo' );
+    is $completed, 2, 'Completed callback called for internal processing exception'
+}
+
 done_testing;

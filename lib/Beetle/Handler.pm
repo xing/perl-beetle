@@ -40,6 +40,12 @@ has 'failback' => (
     predicate => 'has_failback',
 );
 
+has 'completed_callback' => (
+    is        => 'ro',
+    isa       => 'CodeRef',
+    predicate => 'has_completed_callback',
+);
+
 sub create {
     my ( $package, $thing, $args ) = @_;
 
@@ -97,6 +103,14 @@ sub process_failure {
     }
     else {
         return eval { $self->failure($result) };
+    }
+}
+
+sub processing_completed {
+    my ($self) = @_;
+
+    if ( $self->has_completed_callback ) {
+        return eval { $self->completed_callback->() };
     }
 }
 

@@ -259,9 +259,9 @@ sub create_subscription_callback {
         my $header         = $amqp_message->{header};
         my $body           = $amqp_message->{body}->payload;
         my $deliver        = $amqp_message->{deliver};
-        eval {
+        my $processor = eval { Beetle::Handler->create( $handler, $options ) };
+        my $processing_result = eval {
             my $server = sprintf '%s:%d', $mq->host, $mq->port;
-            my $processor = Beetle::Handler->create( $handler, $options );
             my $message_options = merge $options,
               { server => $server, store => $self->client->deduplication_store };
             my $message = Beetle::Message->new(
@@ -290,10 +290,13 @@ sub create_subscription_callback {
                     }
                 }
             }
-
             # TODO: complete the implementation of reply_to
             return $result;
         };
+
+        $processor->processing_completed() if $processor;
+        return $processing_result;
+
     };
 }
 
