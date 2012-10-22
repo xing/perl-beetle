@@ -259,14 +259,14 @@ BEGIN {
 
     my $msg = {
         header => Test::Beetle->header_with_params(),
-        body   =>Test::MockObject->new->mock( 'payload' => sub { return '{"foo":"bar"}' } ),
+        body   => Test::MockObject->new->mock( 'payload' => sub { return '{"foo":"bar"}' } ),
     };
 
-    $callback->( $msg, 'foo' );
+    $callback->( $msg );
     is $completed, 1, 'Completed callback called for successful message processing';
 
     my $o1 = Sub::Override->new( 'Beetle::Message::process' => sub { die "blah" } );
-    $callback->( $msg, 'foo' );
+    $callback->( $msg );
     is $completed, 2, 'Completed callback called for internal processing exception'
 }
 
