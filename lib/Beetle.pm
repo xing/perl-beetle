@@ -3,7 +3,7 @@ package Beetle;
 use Moose;
 use namespace::clean -except => 'meta';
 
-our $VERSION = '0.25000';
+our $VERSION = '0.26000';
 
 __PACKAGE__->meta->make_immutable;
 
