@@ -17,7 +17,6 @@ TODO: <plu> add docs
 
 =cut
 
-my $RPC_DEFAULT_TIMEOUT = 10;
 our $RECYCLE_DEAD_SERVERS_DELAY = 10;
 
 has 'client' => (
