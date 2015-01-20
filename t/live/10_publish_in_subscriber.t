@@ -39,7 +39,7 @@ test_beetle_live(
                     my ($message) = @_;
                     push @messages, $message;
                     if (@messages <= 5) {
-                        $client->publish( testperl => "handler: " . @messages ) if @messages <= 5;
+                        $client->publish( testperl => "handler: " . @messages );
                     }
                 },
             );
