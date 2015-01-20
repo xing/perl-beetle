@@ -7,7 +7,6 @@ use lib ( "$Bin/../lib", "$Bin/../../lib" );
 use Beetle::Client;
 use Test::Beetle;
 use Test::Beetle::Live;
-use Coro qw(unblock_sub);
 
 test_beetle_live(
     sub {

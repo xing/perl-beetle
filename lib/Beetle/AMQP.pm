@@ -3,7 +3,7 @@ package Beetle::AMQP;
 use Moose;
 use namespace::clean -except => 'meta';
 use AnyEvent;
-use Coro;
+use Coro qw/unblock_sub/;
 extends qw(Beetle::Base::RabbitMQ);
 
 =head1 NAME

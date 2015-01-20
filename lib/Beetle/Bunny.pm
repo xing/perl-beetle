@@ -3,9 +3,7 @@ package Beetle::Bunny;
 use Moose;
 use namespace::clean -except => 'meta';
 use Data::Dumper;
-use Coro;
 
-extends qw(Beetle::Base::RabbitMQ);
 
 =head1 NAME
 
@@ -13,7 +11,7 @@ Beetle::Bunny - RabbitMQ adaptor for Beetle::Publisher
 
 =head1 DESCRIPTION
 
-This is the adaptor to L<Net::RabbitFoot>. Its interface is similar to the
+This is the adaptor to L<Net::RabbitMQ>. Its interface is similar to the
 Ruby AMQP client called C<< bunny >>: http://github.com/celldee/bunny
 So the Beetle code using this adaptor can be closer to the Ruby Beetle
 implementation.
@@ -25,15 +23,6 @@ has 'connect_exception' => (
     is        => 'ro',
     isa       => 'Str',
     predicate => 'has_connect_exception',
-);
-
-# we need this to fix a problem when publishing in the subscriber. see
-# t/live/10_publish_in_subscriber.t
-has '_connect_lock' => (
-    is       => 'ro',
-    isa      => 'Coro::Semaphore',
-    required => 1,
-    default  => sub { Coro::Semaphore->new() },
 );
 
 sub publish {
@@ -61,7 +50,6 @@ sub purge {
 
 sub _connect {
     my ($self) = @_;
-    $self->_connect_lock->down();
     $self->clear_connect_exception;
     eval {
         $self->rf->connect(
@@ -73,7 +61,6 @@ sub _connect {
         ) unless $self->rf->{_ar}{_is_open};
     };
     $self->{connect_exception} = $@;
-    $self->_connect_lock->up();
     return 0 if $@;
     return 1;
 }
