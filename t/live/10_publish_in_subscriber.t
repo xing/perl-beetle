@@ -61,18 +61,17 @@ test_beetle_live(
 sub _get_client {
     my ($ports) = @_;
 
-        my $rabbit = sprintf 'localhost:%d', $ports->{rabbit1};
-        my $redis  = sprintf 'localhost:%d', $ports->{redis1};
-        my $config = {
-            logger      => '/dev/null',
-            redis_hosts => $redis,
-            servers     => $rabbit,
-        };
+    my $rabbit = sprintf 'localhost:%d', $ports->{rabbit1};
+    my $redis  = sprintf 'localhost:%d', $ports->{redis1};
+    my $config = {
+        logger      => '/dev/null',
+        redis_hosts => $redis,
+        servers     => $rabbit,
+    };
 
-        my $client = Beetle::Client->new( config => $config );
-        $client->register_queue("testperl");
-        $client->register_message("testperl");
+    my $client = Beetle::Client->new( config => $config );
+    $client->register_queue("testperl");
+    $client->register_message("testperl");
 
-        return $client;
+    return $client;
 }
-
