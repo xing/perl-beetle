@@ -3,12 +3,14 @@ package Beetle::AMQP;
 use Moose;
 use namespace::clean -except => 'meta';
 use AnyEvent;
+use Net::RabbitFoot;
+use Data::Dumper;
 use Coro qw/unblock_sub/;
-extends qw(Beetle::Base::RabbitMQ);
+extends qw(Beetle::Base);
 
 =head1 NAME
 
-Beetle::MQ - RabbitMQ adaptor for Beetle::Subscriber
+Beetle::AMQP - RabbitMQ adaptor for Beetle::Subscriber
 
 =head1 DESCRIPTION
 
@@ -61,11 +63,49 @@ has '_connect_attempts' => (
     isa     => 'Int',
 );
 
-after 'BUILD' => sub {
-    my ($self) = @_;
-    $self->connect;
-    $self->_qos( prefetch_count => 1 );
-};
+has 'anyevent_condvar' => (
+    is      => 'rw',
+    isa     => 'AnyEvent::CondVar',
+    default => sub { AnyEvent->condvar },
+    lazy    => 1,
+);
+
+has 'host' => (
+    is       => 'rw',
+    isa      => 'Str',
+    required => 1,
+);
+
+has 'port' => (
+    is       => 'rw',
+    isa      => 'Str',
+    required => 1,
+);
+
+has 'rf' => (
+    isa     => 'Any',
+    is      => 'ro',
+    handles => { _open_channel => 'open_channel', },
+);
+
+has '_channel' => (
+    default => sub { shift->open_channel },
+    handles => {
+        _ack              => 'ack',
+        _close            => 'close',
+        _bind_queue       => 'bind_queue',
+        _consume          => 'consume',
+        _cancel           => 'cancel',
+        _get              => 'get',
+        _declare_exchange => 'declare_exchange',
+        _declare_queue    => 'declare_queue',
+        _recover          => 'recover',
+        _reject           => 'reject',
+        _qos              => 'qos',
+    },
+    isa  => 'Any',
+    lazy => 1,
+);
 
 sub add_command_history {
     my ( $self, @args ) = @_;
@@ -195,6 +235,57 @@ sub unsubscribe {
     $self->delete_subscription( $queue );
 }
 
+sub exchange_declare {
+    my $self = shift;
+    my ( $exchange, $options ) = @_;
+    $self->add_command_history( { exchange_declare => \@_ } );
+    $options ||= {};
+    $self->log->debug( sprintf '[%s:%d] Declaring exchange %s with options: %s', $self->host, $self->port, $exchange, Dumper $options);
+    $self->_declare_exchange(
+        exchange => $exchange,
+        no_ack   => 0,
+        %$options
+    );
+}
+
+sub queue_bind {
+    my $self = shift;
+    my ( $queue, $exchange, $routing_key ) = @_;
+    $self->add_command_history( { queue_bind => \@_ } );
+    $self->log->debug( sprintf '[%s:%d] Binding to queue %s on exchange %s using routing key %s', $self->host, $self->port, $queue, $exchange, $routing_key );
+    $self->_bind_queue(
+        exchange    => $exchange,
+        queue       => $queue,
+        routing_key => $routing_key,
+        no_ack      => 0,
+    );
+}
+
+sub queue_declare {
+    my $self = shift;
+    my ( $queue, $options ) = @_;
+    $self->add_command_history( { queue_declare => \@_ } );
+    $self->log->debug( sprintf '[%s:%d] Declaring queue with options: %s', $self->host, $self->port, Dumper $options);
+    $self->_declare_queue(
+        no_ack => 0,
+        queue  => $queue,
+        %$options
+    );
+}
+
+sub stop {
+    my ($self) = @_;
+    $self->rf->ar->close;
+    $self->anyevent_condvar->send;
+}
+
+sub BUILD {
+    my ($self) = @_;
+    $self->{rf} = Net::RabbitFoot->new( verbose => $self->config->verbose );
+    $self->connect;
+    $self->_qos( prefetch_count => 1 );
+}
+
 sub _replay_command_history {
     my ($self) = @_;
     foreach my $command ( $self->get_command_history ) {
@@ -203,6 +294,14 @@ sub _replay_command_history {
         $self->$method(@$args);
         $self->_replay(0);
     }
+}
+
+BEGIN {
+    no warnings 'redefine';
+
+    # TODO: <plu> talk to author of AnyEvent::RabbitMQ how to fix this properly
+    *AnyEvent::RabbitMQ::Channel::DESTROY = sub { };
+    *AnyEvent::RabbitMQ::DESTROY          = sub { };
 }
 
 =head1 AUTHOR
