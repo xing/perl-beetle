@@ -26,4 +26,9 @@ export RABBITMQ_NODE_PORT=$2
 # is used by the server to auto-configure a RabbitMQ cluster.  See the clustering
 # guide at <http://www.rabbitmq.com/clustering.html> for details.
 
+export RABBITMQ_CONFIG_FILE=/tmp/rabbit-$1
+echo "[{rabbitmq_mochiweb, [{listeners, [{mgmt, [{port, 1${2}}]}]}]}]." > ${RABBITMQ_CONFIG_FILE}.config
+
 rabbitmq-server
+
+rm -f ${RABBITMQ_CONFIG_FILE}.config

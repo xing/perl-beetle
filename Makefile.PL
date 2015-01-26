@@ -16,6 +16,7 @@ requires(
     'MooseX::SimpleConfig'  => '0.07',
     'namespace::clean'      => '0.11',
     'Net::RabbitFoot'       => '1.02',
+    'Net::AMQP::RabbitMQ'   => '0.010000',
     'Scalar::Util'          => '1.21',
     'Sys::SigAction'        => '0.11',
     'Redis'                 => '1.926',

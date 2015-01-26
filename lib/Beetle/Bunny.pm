@@ -3,9 +3,8 @@ package Beetle::Bunny;
 use Moose;
 use namespace::clean -except => 'meta';
 use Data::Dumper;
-use Coro;
-
-extends qw(Beetle::Base::RabbitMQ);
+use Net::AMQP::RabbitMQ;
+extends qw(Beetle::Base);
 
 =head1 NAME
 
@@ -13,12 +12,31 @@ Beetle::Bunny - RabbitMQ adaptor for Beetle::Publisher
 
 =head1 DESCRIPTION
 
-This is the adaptor to L<Net::RabbitFoot>. Its interface is similar to the
+This is the adaptor to L<Net::AMQP::RabbitMQ>. Its interface is similar to the
 Ruby AMQP client called C<< bunny >>: http://github.com/celldee/bunny
 So the Beetle code using this adaptor can be closer to the Ruby Beetle
 implementation.
 
 =cut
+
+has 'host' => (
+    is       => 'rw',
+    isa      => 'Str',
+    required => 1,
+);
+
+has 'port' => (
+    is       => 'rw',
+    isa      => 'Str',
+    required => 1,
+);
+
+has 'mq' => (
+    default => sub { Net::AMQP::RabbitMQ->new },
+    isa     => 'Net::AMQP::RabbitMQ',
+    is      => 'ro',
+    lazy    => 1,
+);
 
 has 'connect_exception' => (
     clearer   => 'clear_connect_exception',
@@ -27,53 +45,72 @@ has 'connect_exception' => (
     predicate => 'has_connect_exception',
 );
 
-# we need this to fix a problem when publishing in the subscriber. see
-# t/live/10_publish_in_subscriber.t
-has '_connect_lock' => (
-    is       => 'ro',
-    isa      => 'Coro::Semaphore',
-    required => 1,
-    default  => sub { Coro::Semaphore->new() },
+has '_channel' => (
+    default => 1,
+    isa     => 'Int',
+    is      => 'ro',
 );
 
 sub publish {
-    my ( $self, $exchange_name, $message_name, $data, $header ) = @_;
+    my ( $self, $exchange, $routing_key, $body, $options ) = @_;
     $self->_connect or die;
-    $header ||= {};
-    my %data = (
-        body        => $data,
-        exchange    => $exchange_name,
-        routing_key => $message_name,
-        header      => $header,
-        no_ack      => 0,
-    );
+    $options ||= {};
     $self->log->debug( sprintf '[%s:%d] Publishing message %s on exchange %s',
-        $self->host, $self->port, $message_name, $exchange_name );
-    $self->_publish(%data);
+        $self->host, $self->port, $routing_key, $exchange );
+    $self->mq->publish($self->_channel, $routing_key, $body, { exchange => $exchange }, $options);
 }
 
 sub purge {
     my ( $self, $queue, $options ) = @_;
     $self->_connect or die;
     $options ||= {};
-    $self->_purge_queue( queue => $queue, %$options );
+    $self->mq->purge($self->_channel, $queue, %$options );
+}
+
+sub queue_declare {
+    my $self = shift;
+    $self->_connect or die;
+    my ( $queue, $options ) = @_;
+    $self->log->debug( sprintf '[%s:%d] Declaring queue with options: %s', $self->host, $self->port, Dumper $options);
+    $self->mq->queue_declare($self->_channel, $queue, $options);
+}
+
+sub exchange_declare {
+    my $self = shift;
+    $self->_connect or die;
+    my ( $exchange, $options ) = @_;
+    $options ||= {};
+    $self->log->debug( sprintf '[%s:%d] Declaring exchange %s with options: %s', $self->host, $self->port, $exchange, Dumper $options);
+    $options->{exchange_type} = delete $options->{type};
+    $options->{auto_delete} ||= 0;
+    $self->mq->exchange_declare($self->_channel, $exchange, $options);
+}
+
+sub queue_bind {
+    my $self = shift;
+    $self->_connect or die;
+    my ( $queue, $exchange, $routing_key ) = @_;
+    $self->log->debug( sprintf '[%s:%d] Binding to queue %s on exchange %s using routing key %s', $self->host, $self->port, $queue, $exchange, $routing_key );
+    $self->mq->queue_bind($self->_channel, $queue, $exchange, $routing_key);
 }
 
 sub _connect {
     my ($self) = @_;
-    $self->_connect_lock->down();
+    return 1 if $self->mq->is_connected();
     $self->clear_connect_exception;
     eval {
-        $self->rf->connect(
-            host  => $self->host,
-            port  => $self->port,
-            user  => $self->config->user,
-            pass  => $self->config->password,
-            vhost => $self->config->vhost,
-        ) unless $self->rf->{_ar}{_is_open};
+        $self->mq->connect(
+            $self->host,
+            {
+                user     => $self->config->user,
+                password => $self->config->password,
+                port     => $self->port,
+                vhost    => $self->config->vhost,
+            }
+        );
+        $self->mq->channel_open($self->_channel);
     };
     $self->{connect_exception} = $@;
-    $self->_connect_lock->up();
     return 0 if $@;
     return 1;
 }
