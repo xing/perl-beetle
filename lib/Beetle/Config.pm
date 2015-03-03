@@ -126,6 +126,20 @@ has 'servers' => (
     required      => 1,
 );
 
+=head2 additional_subscription_servers
+
+list of additional amqp servers to use for subscribers only
+
+=cut
+
+has 'additional_subscription_servers' => (
+    default       => '',
+    documentation => 'list of additional amqp servers to use for subscribers only',
+    is            => 'rw',
+    isa           => 'Str',
+    required      => 0,
+);
+
 =head2 vhost
 
 the virtual host to use on the AMQP servers (default: /)

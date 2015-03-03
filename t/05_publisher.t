@@ -38,7 +38,10 @@ BEGIN {
 
 {
     local $Beetle::Publisher::RECYCLE_DEAD_SERVERS_DELAY = 1;
-    my $client = Beetle::Client->new( config => { servers => 'localhost:3333 localhost:4444 localhost:5555' } );
+    my $client = Beetle::Client->new( config => {
+            servers                         => 'localhost:3333 localhost:4444 localhost:5555',
+            additional_subscription_servers => 'add:4215',
+        } );
     my $publisher = $client->publisher;
 
     is_deeply( $publisher->servers, [qw(localhost:3333 localhost:4444 localhost:5555)],
@@ -92,8 +95,9 @@ BEGIN {
 
     my $client = Beetle::Client->new(
         config => {
-            servers     => 'localhost:3333 localhost:4444',
-            bunny_class => 'Test::Beetle::Bunny',
+            servers                         => 'localhost:3333 localhost:4444',
+            additional_subscription_servers => 'add:4215',
+            bunny_class                     => 'Test::Beetle::Bunny',
         }
     );
     my $publisher = $client->publisher;
@@ -129,8 +133,9 @@ BEGIN {
 
     my $client = Beetle::Client->new(
         config => {
-            servers     => 'localhost:3333 localhost:4444 localhost:5555',
-            bunny_class => 'Test::Beetle::Bunny',
+            servers                         => 'localhost:3333 localhost:4444 localhost:5555',
+            additional_subscription_servers => 'add:4215',
+            bunny_class                     => 'Test::Beetle::Bunny',
         }
     );
     my $publisher = $client->publisher;
@@ -151,8 +156,9 @@ BEGIN {
 
     my $client = Beetle::Client->new(
         config => {
-            servers     => 'localhost:3333',
-            bunny_class => 'Test::Beetle::Bunny',
+            servers                         => 'localhost:3333',
+            additional_subscription_servers => 'add:4215',
+            bunny_class                     => 'Test::Beetle::Bunny',
         }
     );
     my $publisher = $client->publisher;
@@ -173,8 +179,9 @@ BEGIN {
 
     my $client = Beetle::Client->new(
         config => {
-            servers     => 'localhost:3333 localhost:4444',
-            bunny_class => 'Test::Beetle::Bunny',
+            servers                         => 'localhost:3333 localhost:4444',
+            additional_subscription_servers => 'add:4215',
+            bunny_class                     => 'Test::Beetle::Bunny',
         }
     );
     my $publisher = $client->publisher;
@@ -188,8 +195,9 @@ BEGIN {
 
     my $client = Beetle::Client->new(
         config => {
-            servers     => 'localhost:3333 localhost:4444 localhost:5555 localhost:6666',
-            bunny_class => 'Test::Beetle::Bunny',
+            servers                         => 'localhost:3333 localhost:4444 localhost:5555 localhost:6666',
+            additional_subscription_servers => 'add:4215',
+            bunny_class                     => 'Test::Beetle::Bunny',
         }
     );
     my $publisher = $client->publisher;
@@ -202,8 +210,9 @@ BEGIN {
 {
     my $client = Beetle::Client->new(
         config => {
-            servers     => 'xx:3333 xx:3333 xx:5555 xx:6666',
-            bunny_class => 'Test::Beetle::Bunny',
+            servers                         => 'xx:3333 xx:3333 xx:5555 xx:6666',
+            additional_subscription_servers => 'add:4215',
+            bunny_class                     => 'Test::Beetle::Bunny',
         }
     );
     my $publisher = $client->publisher;
@@ -226,8 +235,9 @@ BEGIN {
 
     my $client = Beetle::Client->new(
         config => {
-            servers     => 'dead:3333 alive:4444 dead:5555',
-            bunny_class => 'Test::Beetle::Bunny',
+            servers                         => 'dead:3333 alive:4444 dead:5555',
+            additional_subscription_servers => 'add:4215',
+            bunny_class                     => 'Test::Beetle::Bunny',
         }
     );
     my $publisher = $client->publisher;
@@ -250,8 +260,9 @@ BEGIN {
 
     my $client = Beetle::Client->new(
         config => {
-            servers     => 'dead:3333 dead:4444 dead:5555',
-            bunny_class => 'Test::Beetle::Bunny',
+            servers                         => 'dead:3333 dead:4444 dead:5555',
+            additional_subscription_servers => 'add:4215',
+            bunny_class                     => 'Test::Beetle::Bunny',
         }
     );
     my $publisher = $client->publisher;
@@ -274,8 +285,9 @@ BEGIN {
 
     my $client = Beetle::Client->new(
         config => {
-            servers     => 'dead:3333 alive:4444 alive:5555',
-            bunny_class => 'Test::Beetle::Bunny',
+            servers                         => 'dead:3333 alive:4444 alive:5555',
+            additional_subscription_servers => 'add:4215',
+            bunny_class                     => 'Test::Beetle::Bunny',
         }
     );
     my $publisher = $client->publisher;
@@ -367,8 +379,9 @@ BEGIN {
 {
     my $client = Beetle::Client->new(
         config => {
-            servers     => 'localhost:3333 localhost:4444 localhost:5555',
-            bunny_class => 'Test::Beetle::Bunny',
+            servers                         => 'localhost:3333 localhost:4444 localhost:5555',
+            additional_subscription_servers => 'add:4215',
+            bunny_class                     => 'Test::Beetle::Bunny',
         }
     );
     my $publisher = $client->publisher;
@@ -387,8 +400,9 @@ BEGIN {
 {
     my $client = Beetle::Client->new(
         config => {
-            servers     => 'localhost:3333 localhost:4444 localhost:5555',
-            bunny_class => 'Test::Beetle::Bunny',
+            servers                         => 'localhost:3333 localhost:4444 localhost:5555',
+            additional_subscription_servers => 'add:4215',
+            bunny_class                     => 'Test::Beetle::Bunny',
         }
     );
     my $publisher = $client->publisher;
@@ -400,8 +414,9 @@ BEGIN {
 {
     my $client = Beetle::Client->new(
         config => {
-            servers     => 'localhost:3333',
-            bunny_class => 'Test::Beetle::Bunny',
+            servers                         => 'localhost:3333',
+            additional_subscription_servers => 'add:4215',
+            bunny_class                     => 'Test::Beetle::Bunny',
         }
     );
     my $publisher = $client->publisher;
@@ -432,8 +447,9 @@ BEGIN {
 
     my $client = Beetle::Client->new(
         config => {
-            servers     => 'localhost:3333',
-            bunny_class => 'Test::Beetle::Bunny',
+            servers                         => 'localhost:3333',
+            additional_subscription_servers => 'add:4215',
+            bunny_class                     => 'Test::Beetle::Bunny',
         }
     );
     $client->register_queue( 'test_queue_1' => { exchange => 'test_exchange' } );
@@ -455,8 +471,9 @@ BEGIN {
 
     my $client = Beetle::Client->new(
         config => {
-            servers     => 'localhost:3333',
-            bunny_class => 'Test::Beetle::Bunny',
+            servers                         => 'localhost:3333',
+            additional_subscription_servers => 'add:4215',
+            bunny_class                     => 'Test::Beetle::Bunny',
         }
     );
     $client->register_queue( 'test_queue_1' => { exchange => 'test_exchange' } );
@@ -486,8 +503,9 @@ BEGIN {
 
     my $client = Beetle::Client->new(
         config => {
-            servers     => 'localhost:3333',
-            bunny_class => 'Test::Beetle::Bunny',
+            servers                         => 'localhost:3333',
+            additional_subscription_servers => 'add:4215',
+            bunny_class                     => 'Test::Beetle::Bunny',
         }
     );
     $client->register_queue( 'mama' => { exchange => 'mama-exchange' } );
@@ -525,8 +543,9 @@ BEGIN {
 
     my $client = Beetle::Client->new(
         config => {
-            servers     => 'localhost:3333 localhost:4444',
-            bunny_class => 'Test::Beetle::Bunny',
+            servers                         => 'localhost:3333 localhost:4444',
+            additional_subscription_servers => 'add:4215',
+            bunny_class                     => 'Test::Beetle::Bunny',
         }
     );
     $client->publisher->purge('some_queue');
@@ -562,8 +581,12 @@ BEGIN {
         }
     );
 
-    my $client = Beetle::Client->new( config => { bunny_class => 'Test::Beetle::Bunny' } );
-    $client->publisher->{servers} = [qw(localhost:3333 localhost:4444)];
+    my $client = Beetle::Client->new( config => {
+            bunny_class                     => 'Test::Beetle::Bunny',
+            servers                         => 'localhost:3333 localhost:4444',
+            additional_subscription_servers => 'add:4215',
+     } );
+
     $client->stop_publishing;
 
     is_deeply(

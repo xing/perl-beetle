@@ -55,7 +55,13 @@ the corresponding consumers.
 =cut
 
 has 'servers' => (
-    documentation => 'the AMQP servers available for publishing',
+    documentation => 'the AMQP servers available for publishing and consuming',
+    is            => 'ro',
+    isa           => 'ArrayRef',
+);
+
+has 'subscriber_servers' => (
+    documentation => 'the AMQP servers available for consuming only',
     is            => 'ro',
     isa           => 'ArrayRef',
 );
@@ -143,18 +149,15 @@ has 'subscriber' => (
 sub BUILD {
     my ($self) = @_;
     $self->{deduplication_store} = Beetle::DeduplicationStore->new(
-
-        # TODO: <plu> $self->config should be enough, right?!
         config => $self->config,
         hosts  => $self->config->redis_hosts,
         db     => $self->config->redis_db,
     );
     $self->{servers} = [ split /[ ,]/, $self->config->servers ];
+    $self->{subscriber_servers} = [ split /[ ,]/, $self->config->additional_subscription_servers ];
 
     # Init AMQP spec
-    # TODO: <plu> is there no fucking valid way to check if this is done already or not?!
     unless ($Net::AMQP::Protocol::VERSION_MAJOR) {
-
         # Stay backwards compatible to our patched RabbitFoot package
         if (Net::RabbitFoot->can('default_amqp_spec')) {
             Net::AMQP::Protocol->load_xml_spec( Net::RabbitFoot::default_amqp_spec() );

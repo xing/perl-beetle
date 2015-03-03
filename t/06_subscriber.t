@@ -25,8 +25,9 @@ BEGIN {
 
     my $client = Beetle::Client->new(
         config => {
-            servers     => 'xx:3333 xx:3333 xx:5555 xx:6666',
-            mq_class => 'Test::Beetle::Bunny',
+            servers                         => 'xx:3333 xx:3333 xx:5555 xx:6666',
+            additional_subscription_servers => 'add:4215',
+            mq_class                        => 'Test::Beetle::Bunny',
         }
     );
 
@@ -63,13 +64,16 @@ BEGIN {
 
 # test "binding queues should iterate over all servers" do
 {
-    my $client = Beetle::Client->new( config => { mq_class => 'Test::Beetle::Bunny', } );
+    my $client = Beetle::Client->new( config => {
+            mq_class                        => 'Test::Beetle::Bunny',
+            servers                         => 'one:1111 two:2222',
+            additional_subscription_servers => 'add:4215',
+        } );
     my $subscriber = $client->subscriber;
     $client->register_queue('x');
     $client->register_queue('y');
     $client->register_handler( x => sub { } );
     $client->register_handler( y => sub { } );
-    $subscriber->{servers} = [qw(one:1111 two:2222)];
 
     my @callstack = ();
 
@@ -96,6 +100,9 @@ BEGIN {
             { 'Beetle::Base::PubSub::queue'              => 'x' },
             { 'Beetle::Base::PubSub::queue'              => 'y' },
             { 'Beetle::Base::PubSub::set_current_server' => 'two:2222' },
+            { 'Beetle::Base::PubSub::queue'              => 'x' },
+            { 'Beetle::Base::PubSub::queue'              => 'y' },
+            { 'Beetle::Base::PubSub::set_current_server' => 'add:4215' },
             { 'Beetle::Base::PubSub::queue'              => 'x' },
             { 'Beetle::Base::PubSub::queue'              => 'y' }
         ],
@@ -126,12 +133,15 @@ BEGIN {
 
 # test "should create exchanges for all exchanges passed to create_exchanges, for all servers" do
 {
-    my $client = Beetle::Client->new( config => { mq_class => 'Test::Beetle::Bunny', } );
+    my $client = Beetle::Client->new( config => {
+            mq_class                        => 'Test::Beetle::Bunny',
+            servers                         => 'one:1111 two:2222',
+            additional_subscription_servers => 'add:4215'
+        } );
     my $subscriber = $client->subscriber;
     $client->register_queue( 'donald' => { exchange => 'duck' } );
     $client->register_queue('mickey');
     $client->register_queue( 'mouse' => { exchange => 'mickey' } );
-    $subscriber->{servers} = [qw(one:1111 two:2222)];
 
     my @callstack = ();
 
@@ -159,6 +169,9 @@ BEGIN {
             { 'Beetle::Subscriber::create_exchange'    => 'duck' },
             { 'Beetle::Subscriber::create_exchange'    => 'mickey' },
             { 'Beetle::Base::PubSub::set_current_server' => 'two:2222' },
+            { 'Beetle::Subscriber::create_exchange'    => 'duck' },
+            { 'Beetle::Subscriber::create_exchange'    => 'mickey' },
+            { 'Beetle::Base::PubSub::set_current_server' => 'add:4215' },
             { 'Beetle::Subscriber::create_exchange'    => 'duck' },
             { 'Beetle::Subscriber::create_exchange'    => 'mickey' },
         ],
@@ -210,8 +223,11 @@ BEGIN {
 
 # test "subscribe should create subscriptions on all queues for all servers" do
 {
-    my $client = Beetle::Client->new( config => { mq_class => 'Test::Beetle::Bunny', } );
-    $client->subscriber->{servers} = [qw(localhost:7777 localhost:6666)];
+    my $client = Beetle::Client->new( config => {
+            mq_class => 'Test::Beetle::Bunny',
+            servers => 'localhost:7777 localhost:6666',
+            additional_subscription_servers => 'add:4215'
+        } );
     $client->register_message($_) for qw(a b);
     $client->register_queue($_)   for qw(a b);
     $client->register_handler( [qw(a b)] => sub { } );
@@ -229,7 +245,9 @@ BEGIN {
             { 'localhost:7777' => 'a' },
             { 'localhost:7777' => 'b' },
             { 'localhost:6666' => 'a' },
-            { 'localhost:6666' => 'b' }
+            { 'localhost:6666' => 'b' },
+            { 'add:4215'       => 'a' },
+            { 'add:4215'       => 'b' }
         ],
         'Callstack is correct'
     );

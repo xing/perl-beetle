@@ -49,6 +49,13 @@ has 'subscription_callback' => (
     isa    => 'HashRef',
 );
 
+sub BUILD {
+    my ($self) = @_;
+    my @servers = (@{$self->client->servers}, @{$self->client->subscriber_servers});
+    $self->{servers} = \@servers;
+    $self->{server}  = $servers[ int rand scalar @servers ];
+}
+
 sub listen {
     my ( $self, $messages, $code ) = @_;
     my $exchanges = $self->exchanges_for_messages($messages);
