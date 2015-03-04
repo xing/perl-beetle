@@ -43,7 +43,7 @@ our $DEFAULT_HANDLER_EXECUTION_ATTEMPTS_DELAY = 10;
 my $DEFAULT_EXCEPTION_LIMIT = 0;
 
 # AMQP options for message publishing
-my @PUBLISHING_KEYS = qw(key mandatory immediate persistent reply_to);
+my @PUBLISHING_KEYS = qw(key mandatory immediate persistent reply_to headers);
 
 # Data::UUID instance (otherwise painfully slow)
 my $DATA_UUID = Data::UUID->new;
@@ -344,13 +344,11 @@ sub publishing_options {
     }
 
     $args{message_id} = generate_uuid();
-    $args{headers}    = {
-        format_version => $FORMAT_VERSION,
-        flags          => $flags,
-        expires_at     => $expires_at,
+    $args{headers}    ||= {};
 
-        # reply_to       => $args{reply_to} || '',
-    };
+    $args{headers}{format_version} = $FORMAT_VERSION;
+    $args{headers}{flags}          = $flags;
+    $args{headers}{expires_at}     = $expires_at;
 
     return \%args;
 }
