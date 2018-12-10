@@ -1,3 +1,4 @@
+requires 'Class::Load'           => '0.25';
 requires 'Coro'                  => '5.23';
 requires 'Data::UUID'            => '1.203';
 requires 'Devel::StackTrace'     => '1.22';
