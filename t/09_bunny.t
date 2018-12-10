@@ -11,14 +11,14 @@ use Test::MockObject;
 
 BEGIN {
     use_ok('Beetle::Bunny');
-    use_ok('AnyEvent::RabbitMQ::Channel');
-    use_ok('AnyEvent::RabbitMQ');
+#    use_ok('AnyEvent::RabbitMQ::Channel');
+#    use_ok('AnyEvent::RabbitMQ');
 }
 
 # Make Devel::Cover happy
 
-AnyEvent::RabbitMQ::Channel::DESTROY();
-AnyEvent::RabbitMQ::DESTROY();
+#AnyEvent::RabbitMQ::Channel::DESTROY();
+#AnyEvent::RabbitMQ::DESTROY();
 
 # {
 #     my $options;
@@ -29,10 +29,10 @@ AnyEvent::RabbitMQ::DESTROY();
 #         }
 #     );
 #     my $bunny = Beetle::Bunny->new( port => 5672, host => 'localhost' );
-# 
+#
 #     $bunny->ack;
 #     is_deeply( $options, {}, 'options got default value' );
-# 
+#
 #     $bunny->ack( { foo => 'bar' } );
 #     is_deeply( $options, { foo => 'bar' }, 'options got set correctly' );
 # }
@@ -46,10 +46,10 @@ AnyEvent::RabbitMQ::DESTROY();
 #         }
 #     );
 #     my $bunny = Beetle::Bunny->new( port => 5672, host => 'localhost' );
-# 
+#
 #     $bunny->exchange_declare('ex1');
 #     is_deeply( $options, { exchange => 'ex1', no_ack => 0 }, 'options got default value' );
-# 
+#
 #     $bunny->exchange_declare( 'ex1' => { ex => 'tra' } );
 #     is_deeply( $options, { exchange => 'ex1', no_ack => 0, ex => 'tra' }, 'options got set correctly' );
 # }
@@ -63,7 +63,7 @@ AnyEvent::RabbitMQ::DESTROY();
 #         }
 #     );
 #     my $bunny = Beetle::Bunny->new( port => 5672, host => 'localhost' );
-# 
+#
 #     $bunny->publish( 'ex1', 'message1', 'data1' );
 #     is_deeply(
 #         $args,
@@ -76,7 +76,7 @@ AnyEvent::RabbitMQ::DESTROY();
 #         },
 #         'args got default value'
 #     );
-# 
+#
 #     $bunny->publish( 'ex1', 'message1', 'data1', { some => 'header' } );
 #     is_deeply(
 #         $args,
@@ -100,14 +100,14 @@ AnyEvent::RabbitMQ::DESTROY();
 #         }
 #     );
 #     my $bunny = Beetle::Bunny->new( port => 5672, host => 'localhost' );
-# 
+#
 #     $bunny->purge('q1');
 #     is_deeply( $options, { queue => 'q1' }, 'options got default value' );
-# 
+#
 #     $bunny->purge( 'q1' => { ex => 'tra' } );
 #     is_deeply( $options, { queue => 'q1', ex => 'tra' }, 'options got set correctly' );
 # }
-# 
+#
 # {
 #     my @callstack = ();
 #     my $options;
@@ -126,14 +126,14 @@ AnyEvent::RabbitMQ::DESTROY();
 #         }
 #     );
 #     my $bunny = Beetle::Bunny->new( port => 5672, host => 'localhost' );
-# 
+#
 #     my $coderef = sub { };
-# 
+#
 #     $bunny->exchange_declare('exchange1');
 #     $bunny->queue_declare('queue1');
 #     $bunny->queue_bind( 'queue1', 'exchange1', 'key1' );
 #     $bunny->subscribe( 'queue1', $coderef );
-# 
+#
 #     is_deeply(
 #         $bunny->_command_history,
 #         [
@@ -144,16 +144,16 @@ AnyEvent::RabbitMQ::DESTROY();
 #         ],
 #         'Command history set correctly'
 #     );
-# 
+#
 #     is_deeply(
 #         \@callstack,
 #         [qw(declare_exchange declare_queue bind_queue consume)],
 #         'Callstack before reconnect call is correct'
 #     );
-# 
+#
 #     ok( $bunny->_reconnect, 'Reconnect...' );
 #     ok( $bunny->_reconnect, 'Reconnect...' );
-# 
+#
 #     is_deeply(
 #         \@callstack,
 #         [
@@ -165,7 +165,7 @@ AnyEvent::RabbitMQ::DESTROY();
 #         ],
 #         'Callstack after reconnect call is correct'
 #     );
-# 
+#
 # }
 
 done_testing;
