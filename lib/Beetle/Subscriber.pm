@@ -7,6 +7,7 @@ use Beetle::Handler;
 use Beetle::Message;
 use Beetle::Constants;
 use Coro qw(unblock_sub);
+use Class::Load;
 extends qw(Beetle::Base::PubSub);
 
 =head1 NAME
@@ -151,7 +152,7 @@ sub mq {
 sub new_mq {
     my ($self) = @_;
     my $class = $self->config->mq_class;
-    Class::MOP::load_class($class);
+    Class::Load::load_class($class);
     return $class->new(
         config => $self->config,
         host   => $self->current_host,

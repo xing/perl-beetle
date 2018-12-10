@@ -5,6 +5,7 @@ use namespace::clean -except => 'meta';
 use Hash::Merge::Simple qw( merge );
 use Beetle::Message;
 use Data::Dumper;
+use Class::Load;
 extends qw(Beetle::Base::PubSub);
 
 =head1 NAME
@@ -92,7 +93,7 @@ sub create_exchange {
 sub new_bunny {
     my ($self) = @_;
     my $class = $self->config->bunny_class;
-    Class::MOP::load_class($class);
+    Class::Load::load_class($class);
     return $class->new(
         config => $self->config,
         host   => $self->current_host,

@@ -46,3 +46,7 @@
 ^cover_db
 ^ruby-beetle
 ^\.llrc
+
+# Skip development artifacts
+^cpanfile.snapshot
+^local/

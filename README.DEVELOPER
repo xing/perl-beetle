@@ -1,8 +1,17 @@
 You need following modules to start developing:
 
 * Module::Install
+* Module::Install::CPANfile
 * Module::Install::ReadmeFromPod
 * Module::Install::AuthorTests
+
+If you have got Carton installed you can install all required modules via:
+  carton install
+
+Make sure you set the PERL5LIB variable afterwards:
+  export PERL5LIB=lib:local/lib/perl5
+  prove
+  perl Makefile.PL && make && make manifest && make dist
 
 By default all live test which require rabbitmq-server to be running are
 skipped. If you want to run those tests you need to set the environment
