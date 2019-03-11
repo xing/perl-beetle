@@ -112,6 +112,19 @@ has 'redis_operation_retries' => (
     required      => 1,
 );
 
+=head2 system_name
+
+dedup redis cluster name to use
+
+=cut
+
+has 'system_name' => (
+    default       => 'system',
+    documentation => 'dedup redis cluster name to use',
+    is            => 'rw',
+    isa           => 'Str',
+);
+
 =head2 servers
 
 list of amqp servers to use (default: localhost:5672)

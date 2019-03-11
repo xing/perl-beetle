@@ -59,6 +59,34 @@ BEGIN {
     is( $store->current_master,                            undef, 'Current master is still undef' );
 }
 
-# TODO: <plu> add more new tests
+{
+    my $file = "$Bin/etc/multiple-redis-masters.conf";
+    my $store = Beetle::DeduplicationStore->new( hosts => $file );
+    is( $store->redis_master_from_master_file, undef, 'There is no "system" master in the file, so no master set' );
+    is( $store->lookup_method, 'redis_master_from_master_file', 'Correct lookup method chosen' );
+    is( $store->set_current_redis_master_from_master_file, undef, 'Current master will not be set' );
+    is( $store->current_master,                            undef, 'Current master is still undef' );
+}
+
+{
+    my $o1 = Sub::Override->new( 'Beetle::DeduplicationStore::_new_redis_instance' => sub { shift && return shift } );
+
+    my $file = "$Bin/etc/multiple-redis-masters.conf";
+    my $store = Beetle::DeduplicationStore->new( hosts => $file );
+    $store->config->system_name("b");
+
+    is( $store->redis_master_from_master_file, 'host2:1234',                    'Correct master returned' );
+    is( $store->lookup_method,                 'redis_master_from_master_file', 'Correct lookup method chosen' );
+}
+
+{
+    my $o1 = Sub::Override->new( 'Beetle::DeduplicationStore::_new_redis_instance' => sub { shift && return shift } );
+
+    my $file = "$Bin/etc/multiple-redis-masters-with-default.conf";
+    my $store = Beetle::DeduplicationStore->new( hosts => $file );
+
+    is( $store->redis_master_from_master_file, 'host3:1234',                    'Correct master returned' );
+    is( $store->lookup_method,                 'redis_master_from_master_file', 'Correct lookup method chosen' );
+}
 
 done_testing;

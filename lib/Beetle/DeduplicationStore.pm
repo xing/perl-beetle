@@ -244,8 +244,22 @@ sub set_current_redis_master_from_master_file {
     my ($self) = @_;
     my $file = $self->hosts;
     my $server;
-    { local $/ = undef; local *FILE; open FILE, "<$file"; $server = <FILE>; close FILE }
-    chomp $server;
+
+    open(my $masters, "<", $file) or die "Could not open master file $file: $!";
+    while (my $line = <$masters>) {
+        chomp $line;
+        my @parts = split '/', $line;
+
+        if (@parts == 1) {
+            $server = $parts[0]
+        }
+        elsif (@parts == 2) {
+            my ($name, $master) = @parts;
+            $server = $master if $name eq $self->config->system_name;
+        }
+    }
+    close $masters;
+
     if ($server) {
         $self->current_master($self->_new_redis_instance($server));
     }
